@@ -1,0 +1,3 @@
+[submodule "DataDefinitions"]
+	path = DataDefinitions
+	url = https://github.com/ArcanoxDragon/mercury-engine-data-structures.git
