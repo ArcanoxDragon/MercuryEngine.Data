@@ -12,4 +12,8 @@
 		</EmbeddedResource>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
+	</ItemGroup>
+
 </Project>
