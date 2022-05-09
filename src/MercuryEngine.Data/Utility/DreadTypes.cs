@@ -31,6 +31,7 @@ public static class DreadTypes
 		RegisterConcreteType<OccluderVignettesDictionary>("base::global::CRntSmallDictionary<base::global::CStrId, bool>");
 		RegisterConcreteType<CBreakableTileGroupComponent_TActorTileStatesMap>();
 		RegisterConcreteType<minimapGrid_TMinimapVisMap>();
+		RegisterConcreteType<CMinimapManager_TCustomMarkerDataMap>();
 	}
 
 	public static void RegisterConcreteType<T>()

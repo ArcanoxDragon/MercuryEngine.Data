@@ -10,12 +10,16 @@ namespace MercuryEngine.Data.Test;
 public class BmssvTests
 {
 	private const string TestFreshProfile    = "samus_fresh.bmssv";
-	private const string TestFreshProfileOut = "samus_fresh_written.bmssv";
+	private const string TestFreshProfileOut = "samus_fresh_out.bmssv";
 
-	[Test]
-	public void TestLoadFreshSamusBmssv()
+	private const string TestHundoProfile    = "samus_hundo.bmssv";
+	private const string TestHundoProfileOut = "samus_hundo_out.bmssv";
+
+	[TestCase(TestFreshProfile)]
+	[TestCase(TestHundoProfile)]
+	public void TestLoadSamusBmssv(string inFile)
 	{
-		var filePath = GetTestFilePath(TestFreshProfile);
+		var filePath = GetTestFilePath(inFile);
 		using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read);
 		var bmssv = new Bmssv();
 
@@ -39,10 +43,11 @@ public class BmssvTests
 		}
 	}
 
-	[Test]
-	public void TestCompareFreshSamusBmssv()
+	[TestCase(TestFreshProfile, TestFreshProfileOut)]
+	[TestCase(TestHundoProfile, TestHundoProfileOut)]
+	public void TestCompareSamusBmssv(string inFile, string outFile)
 	{
-		var filePath = GetTestFilePath(TestFreshProfile);
+		var filePath = GetTestFilePath(inFile);
 		using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read);
 		using var reader = new BinaryReader(fileStream);
 		var originalBuffer = reader.ReadBytes((int) fileStream.Length);
@@ -59,7 +64,7 @@ public class BmssvTests
 		tempStream.Seek(0, SeekOrigin.Begin);
 
 		var newBuffer = tempStream.ToArray();
-		var outFilePath = GetTestFilePath(TestFreshProfileOut);
+		var outFilePath = GetTestFilePath(outFile);
 		using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
 
 		tempStream.CopyTo(outFileStream);

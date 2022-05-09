@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Framework.DataTypes;
+﻿using MercuryEngine.Data.DataTypes;
+using MercuryEngine.Data.Framework.DataTypes;
 
 namespace MercuryEngine.Data.Utility.DreadTypeHelpers;
 
@@ -19,9 +20,9 @@ public class DreadPrimitiveType : BaseDreadType
 			DreadPrimitiveKind.String => new TerminatedStringDataType(),
 			// DreadPrimitiveKind.Property => // TODO
 			// DreadPrimitiveKind.Bytes => // TODO
-			// DreadPrimitiveKind.Float_Vec2 => // TODO
-			// DreadPrimitiveKind.Float_Vec3 => // TODO
-			// DreadPrimitiveKind.Float_Vec4 => // TODO
+			DreadPrimitiveKind.Float_Vec2 => new Vector2(),
+			DreadPrimitiveKind.Float_Vec3 => new Vector3(),
+			DreadPrimitiveKind.Float_Vec4 => new Vector4(),
 
 			_ => throw new InvalidOperationException($"Unknown or unsupported primitive kind \"{PrimitiveKind}\""),
 		};
