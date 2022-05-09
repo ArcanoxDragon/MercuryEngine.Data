@@ -7,7 +7,10 @@ namespace MercuryEngine.Data.Utility;
 /// </summary>
 public static class Crc64
 {
-	private const ulong Seed = 0xffffffffffffffff;
+	/// <summary>
+	/// Represents the checksum for an empty string.
+	/// </summary>
+	public const ulong Empty = 0xffffffffffffffff;
 
 	private static readonly ulong[] CrcTable = {
 		0x0000000000000000, 0xB32E4CBE03A75F6F, 0xF4843657A840A05B, 0x47AA7AE9ABE7FF34,
@@ -76,9 +79,9 @@ public static class Crc64
 		0xA707DB9ACF80C06D, 0x14299724CC279F02, 0x5383EDCD67C06036, 0xE0ADA17364673F59,
 	};
 
-	public static ulong Calculate(IEnumerable<byte> data)
+	public static ulong Calculate(ReadOnlySpan<byte> data, ulong seed = Empty)
 	{
-		var checksum = Seed;
+		var checksum = seed;
 
 		foreach (var @byte in data)
 		{

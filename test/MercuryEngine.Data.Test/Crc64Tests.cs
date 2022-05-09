@@ -1,15 +1,18 @@
+using System;
+using MercuryEngine.Data.Extensions;
 using MercuryEngine.Data.Utility;
-using NUnit.Framework;
 
 namespace MercuryEngine.Data.Test;
 
 public class Tests
 {
 	[TestCase("CGameBlackboard")]
+	[TestCase("collision_base")]
 	public void TestCrc64(string text)
 	{
 		var crc64 = Crc64.Calculate(text);
+		var crc64Hex = BitConverter.GetBytes(crc64).ToHexString();
 
-		TestContext.Out.WriteLine($"\"{text}\" = 0x{crc64:x16}");
+		TestContext.Out.WriteLine($"\"{text}\" = {crc64Hex}");
 	}
 }
