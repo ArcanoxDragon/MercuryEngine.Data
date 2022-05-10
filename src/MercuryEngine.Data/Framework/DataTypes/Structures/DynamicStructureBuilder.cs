@@ -67,11 +67,11 @@ public abstract class DynamicStructureBuilder
 		=> AddFieldInternal(new DynamicStructureRawField<TStructure>(StructureBeingBuilt, fieldName, () => new TStructure()));
 
 	public DynamicStructureBuilder Array<TCollection>(string fieldName)
-	where TCollection : class, IDataStructure, new()
+	where TCollection : class, IBinaryDataType, new()
 		=> AddFieldInternal(new DynamicStructureCollectionField<TCollection>(StructureBeingBuilt, fieldName, () => new TCollection()));
 
 	public DynamicStructureBuilder Array<TCollection>(string fieldName, Func<TCollection> entryFactory)
-	where TCollection : class, IDataStructure
+	where TCollection : class, IBinaryDataType
 		=> AddFieldInternal(new DynamicStructureCollectionField<TCollection>(StructureBeingBuilt, fieldName, entryFactory));
 
 	#endregion
