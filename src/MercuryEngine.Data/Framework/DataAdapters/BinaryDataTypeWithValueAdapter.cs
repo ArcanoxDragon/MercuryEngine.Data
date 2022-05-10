@@ -2,10 +2,12 @@
 
 namespace MercuryEngine.Data.Framework.DataAdapters;
 
-public class BinaryDataTypeWithValueAdapter<TValue, TData> : IDataAdapter<TValue, TData>
-where TValue : notnull
+public class BinaryDataTypeWithValueAdapter<TData, TValue> : IDataAdapter<TData, TValue>
 where TData : IBinaryDataType<TValue>
+where TValue : notnull
 {
+	public static BinaryDataTypeWithValueAdapter<TData, TValue> Instance { get; } = new();
+
 	public TValue Get(TData storage)
 		=> storage.Value;
 

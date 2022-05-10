@@ -16,7 +16,7 @@ public class TEnabledOccluderCollidersMap : DataStructure<TEnabledOccluderCollid
 		public List<UInt64DataType> EnabledIds { get; }      = new();
 
 		protected override void Describe(DataStructureBuilder<Entry> builder)
-			=> builder.String(m => m.Key)
+			=> builder.Property(m => m.Key)
 					  .Array(m => m.EnabledIds);
 	}
 }

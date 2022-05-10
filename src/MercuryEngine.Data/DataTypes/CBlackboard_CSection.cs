@@ -13,9 +13,9 @@ public class CBlackboard_CSection : DataStructure<CBlackboard_CSection>
 	public List<Property> Properties { get; } = new();
 
 	protected override void Describe(DataStructureBuilder<CBlackboard_CSection> builder)
-		=> builder.String(m => m.Name)
+		=> builder.Property(m => m.Name)
 				  .CrcLiteral("CBlackboard::CSection")
-				  .Int32(1)
+				  .Literal(1)
 				  .CrcLiteral("dctProps")
 				  .Array(m => m.Properties);
 
@@ -24,12 +24,12 @@ public class CBlackboard_CSection : DataStructure<CBlackboard_CSection>
 	{
 		public string Key { get; set; } = string.Empty;
 
-		public IBinaryDataType? Data => DynamicData.RawData;
+		public IBinaryDataType? Data => DynamicData?.Data;
 
-		private DynamicDreadDataType DynamicData { get; set; } = new();
+		private DynamicDreadValue? DynamicData { get; set; }
 
 		protected override void Describe(DataStructureBuilder<Property> builder)
-			=> builder.String(m => m.Key)
+			=> builder.Property(m => m.Key)
 					  .DynamicTypedField(m => m.DynamicData);
 	}
 }

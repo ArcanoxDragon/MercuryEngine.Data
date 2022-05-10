@@ -1,5 +1,6 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Framework.DataAdapters;
+using MercuryEngine.Data.Framework.DataTypes.Structures.Fields;
 
 namespace MercuryEngine.Data.Framework.DataTypes.Structures;
 
@@ -11,55 +12,104 @@ public abstract class DynamicStructureBuilder
 {
 	private protected DynamicStructureBuilder() { }
 
+	protected abstract DynamicStructure StructureBeingBuilt { get; }
+
 	#region String Fields
 
-	public abstract DynamicStructureBuilder String(string fieldName);
+	public DynamicStructureBuilder String(string fieldName)
+		=> AddField<string, TerminatedStringDataType>(fieldName);
 
 	#endregion
 
 	#region Numeric Fields
 
-	public abstract DynamicStructureBuilder Int16(string fieldName);
-	public abstract DynamicStructureBuilder UInt16(string fieldName);
-	public abstract DynamicStructureBuilder Int32(string fieldName);
-	public abstract DynamicStructureBuilder UInt32(string fieldName);
-	public abstract DynamicStructureBuilder Int64(string fieldName);
-	public abstract DynamicStructureBuilder UInt64(string fieldName);
-	public abstract DynamicStructureBuilder Float(string fieldName);
-	public abstract DynamicStructureBuilder Double(string fieldName);
-	public abstract DynamicStructureBuilder Decimal(string fieldName);
+	public DynamicStructureBuilder Int16(string fieldName)
+		=> AddField<short, Int16DataType>(fieldName);
+
+	public DynamicStructureBuilder UInt16(string fieldName)
+		=> AddField<ushort, UInt16DataType>(fieldName);
+
+	public DynamicStructureBuilder Int32(string fieldName)
+		=> AddField<int, Int32DataType>(fieldName);
+
+	public DynamicStructureBuilder UInt32(string fieldName)
+		=> AddField<uint, UInt32DataType>(fieldName);
+
+	public DynamicStructureBuilder Int64(string fieldName)
+		=> AddField<long, Int64DataType>(fieldName);
+
+	public DynamicStructureBuilder UInt64(string fieldName)
+		=> AddField<ulong, UInt64DataType>(fieldName);
+
+	public DynamicStructureBuilder Float(string fieldName)
+		=> AddField<float, FloatDataType>(fieldName);
+
+	public DynamicStructureBuilder Double(string fieldName)
+		=> AddField<double, DoubleDataType>(fieldName);
+
+	public DynamicStructureBuilder Decimal(string fieldName)
+		=> AddField<decimal, DecimalDataType>(fieldName);
+
+	public DynamicStructureBuilder Enum<TEnum>(string fieldName)
+	where TEnum : struct, Enum
+		=> AddField<TEnum, EnumDataType<TEnum>>(fieldName);
 
 	#endregion
 
 	#region Sub-Structures
 
-	public abstract DynamicStructureBuilder Structure<TStructure>(string fieldName, TStructure initialValue)
-	where TStructure : class, IDataStructure;
+	public DynamicStructureBuilder Structure<TStructure>(string fieldName, Func<TStructure> factory)
+	where TStructure : class, IDataStructure
+		=> AddFieldInternal(new DynamicStructureRawField<TStructure>(StructureBeingBuilt, fieldName, factory));
 
-	public abstract DynamicStructureBuilder Structure<TStructure>(string fieldName)
-	where TStructure : class, IDataStructure, new();
+	public DynamicStructureBuilder Structure<TStructure>(string fieldName)
+	where TStructure : class, IDataStructure, new()
+		=> AddFieldInternal(new DynamicStructureRawField<TStructure>(StructureBeingBuilt, fieldName, () => new TStructure()));
 
-	public abstract DynamicStructureBuilder Array<TStructure>(string fieldName)
-	where TStructure : class, IDataStructure, new();
+	public DynamicStructureBuilder Array<TCollection>(string fieldName)
+	where TCollection : class, IDataStructure, new()
+		=> AddFieldInternal(new DynamicStructureCollectionField<TCollection>(StructureBeingBuilt, fieldName, () => new TCollection()));
+
+	public DynamicStructureBuilder Array<TCollection>(string fieldName, Func<TCollection> entryFactory)
+	where TCollection : class, IDataStructure
+		=> AddFieldInternal(new DynamicStructureCollectionField<TCollection>(StructureBeingBuilt, fieldName, entryFactory));
 
 	#endregion
 
 	#region Raw Fields
 
-	public abstract DynamicStructureBuilder AddField<TData>(string fieldName, TData initialValue)
-	where TData : class, IBinaryDataType;
+	public DynamicStructureBuilder AddField<TData>(string fieldName, Func<TData> dataTypeFactory)
+	where TData : class, IBinaryDataType
+		=> AddFieldInternal(new DynamicStructureRawField<TData>(StructureBeingBuilt, fieldName, dataTypeFactory));
 
-	public abstract DynamicStructureBuilder AddField<TValue, TData>(string fieldName)
+	public DynamicStructureBuilder AddField<TValue, TData>(string fieldName)
 	where TValue : notnull
-	where TData : class, IBinaryDataType<TValue>, new();
+	where TData : class, IBinaryDataType<TValue>, new()
+		=> AddField(fieldName, new BinaryDataTypeWithValueAdapter<TData, TValue>());
 
-	public abstract DynamicStructureBuilder AddField<TValue, TData>(string fieldName, IDataAdapter<TValue, TData> dataAdapter)
+	public DynamicStructureBuilder AddField<TValue, TData>(string fieldName, IDataAdapter<TData, TValue> dataAdapter)
 	where TValue : notnull
-	where TData : IBinaryDataType, new();
+	where TData : IBinaryDataType, new()
+		=> AddFieldInternal(new DynamicStructureField<TValue, TData>(StructureBeingBuilt, fieldName, () => new TData(), dataAdapter));
 
-	public abstract DynamicStructureBuilder AddField<TValue, TData>(string fieldName, TData initialValue, IDataAdapter<TValue, TData> dataAdapter)
+	public DynamicStructureBuilder AddField<TValue, TData>(string fieldName, Func<TData> dataTypeFactory, IDataAdapter<TData, TValue> dataAdapter)
 	where TValue : notnull
-	where TData : IBinaryDataType;
+	where TData : IBinaryDataType
+		=> AddFieldInternal(new DynamicStructureField<TValue, TData>(StructureBeingBuilt, fieldName, dataTypeFactory, dataAdapter));
 
 	#endregion
+
+	/// <summary>
+	/// Adds a copy of the provided <paramref name="otherField"/> to the structure being built.
+	/// </summary>
+	public DynamicStructureBuilder AddCopy(IDynamicStructureField otherField)
+		=> AddFieldInternal(otherField.Clone(StructureBeingBuilt));
+
+	protected abstract void AddField(IDynamicStructureField field);
+
+	private DynamicStructureBuilder AddFieldInternal(IDynamicStructureField field)
+	{
+		AddField(field);
+		return this;
+	}
 }

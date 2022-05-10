@@ -9,15 +9,15 @@ namespace MercuryEngine.Data.Framework.DataTypes.Structures.Fields;
 /// is a child of (e.g. property on) a <see cref="DataStructure{T}"/>.
 /// </summary>
 public class DataStructureRawPropertyField<TStructure, TData> : BaseDataStructureField<TStructure, TData>
-where TStructure : DataStructure<TStructure>
+where TStructure : IDataStructure
 where TData : class, IBinaryDataType
 {
 	private readonly PropertyInfo propertyInfo;
 
 	public DataStructureRawPropertyField(
-		TStructure structure,
+		Func<TData> dataTypeFactory,
 		Expression<Func<TStructure, TData>> propertyExpression
-	) : base(structure)
+	) : base(dataTypeFactory)
 	{
 		this.propertyInfo = ExpressionUtility.GetProperty(propertyExpression);
 
@@ -27,5 +27,21 @@ where TData : class, IBinaryDataType
 
 	public override string FriendlyDescription => $"{this.propertyInfo.Name}[{typeof(TData).Name}]";
 
-	protected override TData Data => (TData) this.propertyInfo.GetValue(Structure)!;
+	protected override TData GetData(TStructure structure)
+	{
+		var data = (TData?) this.propertyInfo.GetValue(structure);
+
+		if (data is null)
+			throw new InvalidOperationException($"The value retrieved from {typeof(TStructure).Name} property \"{this.propertyInfo.Name}\" was null.");
+
+		return data;
+	}
+
+	protected override void PutData(TStructure structure, TData data)
+	{
+		if (!this.propertyInfo.CanWrite)
+			return;
+
+		this.propertyInfo.SetValue(structure, data);
+	}
 }

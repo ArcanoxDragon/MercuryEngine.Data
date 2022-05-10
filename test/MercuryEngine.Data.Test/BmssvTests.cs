@@ -69,7 +69,10 @@ public class BmssvTests
 
 		tempStream.CopyTo(outFileStream);
 
-		Assert.That(newBuffer, Is.EquivalentTo(originalBuffer));
+		Assert.That(newBuffer.Length, Is.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
+
+		for (var i = 0; i < newBuffer.Length; i++)
+			Assert.That(newBuffer[i], Is.EqualTo(originalBuffer[i]), $"Data mismatch at offset {i}");
 	}
 
 	private string GetTestFilePath(string fileName)

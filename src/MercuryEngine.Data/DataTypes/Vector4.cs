@@ -10,8 +10,8 @@ public class Vector4 : DataStructure<Vector4>
 	public float W { get; set; }
 
 	protected override void Describe(DataStructureBuilder<Vector4> builder)
-		=> builder.Float(m => m.X)
-				  .Float(m => m.Y)
-				  .Float(m => m.Z)
-				  .Float(m => m.W);
+		=> builder.Property(m => m.X)
+				  .Property(m => m.Y)
+				  .Property(m => m.Z)
+				  .Property(m => m.W);
 }

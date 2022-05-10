@@ -20,11 +20,11 @@ public class Bmssv : BinaryFormat<Bmssv>
 	protected override void Describe(DataStructureBuilder<Bmssv> builder)
 		// TODO: Support CBlackboard too
 		=> builder.CrcLiteral("CGameBlackboard")
-				  .Int32(m => m.Unknown1)
+				  .Property(m => m.Unknown1)
 				  .CrcLiteral("Root")
-				  .Int32(m => m.Unknown2)
+				  .Property(m => m.Unknown2)
 				  .CrcLiteral("hashSections")
 				  .Array(m => m.Sections)
 				  .CrcLiteral("dctDeltaValues")
-				  .Int32(m => m.Unknown3);
+				  .Property(m => m.Unknown3);
 }

@@ -13,7 +13,7 @@ public class DreadTypedefType : BaseDreadType
 		if (Alias is null)
 			throw new InvalidOperationException($"Typedef type \"{TypeName}\" is missing an alias");
 
-		if (DreadTypes.FindType(Alias) is not { } aliasedType)
+		if (!DreadTypes.TryFindType(Alias, out var aliasedType))
 			throw new InvalidOperationException($"Typedef type \"{TypeName}\" refers to unknown type \"{Alias}\"");
 
 		return aliasedType.CreateDataType();

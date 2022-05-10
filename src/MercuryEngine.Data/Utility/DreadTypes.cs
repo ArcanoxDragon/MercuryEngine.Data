@@ -1,8 +1,10 @@
-﻿using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 using MercuryEngine.Data.DataTypes;
 using MercuryEngine.Data.Extensions;
 using MercuryEngine.Data.Framework.DataTypes;
+using MercuryEngine.Data.Framework.DataTypes.Structures;
 using MercuryEngine.Data.Utility.DreadTypeHelpers;
 using MercuryEngine.Data.Utility.Json;
 
@@ -40,24 +42,45 @@ public static class DreadTypes
 
 	public static void RegisterConcreteType<T>(string name)
 	where T : IBinaryDataType, new()
+		=> RegisterConcreteType(name, () => new T());
+
+	public static void RegisterConcreteType<T>(string name, Func<T> dataTypeFactory)
+	where T : IBinaryDataType
 	{
-		DreadTypeDefinitions[name] = new DreadConcreteType<T>(name);
+		DreadTypeDefinitions[name] = new DreadConcreteType<T>(dataTypeFactory, name);
 		TypeIdMap[name.GetCrc64()] = name;
 	}
 
-	public static BaseDreadType? FindType(string name)
-		=> DreadTypeDefinitions.TryGetValue(name, out BaseDreadType? type) ? type : null;
+	public static void RegisterDynamicType(string name, Action<DynamicStructureBuilder> buildStructure)
+		=> RegisterConcreteType(name, () => DynamicStructure.Create(name, buildStructure));
 
-	public static BaseDreadType? FindType(ulong typeId)
+	public static bool TryFindType(string name, [MaybeNullWhen(false)] out BaseDreadType type)
+		=> DreadTypeDefinitions.TryGetValue(name, out type);
+
+	public static BaseDreadType FindType(string name)
+		=> TryFindType(name, out var type)
+			   ? type
+			   : throw new KeyNotFoundException($"The type \"{name}\" did not refer to a known type");
+
+	public static bool TryFindType(ulong typeId, [MaybeNullWhen(false)] out BaseDreadType type)
 	{
 		if (!TypeIdMap.TryGetValue(typeId, out var typeName))
 		{
-			var hexDisplay = BitConverter.GetBytes(typeId).ToHexString();
-
-			throw new KeyNotFoundException($"The type ID \"{typeId}\" ({hexDisplay}) did not refer to a known type");
+			type = default;
+			return false;
 		}
 
-		return FindType(typeName);
+		return TryFindType(typeName, out type);
+	}
+
+	public static BaseDreadType FindType(ulong typeId)
+	{
+		if (TryFindType(typeId, out var type))
+			return type;
+
+		var hexDisplay = BitConverter.GetBytes(typeId).ToHexString();
+
+		throw new KeyNotFoundException($"The type ID \"{typeId}\" ({hexDisplay}) did not refer to a known type");
 	}
 
 	private static Dictionary<string, BaseDreadType> ParseDreadTypes()

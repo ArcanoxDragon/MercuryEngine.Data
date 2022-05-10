@@ -11,64 +11,77 @@ namespace MercuryEngine.Data.Framework.DataTypes.Structures.Fields;
 /// <typeparam name="TKeyData">The type of key that the dictionary stores.</typeparam>
 /// <typeparam name="TValueData">The type of value that the dictionary stores.</typeparam>
 public class DataStructureDictionaryField<TStructure, TKeyData, TValueData> : BaseDataStructureField<TStructure, ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>>>
-where TStructure : DataStructure<TStructure>
-where TKeyData : IBinaryDataType, new()
-where TValueData : IBinaryDataType, new()
+where TStructure : IDataStructure
+where TKeyData : IBinaryDataType
+where TValueData : IBinaryDataType
 {
 	private readonly PropertyInfo propertyInfo;
 
+	private static Func<KeyValuePairDataType<TKeyData, TValueData>> CreatePairFactory(Func<TKeyData> keyDataTypeFactory, Func<TValueData> valueDataTypeFactory)
+	{
+		// 🍐🏭
+
+		return () => {
+			var key = keyDataTypeFactory();
+			var value = valueDataTypeFactory();
+
+			return new KeyValuePairDataType<TKeyData, TValueData>(key, value);
+		};
+	}
+
 	public DataStructureDictionaryField(
-		TStructure structure,
+		Func<TKeyData> keyDataTypeFactory,
+		Func<TValueData> valueDataTypeFactory,
 		Expression<Func<TStructure, Dictionary<TKeyData, TValueData>>> propertyExpression
-	) : base(structure)
+	) : base(() => new ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>>(CreatePairFactory(keyDataTypeFactory, valueDataTypeFactory)))
 	{
 		this.propertyInfo = ExpressionUtility.GetProperty(propertyExpression);
 
 		if (!this.propertyInfo.CanRead || this.propertyInfo.CanWrite)
 			throw new ArgumentException("A property must be read-only in order to be used in a DataStructureDictionaryField");
-
-		if (!typeof(Dictionary<TKeyData, TValueData>).IsAssignableFrom(this.propertyInfo.PropertyType))
-			throw new ArgumentException($"A property must be of type {nameof(Dictionary<TKeyData, TValueData>)} in order to be used in a DataStructureDictionaryField");
-
-		Data = new ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>>(() => new KeyValuePairDataType<TKeyData, TValueData>(new TKeyData(), new TValueData()));
 	}
 
 	public override string FriendlyDescription => $"{this.propertyInfo.Name}[dictionary of {typeof(TKeyData).Name},{typeof(TValueData).Name}]";
 
-	protected override ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>> Data { get; }
-
-	protected Dictionary<TKeyData, TValueData> SourceDictionary
+	protected override ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>> GetData(TStructure structure)
 	{
-		get
+		var dictionary = GetSourceDictionary(structure);
+		var data = CreateDataType();
+
+		data.Value.Clear();
+		data.Value.AddRange(dictionary.Select(pair => new KeyValuePairDataType<TKeyData, TValueData>(pair.Key, pair.Value)));
+
+		return data;
+	}
+
+	protected override void PutData(TStructure structure, ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>> data)
+	{
+		if (this.propertyInfo.CanWrite)
 		{
-			var propertyValue = this.propertyInfo.GetValue(Structure);
+			// Store a new dictionary
+			var collection = data.Value.ToDictionary(pair => pair.Key, pair => pair.Value);
 
-			if (propertyValue is null)
-				throw new InvalidOperationException($"The value retrieved from {typeof(TStructure).Name} property \"{this.propertyInfo.Name}\" was null.");
+			this.propertyInfo.SetValue(structure, collection);
+		}
+		else
+		{
+			// Update the existing dictionary
+			var dictionary = GetSourceDictionary(structure);
 
-			if (propertyValue is not Dictionary<TKeyData, TValueData> dictionary)
-				throw new InvalidOperationException();
+			dictionary.Clear();
 
-			return dictionary;
+			foreach (var (key, value) in data.Value)
+				dictionary.Add(key, value);
 		}
 	}
 
-	public override void Read(BinaryReader reader)
+	private Dictionary<TKeyData, TValueData> GetSourceDictionary(TStructure structure)
 	{
-		base.Read(reader);
+		var dictionary = (Dictionary<TKeyData, TValueData>?) this.propertyInfo.GetValue(structure);
 
-		// Synchronize back to the property
-		SourceDictionary.Clear();
+		if (dictionary is null)
+			throw new InvalidOperationException($"The value retrieved from {typeof(TStructure).Name} property \"{this.propertyInfo.Name}\" was null.");
 
-		foreach (var (key, value) in Data.Value)
-			SourceDictionary.Add(key, value);
-	}
-
-	public override void Write(BinaryWriter writer)
-	{
-		// Copy dictionary entries into data type
-		Data.Value = SourceDictionary.Select(pair => new KeyValuePairDataType<TKeyData, TValueData>(pair.Key, pair.Value)).ToList();
-
-		base.Write(writer);
+		return dictionary;
 	}
 }

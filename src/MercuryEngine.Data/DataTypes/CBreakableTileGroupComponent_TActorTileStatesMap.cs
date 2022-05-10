@@ -12,9 +12,17 @@ public class CBreakableTileGroupComponent_TActorTileStatesMap : DataStructure<CB
 
 	public sealed class Entry : DataStructure<Entry>
 	{
-		public List<ActorTileState> States { get; } = new();
+		public List<DynamicStructure> States { get; } = new();
 
 		protected override void Describe(DataStructureBuilder<Entry> builder)
-			=> builder.Array(m => m.States);
+			=> builder.Array(m => m.States, CreateState);
+
+		private static DynamicStructure CreateState()
+			=> DynamicStructure.Create("ActorTileState", builder => {
+				builder.Float("fX")
+					   .Float("fY")
+					   .Enum<EBreakableTileType>("eTileType")
+					   .UInt32("uState");
+			});
 	}
 }

@@ -1,25 +1,37 @@
 ﻿namespace MercuryEngine.Data.Framework.DataTypes.Structures.Fields;
 
-public abstract class BaseDataStructureField<TStructure, TData> : IDataStructureField
-where TStructure : DataStructure<TStructure>
+public abstract class BaseDataStructureField<TStructure, TData> : IDataStructureField<TStructure>
+where TStructure : IDataStructure
 where TData : IBinaryDataType
 {
-	protected BaseDataStructureField(TStructure structure)
-	{
-		Structure = structure;
-	}
+	private readonly Func<TData> dataTypeFactory;
 
-	public uint Size => Data.Size;
+	protected BaseDataStructureField(Func<TData> dataTypeFactory)
+	{
+		this.dataTypeFactory = dataTypeFactory;
+	}
 
 	public abstract string FriendlyDescription { get; }
 
-	protected TStructure Structure { get; }
+	public virtual uint GetSize(TStructure structure) => GetData(structure).Size;
 
-	protected abstract TData Data { get; }
+	public virtual void Read(TStructure structure, BinaryReader reader)
+	{
+		var data = CreateDataType();
 
-	public virtual void Read(BinaryReader reader)
-		=> Data.Read(reader);
+		data.Read(reader);
+		PutData(structure, data);
+	}
 
-	public virtual void Write(BinaryWriter writer)
-		=> Data.Write(writer);
+	public virtual void Write(TStructure structure, BinaryWriter writer)
+	{
+		var data = GetData(structure);
+
+		data.Write(writer);
+	}
+
+	protected abstract TData GetData(TStructure structure);
+	protected abstract void PutData(TStructure structure, TData data);
+
+	protected virtual TData CreateDataType() => this.dataTypeFactory();
 }

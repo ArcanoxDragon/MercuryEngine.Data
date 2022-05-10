@@ -14,7 +14,7 @@ public class DreadStructType : BaseDreadType
 		=> DynamicStructure.Create(TypeName, builder => {
 			if (Parent != null)
 			{
-				if (DreadTypes.FindType(Parent) is not { } parentType)
+				if (!DreadTypes.TryFindType(Parent, out var parentType))
 					throw new InvalidOperationException($"Struct type \"{TypeName}\" has unknown parent type \"{Parent}\"");
 
 				var parentStructure = parentType.CreateDataType();
@@ -24,18 +24,16 @@ public class DreadStructType : BaseDreadType
 
 				// Add the parent fields to this structure first
 				foreach (var field in dynamicParentStructure.Fields)
-					builder.AddField(field.FieldName, field.Data);
+					builder.AddCopy(field);
 			}
 
 			// Add our own fields next
 			foreach (var (fieldName, fieldTypeName) in Fields)
 			{
-				if (DreadTypes.FindType(fieldTypeName) is not { } fieldType)
+				if (!DreadTypes.TryFindType(fieldTypeName, out var fieldType))
 					throw new InvalidOperationException($"Field \"{fieldName}\" of struct type \"{TypeName}\" has unknown type \"{fieldTypeName}\"");
 
-				var fieldDataType = fieldType.CreateDataType();
-
-				builder.AddField(fieldName, fieldDataType);
+				builder.AddField(fieldName, () => fieldType.CreateDataType());
 			}
 		});
 }

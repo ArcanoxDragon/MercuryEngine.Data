@@ -13,7 +13,7 @@ public class DreadVectorType : BaseDreadType
 		if (ValueType is null)
 			throw new InvalidOperationException($"Vector type \"{TypeName}\" is missing a value type");
 
-		if (DreadTypes.FindType(ValueType) is not { } valueType)
+		if (!DreadTypes.TryFindType(ValueType, out var valueType))
 			throw new InvalidOperationException($"Vector type \"{TypeName}\" has unknown value type \"{ValueType}\"");
 
 		return new ArrayDataType<IBinaryDataType>(() => valueType.CreateDataType());

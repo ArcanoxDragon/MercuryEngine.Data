@@ -12,48 +12,49 @@ namespace MercuryEngine.Data.Framework.DataTypes.Structures.Fields;
 /// <typeparam name="TProperty">The type of value that the property stores.</typeparam>
 /// <typeparam name="TData">The <see cref="IBinaryDataType"/> that represents the binary format used for reading and writing the property's value.</typeparam>
 public class DataStructurePropertyField<TStructure, TProperty, TData> : BaseDataStructureField<TStructure, TData>
-where TStructure : DataStructure<TStructure>
+where TStructure : IDataStructure
 where TProperty : notnull
-where TData : IBinaryDataType, new()
+where TData : IBinaryDataType
 {
 	private readonly PropertyInfo                   propertyInfo;
-	private readonly IDataAdapter<TProperty, TData> dataAdapter;
+	private readonly IDataAdapter<TData, TProperty> dataAdapter;
 
 	public DataStructurePropertyField(
-		TStructure structure,
+		Func<TData> dataTypeFactory,
 		Expression<Func<TStructure, TProperty>> propertyExpression,
-		IDataAdapter<TProperty, TData> dataAdapter
-	) : base(structure)
+		IDataAdapter<TData, TProperty> dataAdapter
+	) : base(dataTypeFactory)
 	{
 		this.propertyInfo = ExpressionUtility.GetProperty(propertyExpression);
 		this.dataAdapter = dataAdapter;
 
-		if (!this.propertyInfo.CanRead || !this.propertyInfo.CanWrite)
-			throw new ArgumentException("A property must have both a getter and a setter in order to be used in a DataStructurePropertyField");
+		if (!this.propertyInfo.CanRead)
+			throw new ArgumentException("A property must have a getter in order to be used in a DataStructurePropertyField");
 	}
 
 	public override string FriendlyDescription => $"{this.propertyInfo.Name}[{typeof(TProperty).Name},{typeof(TData).Name}]";
 
-	protected override TData Data { get; } = new();
-
-	public override void Read(BinaryReader reader)
+	protected override TData GetData(TStructure structure)
 	{
-		base.Read(reader);
-
-		// Synchronize value of Data to property
-		this.propertyInfo.SetValue(Structure, this.dataAdapter.Get(Data));
-	}
-
-	public override void Write(BinaryWriter writer)
-	{
-		// Synchronize value of property to Data
-		var value = (TProperty?) this.propertyInfo.GetValue(Structure);
+		var value = (TProperty?) this.propertyInfo.GetValue(structure);
 
 		if (value is null)
 			throw new InvalidOperationException($"The value retrieved from {typeof(TStructure).Name} property \"{this.propertyInfo.Name}\" was null.");
 
-		this.dataAdapter.Put(Data, value);
+		var data = CreateDataType();
 
-		base.Write(writer);
+		this.dataAdapter.Put(data, value);
+
+		return data;
+	}
+
+	protected override void PutData(TStructure structure, TData data)
+	{
+		if (!this.propertyInfo.CanWrite)
+			return;
+
+		var value = this.dataAdapter.Get(data);
+
+		this.propertyInfo.SetValue(structure, value);
 	}
 }

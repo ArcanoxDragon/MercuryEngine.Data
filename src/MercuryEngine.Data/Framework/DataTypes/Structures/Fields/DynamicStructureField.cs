@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using MercuryEngine.Data.Framework.DataAdapters;
 
 namespace MercuryEngine.Data.Framework.DataTypes.Structures.Fields;
@@ -13,25 +14,27 @@ public class DynamicStructureField<TValue, TData> : IDynamicStructureField
 where TValue : notnull
 where TData : IBinaryDataType
 {
-	private readonly IDataAdapter<TValue, TData> dataAdapter;
+	private readonly Func<TData>                 dataTypeFactory;
+	private readonly IDataAdapter<TData, TValue> dataAdapter;
 
-	public DynamicStructureField(DynamicStructure structure, string fieldName, TData initialValue, IDataAdapter<TValue, TData> dataAdapter)
+	public DynamicStructureField(DynamicStructure structure, string fieldName, Func<TData> dataTypeFactory, IDataAdapter<TData, TValue> dataAdapter)
 	{
 		Structure = structure;
 		FieldName = fieldName;
-		Data = initialValue;
+		Data = dataTypeFactory();
 
+		this.dataTypeFactory = dataTypeFactory;
 		this.dataAdapter = dataAdapter;
 	}
 
 	public DynamicStructure Structure { get; }
 	public string           FieldName { get; }
-	public TData            Data      { get; }
+	public TData            Data      { get; private set; }
 
 	public uint   Size                => Data.Size;
 	public string FriendlyDescription => $"<dynamic {FieldName}[{typeof(TValue).Name}, {typeof(TData).Name}]>";
 
-	IBinaryDataType IDynamicStructureField.Data => Data;
+	public bool HasValue { get; private set; }
 
 	public TValue Value
 	{
@@ -42,11 +45,24 @@ where TData : IBinaryDataType
 	dynamic IDynamicStructureField.Value
 	{
 		get => Value;
-		set => Value = value;
+		set
+		{
+			HasValue = true;
+			Value = value;
+		}
 	}
 
+	public IDynamicStructureField Clone(DynamicStructure targetStructure)
+		=> new DynamicStructureField<TValue, TData>(targetStructure, FieldName, this.dataTypeFactory, this.dataAdapter);
+
+	public void ClearValue()
+		=> HasValue = false;
+
 	public void Read(BinaryReader reader)
-		=> Data.Read(reader);
+	{
+		Data.Read(reader);
+		HasValue = true;
+	}
 
 	public void Write(BinaryWriter writer)
 		=> Data.Write(writer);

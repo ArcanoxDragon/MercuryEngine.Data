@@ -10,30 +10,50 @@ namespace MercuryEngine.Data.Framework.DataTypes.Structures.Fields;
 public class DynamicStructureRawField<TData> : IDynamicStructureField
 where TData : IBinaryDataType
 {
-	public DynamicStructureRawField(DynamicStructure structure, string fieldName, TData initialValue)
+	private readonly Func<TData> dataTypeFactory;
+
+	public DynamicStructureRawField(DynamicStructure structure, string fieldName, Func<TData> dataTypeFactory)
 	{
+		this.dataTypeFactory = dataTypeFactory;
+
 		Structure = structure;
 		FieldName = fieldName;
-		Data = initialValue;
+		Data = dataTypeFactory();
 	}
 
 	public DynamicStructure Structure { get; }
 	public string           FieldName { get; }
-	public TData            Data      { get; set; }
+	public TData            Data      { get; private set; }
 
 	public uint   Size                => Data.Size;
 	public string FriendlyDescription => $"<dynamic {FieldName}[{typeof(TData).Name}]>";
 
-	IBinaryDataType IDynamicStructureField.Data => Data;
+	public bool HasValue { get; private set; }
 
 	dynamic IDynamicStructureField.Value
 	{
 		get => Data;
-		set => Data = value;
+		set
+		{
+			HasValue = true;
+			Data = value;
+		}
+	}
+
+	public IDynamicStructureField Clone(DynamicStructure targetStructure)
+		=> new DynamicStructureRawField<TData>(targetStructure, FieldName, this.dataTypeFactory);
+
+	public void ClearValue()
+	{
+		Data = this.dataTypeFactory();
+		HasValue = false;
 	}
 
 	public void Read(BinaryReader reader)
-		=> Data.Read(reader);
+	{
+		Data.Read(reader);
+		HasValue = true;
+	}
 
 	public void Write(BinaryWriter writer)
 		=> Data.Write(writer);

@@ -13,7 +13,7 @@ public class DreadFlagsetType : BaseDreadType
 		if (Enum is null)
 			throw new InvalidOperationException($"Typedef type \"{TypeName}\" is missing an enum name");
 
-		if (DreadTypes.FindType(Enum) is not { } enumType)
+		if (!DreadTypes.TryFindType(Enum, out var enumType))
 			throw new InvalidOperationException($"Typedef type \"{TypeName}\" has unknown enum type \"{Enum}\"");
 
 		return enumType.CreateDataType();
