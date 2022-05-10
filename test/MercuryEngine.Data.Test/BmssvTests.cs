@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Test.Utility;
 using Newtonsoft.Json;
@@ -9,17 +12,28 @@ namespace MercuryEngine.Data.Test;
 [TestFixture]
 public class BmssvTests
 {
-	private const string TestFreshProfile    = "samus_fresh.bmssv";
-	private const string TestFreshProfileOut = "samus_fresh_out.bmssv";
+	private const string TestFreshProfile = "Fresh";
+	private const string TestHundoProfile = "Hundo";
 
-	private const string TestHundoProfile    = "samus_hundo.bmssv";
-	private const string TestHundoProfileOut = "samus_hundo_out.bmssv";
-
-	[TestCase(TestFreshProfile)]
-	[TestCase(TestHundoProfile)]
-	public void TestLoadSamusBmssv(string inFile)
+	private static IEnumerable<string> GetTestFiles()
 	{
-		var filePath = GetTestFilePath(inFile);
+		foreach (var profileDirectory in new[] { TestFreshProfile, TestHundoProfile }.Select(GetTestProfilePath))
+		foreach (var file in Directory.EnumerateFiles(profileDirectory, "*.bmssv", SearchOption.AllDirectories))
+		{
+			if (Path.GetFileNameWithoutExtension(file).EndsWith("_out", StringComparison.OrdinalIgnoreCase))
+				continue;
+
+			yield return file;
+		}
+	}
+
+	private static string GetTestProfilePath(string profileName)
+		=> Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", "BMSSV", profileName);
+
+	[TestCaseSource(nameof(GetTestFiles))]
+	public void TestLoadBmssv(string inFile)
+	{
+		var filePath = GetTestProfilePath(inFile);
 		using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read);
 		var bmssv = new Bmssv();
 
@@ -43,11 +57,10 @@ public class BmssvTests
 		}
 	}
 
-	[TestCase(TestFreshProfile, TestFreshProfileOut)]
-	[TestCase(TestHundoProfile, TestHundoProfileOut)]
-	public void TestCompareSamusBmssv(string inFile, string outFile)
+	[TestCaseSource(nameof(GetTestFiles))]
+	public void TestCompareBmssv(string inFile)
 	{
-		var filePath = GetTestFilePath(inFile);
+		var filePath = GetTestProfilePath(inFile);
 		using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read);
 		using var reader = new BinaryReader(fileStream);
 		var originalBuffer = reader.ReadBytes((int) fileStream.Length);
@@ -64,7 +77,9 @@ public class BmssvTests
 		tempStream.Seek(0, SeekOrigin.Begin);
 
 		var newBuffer = tempStream.ToArray();
-		var outFilePath = GetTestFilePath(outFile);
+		var outFileDir = Path.GetDirectoryName(filePath)!;
+		var outFileName = Path.GetFileNameWithoutExtension(filePath) + "_out" + Path.GetExtension(filePath);
+		var outFilePath = Path.Combine(outFileDir, outFileName);
 		using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
 
 		tempStream.CopyTo(outFileStream);
@@ -74,7 +89,4 @@ public class BmssvTests
 		for (var i = 0; i < newBuffer.Length; i++)
 			Assert.That(newBuffer[i], Is.EqualTo(originalBuffer[i]), $"Data mismatch at offset {i}");
 	}
-
-	private string GetTestFilePath(string fileName)
-		=> Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", "BMSSV", fileName);
 }
