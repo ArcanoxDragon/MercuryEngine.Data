@@ -5,6 +5,8 @@ where TCollection : IBinaryDataType
 {
 	private readonly Func<TCollection> entryFactory;
 
+	private bool hasDataFlag;
+
 	public DynamicStructureCollectionField(DynamicStructure structure, string fieldName, Func<TCollection> entryFactory)
 	{
 		this.entryFactory = entryFactory;
@@ -21,7 +23,7 @@ where TCollection : IBinaryDataType
 	public uint              Size                => Data.Size;
 	public string            FriendlyDescription => $"<dynamic {FieldName}[array of {typeof(TCollection).Name}]>";
 
-	public bool HasValue => Collection.Any();
+	public bool HasValue => this.hasDataFlag || Collection.Any();
 
 	dynamic IDynamicStructureField.Value
 	{
@@ -33,10 +35,16 @@ where TCollection : IBinaryDataType
 		=> new DynamicStructureCollectionField<TCollection>(targetStructure, FieldName, this.entryFactory);
 
 	public void ClearValue()
-		=> Collection.Clear();
+	{
+		Collection.Clear();
+		this.hasDataFlag = false;
+	}
 
 	public void Read(BinaryReader reader)
-		=> Data.Read(reader);
+	{
+		Data.Read(reader);
+		this.hasDataFlag = true;
+	}
 
 	public void Write(BinaryWriter writer)
 		=> Data.Write(writer);
