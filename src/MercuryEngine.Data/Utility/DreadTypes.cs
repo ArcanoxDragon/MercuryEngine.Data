@@ -30,10 +30,12 @@ public static class DreadTypes
 		RegisterConcreteType<TEnabledOccluderCollidersMap>();
 		RegisterConcreteType<LiquidVolumesDictionary>("base::global::CRntSmallDictionary<base::global::CStrId, base::spatial::CAABox2D>");
 		RegisterConcreteType<OccluderVignettesDictionary>("base::global::CRntSmallDictionary<base::global::CStrId, bool>");
-		RegisterConcreteType<OccluderVignettesDictionary>("base::global::CRntSmallDictionary<base::global::CStrId, bool>");
 		RegisterConcreteType<CBreakableTileGroupComponent_TActorTileStatesMap>();
 		RegisterConcreteType<minimapGrid_TMinimapVisMap>();
 		RegisterConcreteType<CMinimapManager_TCustomMarkerDataMap>();
+		RegisterConcreteType<CMinimapManager_TGlobalMapIcons>();
+		RegisterConcreteType<GUI_CMissionLog_TMissionLogEntries>();
+		RegisterConcreteType("base::global::CRntVector<EMapTutoType>", ArrayDataType.Create<EnumDataType<EMapTutoType>>);
 	}
 
 	public static void RegisterConcreteType<T>()

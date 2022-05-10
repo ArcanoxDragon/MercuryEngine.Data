@@ -30,3 +30,19 @@ public enum EMarkerType
 	MARKER_H = 7,
 	MARKER_I = 8,
 }
+
+[PublicAPI]
+public enum EEntryType
+{
+	ML_INFO_ENTRY     = 0,
+	ML_DIALOGUE_ENTRY = 1,
+	ML_TUTO_ENTRY     = 2,
+}
+
+[PublicAPI]
+public enum EMapTutoType
+{
+	HINT_ZONE      = 0,
+	EMMY_ZONE      = 1,
+	TELEPORTER_NET = 2,
+}
