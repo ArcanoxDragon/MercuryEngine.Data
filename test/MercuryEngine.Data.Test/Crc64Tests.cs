@@ -1,6 +1,6 @@
 using System;
-using MercuryEngine.Data.Extensions;
-using MercuryEngine.Data.Utility;
+using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Core.Utility;
 
 namespace MercuryEngine.Data.Test;
 

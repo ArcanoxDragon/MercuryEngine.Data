@@ -1,5 +1,5 @@
 ﻿using System;
-using MercuryEngine.Data.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.DataTypes;
 using Newtonsoft.Json;
 
 namespace MercuryEngine.Data.Test.Utility;
@@ -16,6 +16,6 @@ public class TerminatedStringConverter : JsonConverter<TerminatedStringDataType>
 			writer.WriteValue(value.Value);
 	}
 
-	public override TerminatedStringDataType? ReadJson(JsonReader reader, Type objectType, TerminatedStringDataType? existingValue, bool hasExistingValue, JsonSerializer serializer)
+	public override TerminatedStringDataType ReadJson(JsonReader reader, Type objectType, TerminatedStringDataType? existingValue, bool hasExistingValue, JsonSerializer serializer)
 		=> throw new NotSupportedException();
 }

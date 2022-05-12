@@ -1,8 +1,8 @@
 ﻿using JetBrains.Annotations;
-using MercuryEngine.Data.DataTypes;
-using MercuryEngine.Data.Extensions;
-using MercuryEngine.Data.Framework;
-using MercuryEngine.Data.Framework.DataTypes.Structures;
+using MercuryEngine.Data.Core.Framework;
+using MercuryEngine.Data.Core.Framework.Structures;
+using MercuryEngine.Data.Definitions.DataTypes;
+using MercuryEngine.Data.Definitions.Extensions;
 
 namespace MercuryEngine.Data.Formats;
 
