@@ -1,8 +1,6 @@
 ﻿using System.Linq.Expressions;
-using System.Reflection;
 using MercuryEngine.Data.Core.Framework.DataAdapters;
 using MercuryEngine.Data.Core.Framework.DataTypes;
-using MercuryEngine.Data.Core.Utility;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
@@ -12,50 +10,47 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 /// <typeparam name="TStructure">The type of the <see cref="DataStructure{T}"/> that contains the property to be read/written.</typeparam>
 /// <typeparam name="TProperty">The type of value that the property stores.</typeparam>
 /// <typeparam name="TData">The <see cref="IBinaryDataType"/> that represents the binary format used for reading and writing the property's value.</typeparam>
-public class DataStructurePropertyField<TStructure, TProperty, TData> : BaseDataStructureField<TStructure, TData>
+public class DataStructurePropertyField<TStructure, TProperty, TData> : BaseDataStructureFieldWithProperty<TStructure, TData, TProperty>
 where TStructure : IDataStructure
-where TProperty : notnull
 where TData : IBinaryDataType
 {
-	private readonly PropertyInfo                   propertyInfo;
 	private readonly IDataAdapter<TData, TProperty> dataAdapter;
 
 	public DataStructurePropertyField(
 		Func<TData> dataTypeFactory,
-		Expression<Func<TStructure, TProperty>> propertyExpression,
+		Expression<Func<TStructure, TProperty?>> propertyExpression,
 		IDataAdapter<TData, TProperty> dataAdapter
-	) : base(dataTypeFactory)
+	) : base(dataTypeFactory, propertyExpression)
 	{
-		this.propertyInfo = ExpressionUtility.GetProperty(propertyExpression);
 		this.dataAdapter = dataAdapter;
 
-		if (!this.propertyInfo.CanRead)
+		if (!PropertyInfo.CanRead)
 			throw new ArgumentException("A property must have a getter in order to be used in a DataStructurePropertyField");
 	}
 
-	public override string FriendlyDescription => $"{this.propertyInfo.Name}[{typeof(TProperty).Name},{typeof(TData).Name}]";
+	public override string FriendlyDescription => $"{PropertyInfo.Name}[{typeof(TProperty).Name},{typeof(TData).Name}]";
 
 	protected override TData GetData(TStructure structure)
 	{
-		var value = (TProperty?) this.propertyInfo.GetValue(structure);
+		var value = (TProperty?) PropertyInfo.GetValue(structure);
 
 		if (value is null)
-			throw new InvalidOperationException($"The value retrieved from {typeof(TStructure).Name} property \"{this.propertyInfo.Name}\" was null.");
+			throw new InvalidOperationException($"The value retrieved from {typeof(TStructure).Name} property \"{PropertyInfo.Name}\" was null while writing data.");
 
 		var data = CreateDataType();
 
-		this.dataAdapter.Put(data, value);
+		this.dataAdapter.Put(ref data, value);
 
 		return data;
 	}
 
 	protected override void PutData(TStructure structure, TData data)
 	{
-		if (!this.propertyInfo.CanWrite)
+		if (!PropertyInfo.CanWrite)
 			return;
 
 		var value = this.dataAdapter.Get(data);
 
-		this.propertyInfo.SetValue(structure, value);
+		PropertyInfo.SetValue(structure, value);
 	}
 }

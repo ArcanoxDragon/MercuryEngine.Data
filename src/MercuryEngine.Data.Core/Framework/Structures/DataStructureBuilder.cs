@@ -62,7 +62,7 @@ where T : IDataStructure
 
 	#region String Properties
 
-	public DataStructureBuilder<T> Property(Expression<Func<T, string>> propertyExpression)
+	public DataStructureBuilder<T> Property(Expression<Func<T, string?>> propertyExpression)
 		=> AddPropertyField<string, TerminatedStringDataType>(propertyExpression);
 
 	#endregion
@@ -72,31 +72,62 @@ where T : IDataStructure
 	public DataStructureBuilder<T> Property(Expression<Func<T, short>> propertyExpression)
 		=> AddPropertyField<short, Int16DataType>(propertyExpression);
 
+	public DataStructureBuilder<T> Property(Expression<Func<T, short?>> propertyExpression)
+		=> AddPropertyField<short, Int16DataType>(propertyExpression);
+
 	public DataStructureBuilder<T> Property(Expression<Func<T, ushort>> propertyExpression)
+		=> AddPropertyField<ushort, UInt16DataType>(propertyExpression);
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, ushort?>> propertyExpression)
 		=> AddPropertyField<ushort, UInt16DataType>(propertyExpression);
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, int>> propertyExpression)
 		=> AddPropertyField<int, Int32DataType>(propertyExpression);
 
+	public DataStructureBuilder<T> Property(Expression<Func<T, int?>> propertyExpression)
+		=> AddPropertyField<int, Int32DataType>(propertyExpression);
+
 	public DataStructureBuilder<T> Property(Expression<Func<T, uint>> propertyExpression)
+		=> AddPropertyField<uint, UInt32DataType>(propertyExpression);
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, uint?>> propertyExpression)
 		=> AddPropertyField<uint, UInt32DataType>(propertyExpression);
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, long>> propertyExpression)
 		=> AddPropertyField<long, Int64DataType>(propertyExpression);
 
+	public DataStructureBuilder<T> Property(Expression<Func<T, long?>> propertyExpression)
+		=> AddPropertyField<long, Int64DataType>(propertyExpression);
+
 	public DataStructureBuilder<T> Property(Expression<Func<T, ulong>> propertyExpression)
+		=> AddPropertyField<ulong, UInt64DataType>(propertyExpression);
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, ulong?>> propertyExpression)
 		=> AddPropertyField<ulong, UInt64DataType>(propertyExpression);
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, float>> propertyExpression)
 		=> AddPropertyField<float, FloatDataType>(propertyExpression);
 
+	public DataStructureBuilder<T> Property(Expression<Func<T, float?>> propertyExpression)
+		=> AddPropertyField<float, FloatDataType>(propertyExpression);
+
 	public DataStructureBuilder<T> Property(Expression<Func<T, double>> propertyExpression)
+		=> AddPropertyField<double, DoubleDataType>(propertyExpression);
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, double?>> propertyExpression)
 		=> AddPropertyField<double, DoubleDataType>(propertyExpression);
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, decimal>> propertyExpression)
 		=> AddPropertyField<decimal, DecimalDataType>(propertyExpression);
 
+	public DataStructureBuilder<T> Property(Expression<Func<T, decimal?>> propertyExpression)
+		=> AddPropertyField<decimal, DecimalDataType>(propertyExpression);
+
 	public DataStructureBuilder<T> Property<TEnum>(Expression<Func<T, TEnum>> propertyExpression)
+	where TEnum : struct, Enum
+		=> AddPropertyField<TEnum, EnumDataType<TEnum>>(propertyExpression);
+
+	public DataStructureBuilder<T> Property<TEnum>(Expression<Func<T, TEnum?>> propertyExpression)
 	where TEnum : struct, Enum
 		=> AddPropertyField<TEnum, EnumDataType<TEnum>>(propertyExpression);
 
@@ -104,28 +135,28 @@ where T : IDataStructure
 
 	#region Sub-Structure Properties
 
-	public DataStructureBuilder<T> Structure<TStructure>(Expression<Func<T, TStructure>> propertyExpression)
+	public DataStructureBuilder<T> Structure<TStructure>(Expression<Func<T, TStructure?>> propertyExpression)
 	where TStructure : class, IDataStructure, new()
 		=> Structure(propertyExpression, () => new TStructure());
 
-	public DataStructureBuilder<T> Structure<TStructure>(Expression<Func<T, TStructure>> propertyExpression, Func<TStructure> structureFactory)
+	public DataStructureBuilder<T> Structure<TStructure>(Expression<Func<T, TStructure?>> propertyExpression, Func<TStructure> structureFactory)
 	where TStructure : class, IDataStructure
 		=> AddField(new DataStructureRawPropertyField<T, TStructure>(structureFactory, propertyExpression));
 
-	public DataStructureBuilder<T> Array<TStructure>(Expression<Func<T, List<TStructure>>> propertyExpression)
+	public DataStructureBuilder<T> Array<TStructure>(Expression<Func<T, List<TStructure>?>> propertyExpression)
 	where TStructure : class, IBinaryDataType, new()
 		=> Array(propertyExpression, () => new TStructure());
 
-	public DataStructureBuilder<T> Array<TStructure>(Expression<Func<T, List<TStructure>>> propertyExpression, Func<TStructure> entryFactory)
+	public DataStructureBuilder<T> Array<TStructure>(Expression<Func<T, List<TStructure>?>> propertyExpression, Func<TStructure> entryFactory)
 	where TStructure : class, IBinaryDataType
 		=> AddField(new DataStructureCollectionField<T, TStructure>(entryFactory, propertyExpression));
 
-	public DataStructureBuilder<T> Dictionary<TKey, TValue>(Expression<Func<T, Dictionary<TKey, TValue>>> propertyExpression)
+	public DataStructureBuilder<T> Dictionary<TKey, TValue>(Expression<Func<T, Dictionary<TKey, TValue>?>> propertyExpression)
 	where TKey : class, IBinaryDataType, new()
 	where TValue : class, IBinaryDataType, new()
 		=> Dictionary(propertyExpression, () => new TKey(), () => new TValue());
 
-	public DataStructureBuilder<T> Dictionary<TKey, TValue>(Expression<Func<T, Dictionary<TKey, TValue>>> propertyExpression, Func<TKey> keyFactory, Func<TValue> valueFactory)
+	public DataStructureBuilder<T> Dictionary<TKey, TValue>(Expression<Func<T, Dictionary<TKey, TValue>?>> propertyExpression, Func<TKey> keyFactory, Func<TValue> valueFactory)
 	where TKey : class, IBinaryDataType
 	where TValue : class, IBinaryDataType
 		=> AddField(new DataStructureDictionaryField<T, TKey, TValue>(keyFactory, valueFactory, propertyExpression));
@@ -134,11 +165,11 @@ where T : IDataStructure
 
 	#region Raw Fields
 
-	public DataStructureBuilder<T> AddRawPropertyField<TData>(Expression<Func<T, TData>> propertyExpression)
+	public DataStructureBuilder<T> AddRawPropertyField<TData>(Expression<Func<T, TData?>> propertyExpression)
 	where TData : class, IBinaryDataType, new()
 		=> AddRawPropertyField(propertyExpression, () => new TData());
 
-	public DataStructureBuilder<T> AddRawPropertyField<TData>(Expression<Func<T, TData>> propertyExpression, Func<TData> dataTypeFactory)
+	public DataStructureBuilder<T> AddRawPropertyField<TData>(Expression<Func<T, TData?>> propertyExpression, Func<TData> dataTypeFactory)
 	where TData : class, IBinaryDataType
 		=> AddField(new DataStructureRawPropertyField<T, TData>(dataTypeFactory, propertyExpression));
 
@@ -146,23 +177,26 @@ where T : IDataStructure
 
 	#region Property Fields
 
-	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty>> propertyExpression)
+	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty?>> propertyExpression)
 	where TProperty : notnull
 	where TData : IBinaryDataType<TProperty>, new()
 		=> AddPropertyField(propertyExpression, () => new TData());
 
-	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty>> propertyExpression, IDataAdapter<TData, TProperty> dataAdapter)
-	where TProperty : notnull
+	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty?>> propertyExpression)
+	where TProperty : struct
+	where TData : IBinaryDataType<TProperty>, new()
+		=> AddPropertyField(propertyExpression, () => new TData(), NullableDataTypeWithValueAdapter<TData, TProperty>.Instance);
+
+	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty?>> propertyExpression, IDataAdapter<TData, TProperty> dataAdapter)
 	where TData : IBinaryDataType, new()
 		=> AddPropertyField(propertyExpression, () => new TData(), dataAdapter);
 
-	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty>> propertyExpression, Func<TData> dataTypeFactory)
+	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty?>> propertyExpression, Func<TData> dataTypeFactory)
 	where TProperty : notnull
 	where TData : IBinaryDataType<TProperty>
-		=> AddPropertyField(propertyExpression, dataTypeFactory, BinaryDataTypeWithValueAdapter<TData, TProperty>.Instance);
+		=> AddPropertyField(propertyExpression, dataTypeFactory, DataTypeWithValueAdapter<TData, TProperty>.Instance);
 
-	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty>> propertyExpression, Func<TData> dataTypeFactory, IDataAdapter<TData, TProperty> dataAdapter)
-	where TProperty : notnull
+	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty?>> propertyExpression, Func<TData> dataTypeFactory, IDataAdapter<TData, TProperty> dataAdapter)
 	where TData : IBinaryDataType
 		=> AddField(new DataStructurePropertyField<T, TProperty, TData>(dataTypeFactory, propertyExpression, dataAdapter));
 

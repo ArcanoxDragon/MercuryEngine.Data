@@ -19,7 +19,17 @@ public interface IDataStructureField<in T> : IDataStructureField
 where T : IDataStructure
 {
 	/// <summary>
-	/// Gets the size of this <see cref="IDataStructureField"/> when stored in a binary format.
+	/// Clears data for the field, if possible, so that it may be omitted when writing to a binary format.
+	/// </summary>
+	void ClearData(T structure);
+
+	/// <summary>
+	/// Gets whether or not the field currently has data to be written for the provided <paramref name="structure"/>.
+	/// </summary>
+	bool HasData(T structure);
+
+	/// <summary>
+	/// Gets the size of the field when stored in a binary format.
 	/// </summary>
 	uint GetSize(T structure);
 

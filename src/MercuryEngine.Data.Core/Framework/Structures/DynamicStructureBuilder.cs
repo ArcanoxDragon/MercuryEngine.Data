@@ -86,7 +86,7 @@ public abstract class DynamicStructureBuilder
 	public DynamicStructureBuilder AddField<TValue, TData>(string fieldName)
 	where TValue : notnull
 	where TData : class, IBinaryDataType<TValue>, new()
-		=> AddField(fieldName, new BinaryDataTypeWithValueAdapter<TData, TValue>());
+		=> AddField(fieldName, new DataTypeWithValueAdapter<TData, TValue>());
 
 	public DynamicStructureBuilder AddField<TValue, TData>(string fieldName, IDataAdapter<TData, TValue> dataAdapter)
 	where TValue : notnull

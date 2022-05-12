@@ -3,7 +3,7 @@
 /// <summary>
 /// An object that manages the storage and retrieval of a certain type of value in a particular storage class.
 /// </summary>
-public interface IDataAdapter<in TStorage, TValue>
+public interface IDataAdapter<TStorage, TValue>
 {
 	/// <summary>
 	/// Retrieves a value of type <typeparamref name="TValue"/> from the provided <paramref name="storage"/>.
@@ -13,5 +13,5 @@ public interface IDataAdapter<in TStorage, TValue>
 	/// <summary>
 	/// Stores the provided <paramref name="value"/> in the provided <paramref name="storage"/>.
 	/// </summary>
-	void Put(TStorage storage, TValue value);
+	void Put(ref TStorage storage, TValue value);
 }

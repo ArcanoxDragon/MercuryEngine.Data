@@ -39,7 +39,15 @@ where TData : IBinaryDataType
 	public TValue Value
 	{
 		get => this.dataAdapter.Get(Data);
-		set => this.dataAdapter.Put(Data, value);
+		set
+		{
+			var data = Data;
+
+			this.dataAdapter.Put(ref data, value);
+
+			if (!ReferenceEquals(data, Data))
+				Data = data;
+		}
 	}
 
 	dynamic IDynamicStructureField.Value

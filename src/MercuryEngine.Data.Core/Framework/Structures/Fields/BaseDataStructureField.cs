@@ -15,6 +15,9 @@ where TData : IBinaryDataType
 
 	public abstract string FriendlyDescription { get; }
 
+	public abstract void ClearData(TStructure structure);
+	public abstract bool HasData(TStructure structure);
+
 	public virtual uint GetSize(TStructure structure) => GetData(structure).Size;
 
 	public virtual void Read(TStructure structure, BinaryReader reader)
@@ -27,6 +30,9 @@ where TData : IBinaryDataType
 
 	public virtual void Write(TStructure structure, BinaryWriter writer)
 	{
+		if (!HasData(structure))
+			return;
+
 		var data = GetData(structure);
 
 		data.Write(writer);

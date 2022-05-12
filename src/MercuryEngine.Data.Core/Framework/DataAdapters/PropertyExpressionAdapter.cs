@@ -23,7 +23,7 @@ public class PropertyExpressionAdapter<TOwner, TProperty> : IDataAdapter<TOwner,
 		return (TProperty) this.propertyInfo.GetValue(storage)!;
 	}
 
-	public void Put(TOwner storage, TProperty value)
+	public void Put(ref TOwner storage, TProperty value)
 	{
 		if (!this.propertyInfo.CanWrite)
 			throw new InvalidOperationException($"Property \"{this.propertyInfo.Name}\" on type \"{typeof(TOwner).FullName}\" does not have a setter");

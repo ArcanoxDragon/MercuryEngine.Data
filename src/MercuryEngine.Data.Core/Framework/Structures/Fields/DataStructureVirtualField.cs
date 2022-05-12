@@ -25,11 +25,13 @@ where TData : class, IBinaryDataType
 
 	private TData Data { get; set; }
 
-	protected override TData GetData(TStructure structure)
-		=> Data;
-
-	protected override void PutData(TStructure structure, TData data)
+	public override void ClearData(TStructure structure)
 	{
-		Data = data;
+		// No-op
 	}
+
+	public override bool HasData(TStructure structure) => true;
+
+	protected override TData GetData(TStructure structure) => Data;
+	protected override void PutData(TStructure structure, TData data) => Data = data;
 }

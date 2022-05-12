@@ -18,6 +18,12 @@ where TStructure : IDataStructure
 
 	public string FriendlyDescription => $"<dynamic {this.propertyInfo.Name}>";
 
+	public void ClearData(TStructure structure)
+		=> SetCurrentValue(structure, null);
+
+	public bool HasData(TStructure structure)
+		=> GetCurrentValue(structure) is not null;
+
 	public uint GetSize(TStructure structure)
 		=> GetCurrentValue(structure)?.Data.Size ?? 0;
 
@@ -43,6 +49,6 @@ where TStructure : IDataStructure
 	private DynamicDreadValue? GetCurrentValue(TStructure structure)
 		=> (DynamicDreadValue?) this.propertyInfo.GetValue(structure);
 
-	private void SetCurrentValue(TStructure structure, DynamicDreadValue value)
+	private void SetCurrentValue(TStructure structure, DynamicDreadValue? value)
 		=> this.propertyInfo.SetValue(structure, value);
 }
