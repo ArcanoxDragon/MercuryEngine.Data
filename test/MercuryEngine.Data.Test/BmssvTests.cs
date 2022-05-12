@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Test.Utility;
 using Newtonsoft.Json;
@@ -54,6 +55,14 @@ public class BmssvTests
 
 			TestContext.Out.WriteLine("JSON dump of current parsed state:");
 			TestContext.Out.WriteLine(jsonDump);
+
+			var outFileDir = Path.GetDirectoryName(filePath)!;
+			var outFileName = Path.GetFileNameWithoutExtension(filePath) + ".json";
+			var outFilePath = Path.Combine(outFileDir, outFileName);
+			using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
+			using var writer = new StreamWriter(outFileStream, Encoding.UTF8);
+
+			writer.Write(jsonDump);
 		}
 	}
 
