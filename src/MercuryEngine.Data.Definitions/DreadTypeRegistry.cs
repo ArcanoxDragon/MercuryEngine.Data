@@ -4,6 +4,7 @@ using System.Text.Json;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures;
+using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Definitions.DataTypes;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Json;

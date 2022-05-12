@@ -1,5 +1,7 @@
 ﻿using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures;
+using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Definitions.Extensions;
 
 namespace MercuryEngine.Data.Definitions.DataTypes;
 
@@ -12,17 +14,25 @@ public class CBreakableTileGroupComponent_TActorTileStatesMap : DataStructure<CB
 
 	public sealed class Entry : DataStructure<Entry>
 	{
-		public List<DynamicStructure> States { get; } = new();
+		public List<TileState> States { get; } = new();
 
 		protected override void Describe(DataStructureBuilder<Entry> builder)
-			=> builder.Array(m => m.States, CreateState);
+			=> builder.Array(m => m.States);
+	}
 
-		private static DynamicStructure CreateState()
-			=> DynamicStructure.Create("ActorTileState", builder => {
-				builder.Float("fX")
-					   .Float("fY")
-					   .Enum<EBreakableTileType>("eTileType")
-					   .UInt32("uState");
+	public sealed class TileState : DataStructure<TileState>
+	{
+		public float              X        { get; set; }
+		public float              Y        { get; set; }
+		public EBreakableTileType TileType { get; set; }
+		public uint               State    { get; set; }
+
+		protected override void Describe(DataStructureBuilder<TileState> builder)
+			=> builder.MsePropertyBag(fields => {
+				fields.Property("fX", m => m.X)
+					  .Property("fY", m => m.Y)
+					  .Property("eTileType", m => m.TileType)
+					  .Property("uState", m => m.State);
 			});
 	}
 }

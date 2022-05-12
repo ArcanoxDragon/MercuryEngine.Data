@@ -1,6 +1,62 @@
 ﻿using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
+
+public static class DataStructurePropertyBagField
+{
+	#region Static Factory Methods
+
+	public static DataStructurePropertyBagField<TStructure, TPropertyKey> Create<TStructure, TPropertyKey>(
+		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
+		Func<TPropertyKey> emptyPropertyKeyFactory,
+		Action<PropertyBagFieldBuilder<TStructure>> configure,
+		IEqualityComparer<TPropertyKey> keyEqualityComparer)
+	where TStructure : IDataStructure
+	where TPropertyKey : IBinaryDataType
+	{
+		var builder = new Builder<TStructure>();
+
+		configure(builder);
+
+		return new DataStructurePropertyBagField<TStructure, TPropertyKey>(propertyKeyGenerator, emptyPropertyKeyFactory, builder.Build(), keyEqualityComparer);
+	}
+
+	public static DataStructurePropertyBagField<TStructure, TPropertyKey> Create<TStructure, TPropertyKey>(
+		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
+		Func<TPropertyKey> emptyPropertyKeyFactory,
+		Action<PropertyBagFieldBuilder<TStructure>> configure)
+	where TStructure : IDataStructure
+	where TPropertyKey : IBinaryDataType
+		=> Create(propertyKeyGenerator, emptyPropertyKeyFactory, configure, EqualityComparer<TPropertyKey>.Default);
+
+	public static DataStructurePropertyBagField<TStructure, TPropertyKey> Create<TStructure, TPropertyKey>(
+		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
+		Action<PropertyBagFieldBuilder<TStructure>> configure,
+		IEqualityComparer<TPropertyKey> keyEqualityComparer)
+	where TStructure : IDataStructure
+	where TPropertyKey : IBinaryDataType, new()
+		=> Create(propertyKeyGenerator, () => new TPropertyKey(), configure, keyEqualityComparer);
+
+	public static DataStructurePropertyBagField<TStructure, TPropertyKey> Create<TStructure, TPropertyKey>(
+		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
+		Action<PropertyBagFieldBuilder<TStructure>> configure)
+	where TStructure : IDataStructure
+	where TPropertyKey : IBinaryDataType, new()
+		=> Create(propertyKeyGenerator, configure, EqualityComparer<TPropertyKey>.Default);
+
+	#endregion
+
+	#region Builder
+
+	private sealed class Builder<TStructure> : PropertyBagFieldBuilder<TStructure>
+	where TStructure : IDataStructure
+	{
+		public Dictionary<string, IDataStructureField<TStructure>> Build() => Fields;
+	}
+
+	#endregion
+}
 
 /// <summary>
 /// An <see cref="IDataStructureField"/> that handles reading and writing a collection of named properties that may be stored in any order in a binary format.
@@ -28,12 +84,6 @@ where TPropertyKey : IBinaryDataType
 		this.innerFields = new Dictionary<string, IDataStructureField<TStructure>>(innerFields);
 		this.propertyKeyLookup = this.innerFields.ToDictionary(pair => propertyKeyGenerator.GenerateKey(pair.Key), pair => pair.Value, keyEqualityComparer);
 	}
-
-	public DataStructurePropertyBagField(
-		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
-		Func<TPropertyKey> emptyPropertyKeyFactory,
-		IReadOnlyDictionary<string, IDataStructureField<TStructure>> innerFields
-	) : this(propertyKeyGenerator, emptyPropertyKeyFactory, innerFields, EqualityComparer<TPropertyKey>.Default) { }
 
 	public string FriendlyDescription => $"<property bag: {this.innerFields.Count} properties>";
 

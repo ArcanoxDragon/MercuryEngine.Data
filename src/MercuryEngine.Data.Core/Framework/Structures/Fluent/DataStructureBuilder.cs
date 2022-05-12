@@ -4,7 +4,7 @@ using MercuryEngine.Data.Core.Framework.DataAdapters;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures.Fields;
 
-namespace MercuryEngine.Data.Core.Framework.Structures;
+namespace MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 /// <summary>
 /// Provides a fluent interface for defining the format of a <see cref="DataStructure{T}"/>.
@@ -199,6 +199,38 @@ where T : IDataStructure
 	public DataStructureBuilder<T> AddPropertyField<TProperty, TData>(Expression<Func<T, TProperty?>> propertyExpression, Func<TData> dataTypeFactory, IDataAdapter<TData, TProperty> dataAdapter)
 	where TData : IBinaryDataType
 		=> AddField(new DataStructurePropertyField<T, TProperty, TData>(dataTypeFactory, propertyExpression, dataAdapter));
+
+	#endregion
+
+	#region Property Bag Fields
+
+	public DataStructureBuilder<T> PropertyBag<TPropertyKey>(
+		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
+		Func<TPropertyKey> emptyPropertyKeyFactory,
+		Action<PropertyBagFieldBuilder<T>> configure,
+		IEqualityComparer<TPropertyKey> keyEqualityComparer)
+	where TPropertyKey : IBinaryDataType
+		=> AddField(DataStructurePropertyBagField.Create(propertyKeyGenerator, emptyPropertyKeyFactory, configure, keyEqualityComparer));
+
+	public DataStructureBuilder<T> PropertyBag<TPropertyKey>(
+		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
+		Func<TPropertyKey> emptyPropertyKeyFactory,
+		Action<PropertyBagFieldBuilder<T>> configure)
+	where TPropertyKey : IBinaryDataType
+		=> AddField(DataStructurePropertyBagField.Create(propertyKeyGenerator, emptyPropertyKeyFactory, configure));
+
+	public DataStructureBuilder<T> PropertyBag<TPropertyKey>(
+		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
+		Action<PropertyBagFieldBuilder<T>> configure,
+		IEqualityComparer<TPropertyKey> keyEqualityComparer)
+	where TPropertyKey : IBinaryDataType, new()
+		=> AddField(DataStructurePropertyBagField.Create(propertyKeyGenerator, configure, keyEqualityComparer));
+
+	public DataStructureBuilder<T> PropertyBag<TPropertyKey>(
+		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
+		Action<PropertyBagFieldBuilder<T>> configure)
+	where TPropertyKey : IBinaryDataType, new()
+		=> AddField(DataStructurePropertyBagField.Create(propertyKeyGenerator, configure));
 
 	#endregion
 

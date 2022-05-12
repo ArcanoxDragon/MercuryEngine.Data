@@ -1,4 +1,5 @@
 ﻿using MercuryEngine.Data.Core.Framework.Structures;
+using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 namespace MercuryEngine.Data.Definitions.DataTypes;
 

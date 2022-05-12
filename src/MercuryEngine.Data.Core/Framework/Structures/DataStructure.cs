@@ -2,6 +2,7 @@
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures.Fields;
+using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 namespace MercuryEngine.Data.Core.Framework.Structures;
 

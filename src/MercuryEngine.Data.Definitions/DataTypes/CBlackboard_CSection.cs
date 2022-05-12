@@ -1,6 +1,7 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures;
+using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Definitions.Extensions;
 
 namespace MercuryEngine.Data.Definitions.DataTypes;

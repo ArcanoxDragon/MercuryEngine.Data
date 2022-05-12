@@ -3,7 +3,7 @@ using MercuryEngine.Data.Core.Framework.DataAdapters;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures.Fields;
 
-namespace MercuryEngine.Data.Core.Framework.Structures;
+namespace MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 /// <summary>
 /// Provides a fluent interface for defining the format of a <see cref="DynamicStructure"/>.
