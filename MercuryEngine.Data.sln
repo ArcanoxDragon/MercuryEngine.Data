@@ -7,11 +7,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data", "src\M
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Test", "test\MercuryEngine.Data.Test\MercuryEngine.Data.Test.csproj", "{D0B8CB57-D7F7-4C2A-B219-F7ECA82A6312}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Definitions", "src\MercuryEngine.Data.Definitions\MercuryEngine.Data.Definitions.csproj", "{6D618EA4-35E4-4D8B-BBB8-1FC366573732}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Types", "src\MercuryEngine.Data.Types\MercuryEngine.Data.Types.csproj", "{6D618EA4-35E4-4D8B-BBB8-1FC366573732}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MercuryEngine.Data.Core", "src\MercuryEngine.Data.Core\MercuryEngine.Data.Core.csproj", "{D22D5AC9-FB30-4039-BE98-6B1A17E4FC2F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Core", "src\MercuryEngine.Data.Core\MercuryEngine.Data.Core.csproj", "{D22D5AC9-FB30-4039-BE98-6B1A17E4FC2F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MercuryEngine.Data.Resources", "src\MercuryEngine.Data.Resources\MercuryEngine.Data.Resources.csproj", "{D330E49C-D00D-4D9C-9584-47516599ACD4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Definitions", "src\MercuryEngine.Data.Definitions\MercuryEngine.Data.Definitions.csproj", "{D330E49C-D00D-4D9C-9584-47516599ACD4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MercuryEngine.Data.SourceGenerators", "src\MercuryEngine.Data.SourceGenerators\MercuryEngine.Data.SourceGenerators.csproj", "{C8340E4D-442B-4CF8-AEC0-5F9353C94D03}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{D330E49C-D00D-4D9C-9584-47516599ACD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D330E49C-D00D-4D9C-9584-47516599ACD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D330E49C-D00D-4D9C-9584-47516599ACD4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8340E4D-442B-4CF8-AEC0-5F9353C94D03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8340E4D-442B-4CF8-AEC0-5F9353C94D03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8340E4D-442B-4CF8-AEC0-5F9353C94D03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8340E4D-442B-4CF8-AEC0-5F9353C94D03}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

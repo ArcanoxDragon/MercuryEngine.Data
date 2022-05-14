@@ -13,7 +13,7 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\MercuryEngine.Data.Core\MercuryEngine.Data.Core.csproj" />
-	  <ProjectReference Include="..\MercuryEngine.Data.Definitions\MercuryEngine.Data.Definitions.csproj" />
+	  <ProjectReference Include="..\MercuryEngine.Data.Types\MercuryEngine.Data.Types.csproj" />
 	</ItemGroup>
 
 </Project>

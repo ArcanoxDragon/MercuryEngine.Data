@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
@@ -7,13 +7,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+		<EmbeddedResource Include="../../DataDefinitions/*.json">
+			<Link>DataDefinitions/%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</EmbeddedResource>
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\MercuryEngine.Data.Core\MercuryEngine.Data.Core.csproj" />
-		<ProjectReference Include="..\MercuryEngine.Data.Resources\MercuryEngine.Data.Resources.csproj" />
+		<PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 	</ItemGroup>
 
 </Project>
