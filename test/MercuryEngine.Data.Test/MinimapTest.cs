@@ -5,8 +5,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Definitions.DataTypes;
@@ -34,55 +32,114 @@ public class MinimapTest
 			if (section.Properties.SingleOrDefault(p => p.Key == "MINIMAP_VISIBILITY") is not { Data: minimapGrid_TMinimapVisMap minimapVisibility })
 				continue;
 
-			var sortedEntries = minimapVisibility.Entries.OrderByDescending(p => p.Key.Value).Select(p => p.Value.Value).ToList();
-			var rawEntryRows = new List<List<string>>();
-
-			foreach (var entry in sortedEntries)
-			{
-				var rawEntryRow = new List<string>();
-
-				foreach (var match in MinimapVisRegex.Matches(entry).Cast<Match>())
-				{
-					var count = int.Parse(match.Groups[1].Value);
-					var state = match.Groups[2].Value;
-
-					for (var i = 0; i < count; i++)
-						rawEntryRow.Add(state);
-				}
-
-				rawEntryRows.Add(rawEntryRow);
-			}
-
-			var width = rawEntryRows.Max(row => row.Count);
-			var height = rawEntryRows.Count;
-			using var bitmap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
-
-			RenderMinimap(bitmap, rawEntryRows);
-
+			var parsedMinimap = ParseMinimap(minimapVisibility);
+			using var minimapBitmap = RenderMinimap(parsedMinimap);
 			var outFileDir = Path.GetDirectoryName(filePath)!;
 			var outFilePath = Path.Combine(outFileDir, $"{section.Name}_minimap.png");
 
-			bitmap.Save(outFilePath, ImageFormat.Png);
+			minimapBitmap.Save(outFilePath, ImageFormat.Png);
 		}
 	}
 
-	private static void RenderMinimap(Bitmap bitmap, IEnumerable<List<string>> rawEntryRows)
+	private static List<MinimapRow> ParseMinimap(minimapGrid_TMinimapVisMap minimap)
 	{
-		using var graphics = Graphics.FromImage(bitmap);
+		var sortedMapRows = minimap.Entries.OrderByDescending(p => p.Key.Value).Select(p => p.Value.Value).ToList();
+		var parsedRows = new List<MinimapRow>();
 
-		foreach (var (y, row) in rawEntryRows.Pairs())
-		foreach (var (x, state) in row.Pairs())
+		foreach (var row in sortedMapRows)
 		{
-			var pen = state switch {
-				"@" => Pens.White,
-				"o" => Pens.DimGray,
-				_   => Pens.Black,
-			};
+			var parsedRow = new List<MinimapChunk>();
 
-			graphics.DrawRectangle(pen, x, y, 1, 1);
+			foreach (var match in MinimapVisRegex.Matches(row).Cast<Match>())
+			{
+				var size = int.Parse(match.Groups[1].Value);
+				var state = match.Groups[2].Value;
+				var chunk = new MinimapChunk(size, (MinimapTileState) state[0]);
+
+				parsedRow.Add(chunk);
+			}
+
+			parsedRows.Add(new MinimapRow(parsedRow));
 		}
+
+		return parsedRows;
+	}
+
+	private static Bitmap RenderMinimap(List<MinimapRow> minimapRows)
+	{
+		const int TileSize = 4;
+
+		var maxRowLength = minimapRows.Max(row => row.Length);
+		var bitmapWidth = TileSize * maxRowLength;
+		var bitmapHeight = TileSize * minimapRows.Count;
+		var bitmap = new Bitmap(bitmapWidth, bitmapHeight, PixelFormat.Format24bppRgb);
+		var bitmapData = bitmap.LockBits(new Rectangle(0, 0, bitmapWidth, bitmapHeight), ImageLockMode.ReadWrite, bitmap.PixelFormat);
+		var byteCount = bitmapData.Height * Math.Abs(bitmapData.Stride);
+
+		unsafe
+		{
+			var rgbData = new Span<Rgb>((void*) bitmapData.Scan0, byteCount / sizeof(Rgb));
+
+			foreach (var (iRow, row) in minimapRows.Pairs())
+			{
+				// Render first pixel row, and then we can copy it
+				var rowStartY = iRow * TileSize;
+				var sourceRowData = rgbData.Slice(rowStartY * bitmapWidth, bitmapWidth);
+				var x = 0;
+
+				foreach (var (size, state) in row.Chunks)
+				{
+					var color = state switch {
+						MinimapTileState.Visited => Color.White,
+						MinimapTileState.Seen    => Color.DarkGray,
+						_                        => Color.Black,
+					};
+					var rgb = new Rgb(color.R, color.G, color.B);
+
+					// Copy the RGB struct along the row for the size of the chunk
+					var chunkSizeInPixels = TileSize * size;
+					var chunkSpan = sourceRowData.Slice(x, chunkSizeInPixels);
+
+					chunkSpan.Fill(rgb);
+					x += chunkSizeInPixels;
+				}
+
+				// Copy row to make it TileSize pixels high
+				for (var y = 1; y < TileSize; y++)
+				{
+					var destRowData = rgbData.Slice(( rowStartY + y ) * bitmapWidth, bitmapWidth);
+
+					sourceRowData.CopyTo(destRowData);
+				}
+			}
+		}
+
+		bitmap.UnlockBits(bitmapData);
+
+		return bitmap;
 	}
 
 	private static string GetSamusPath(string profileName)
 		=> Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", "BMSSV", profileName, "samus.bmssv");
+
+	#region Helper Types
+
+	[SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Local")]
+	private record struct Rgb(byte R, byte G, byte B);
+
+	private record struct MinimapChunk(int Size, MinimapTileState State);
+
+	private sealed record MinimapRow(List<MinimapChunk> Chunks)
+	{
+		public int Length => Chunks.Sum(c => c.Size);
+	}
+
+	private enum MinimapTileState : byte
+	{
+		Unseen  = (byte) ' ',
+		Seen    = (byte) 'o',
+		Visited = (byte) '@',
+	}
+
+	#endregion
 }
