@@ -5,14 +5,16 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
 using MercuryEngine.Data.Core.Extensions;
-using MercuryEngine.Data.Definitions.DataTypes;
 using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.Types.DataTypes;
 
 namespace MercuryEngine.Data.Test;
 
 [TestFixture]
+[SupportedOSPlatform("Windows")]
 public class MinimapTest
 {
 	private static readonly Regex MinimapVisRegex = new(@"(\d+)([ @o])", RegexOptions.Compiled);
