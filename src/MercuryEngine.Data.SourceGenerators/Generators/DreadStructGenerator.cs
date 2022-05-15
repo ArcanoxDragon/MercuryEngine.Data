@@ -104,7 +104,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			}
 			catch (Exception ex)
 			{
-				fields.Add(new StructFieldError(fieldName, $"{ex.GetType().Name}: {ex.Message}"));
+				fields.Add(new StructFieldError(fieldName, $"{ex.GetType().Name}: {ex.Message.Replace("\r\n", "\n").Replace("\n", "&#10;")}"));
 			}
 		}
 
