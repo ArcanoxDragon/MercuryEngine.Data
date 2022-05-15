@@ -23,6 +23,12 @@ where TStructure : IDataStructure
 
 	#region Numeric Properties
 
+	public PropertyBagFieldBuilder<TStructure> Property(string propertyKey, Expression<Func<TStructure, bool>> propertyExpression)
+		=> AddPropertyField<bool, BoolDataType>(propertyKey, propertyExpression);
+
+	public PropertyBagFieldBuilder<TStructure> Property(string propertyKey, Expression<Func<TStructure, bool?>> propertyExpression)
+		=> AddPropertyField<bool, BoolDataType>(propertyKey, propertyExpression);
+
 	public PropertyBagFieldBuilder<TStructure> Property(string propertyKey, Expression<Func<TStructure, short>> propertyExpression)
 		=> AddPropertyField<short, Int16DataType>(propertyKey, propertyExpression);
 

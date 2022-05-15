@@ -27,6 +27,9 @@ where T : IDataStructure
 
 	#region Numeric Literals
 
+	public DataStructureBuilder<T> Literal(bool value, string? description = null)
+		=> AddVirtualField(new BoolDataType { Value = value }, description);
+
 	public DataStructureBuilder<T> Literal(short value, string? description = null)
 		=> AddVirtualField(new Int16DataType { Value = value }, description);
 
@@ -68,6 +71,9 @@ where T : IDataStructure
 	#endregion
 
 	#region Numeric Properties
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, bool>> propertyExpression)
+		=> AddPropertyField<bool, BoolDataType>(propertyExpression);
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, short>> propertyExpression)
 		=> AddPropertyField<short, Int16DataType>(propertyExpression);

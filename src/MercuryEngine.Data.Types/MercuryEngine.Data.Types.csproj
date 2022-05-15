@@ -4,6 +4,8 @@
 		<TargetFramework>net6.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -14,6 +16,10 @@
 	<ItemGroup>
 		<ProjectReference Include="..\MercuryEngine.Data.Core\MercuryEngine.Data.Core.csproj" />
 		<ProjectReference Include="..\MercuryEngine.Data.Definitions\MercuryEngine.Data.Definitions.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\MercuryEngine.Data.SourceGenerators\MercuryEngine.Data.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>

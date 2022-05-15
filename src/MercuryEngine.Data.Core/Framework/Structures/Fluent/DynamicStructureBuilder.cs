@@ -24,6 +24,9 @@ public abstract class DynamicStructureBuilder
 
 	#region Numeric Fields
 
+	public DynamicStructureBuilder Bool(string fieldName)
+		=> AddField<bool, BoolDataType>(fieldName);
+
 	public DynamicStructureBuilder Int16(string fieldName)
 		=> AddField<short, Int16DataType>(fieldName);
 

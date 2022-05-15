@@ -13,10 +13,10 @@ public class DreadFlagsetTypeFactory : BaseDreadDataTypeFactory<DreadFlagsetType
 		var enumTypeName = dreadType.Enum;
 
 		if (enumTypeName is null)
-			throw new InvalidOperationException($"Typedef type \"{typeName}\" is missing an enum name");
+			throw new InvalidOperationException($"Flagset type \"{typeName}\" is missing an enum name");
 
 		if (!DreadTypeRegistry.TryFindType(enumTypeName, out var enumType))
-			throw new InvalidOperationException($"Typedef type \"{typeName}\" has unknown enum type \"{enumTypeName}\"");
+			throw new InvalidOperationException($"Flagset type \"{typeName}\" has unknown enum type \"{enumTypeName}\"");
 
 		return DreadTypeRegistry.CreateDataTypeFor(enumType);
 	}

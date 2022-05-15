@@ -1,34 +1,25 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using System.Text.Json;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Definitions.DreadTypes;
-using MercuryEngine.Data.Definitions.Json;
 using MercuryEngine.Data.Definitions.Utility;
-using MercuryEngine.Data.Types.DataTypes;
 using MercuryEngine.Data.Types.DreadDataTypeFactories;
 using MercuryEngine.Data.Types.DreadTypes;
 
 namespace MercuryEngine.Data.Types;
 
-public static class DreadTypeRegistry
+public static partial class DreadTypeRegistry
 {
-	private static readonly JsonSerializerOptions JsonOptions = new() {
-		PropertyNameCaseInsensitive = true,
-		PropertyNamingPolicy = new SnakeCaseJsonNamingPolicy(),
-		Converters = {
-			new DreadTypeConverter(),
-		},
-	};
-
 	private static readonly Dictionary<Type, IDreadDataTypeFactory> FactoryMap = new();
 	private static readonly Dictionary<ulong, string>               TypeIdMap  = new();
 	private static readonly Dictionary<string, BaseDreadType>       DreadTypeDefinitions;
 
 	static DreadTypeRegistry()
 	{
-		DreadTypeDefinitions = ParseDreadTypes();
+		DreadTypeDefinitions = DreadTypeParser.ParseDreadTypes();
+
+		foreach (var typeName in DreadTypeDefinitions.Keys)
+			TypeIdMap[typeName.GetCrc64()] = typeName;
 
 		RegisterFactory<DreadConcreteType>(DreadConcreteTypeFactory.Instance);
 		RegisterFactory<DreadDictionaryType>(DreadDictionaryTypeFactory.Instance);
@@ -40,16 +31,10 @@ public static class DreadTypeRegistry
 		RegisterFactory<DreadTypedefType>(DreadTypedefTypeFactory.Instance);
 		RegisterFactory<DreadVectorType>(DreadVectorTypeFactory.Instance);
 
-		RegisterConcreteType<TEnabledOccluderCollidersMap>();
-		RegisterConcreteType<LiquidVolumesDictionary>("base::global::CRntSmallDictionary<base::global::CStrId, base::spatial::CAABox2D>");
-		RegisterConcreteType<OccluderVignettesDictionary>("base::global::CRntSmallDictionary<base::global::CStrId, bool>");
-		RegisterConcreteType<CBreakableTileGroupComponent_TActorTileStatesMap>();
-		RegisterConcreteType<minimapGrid_TMinimapVisMap>();
-		RegisterConcreteType<CMinimapManager_TCustomMarkerDataMap>();
-		RegisterConcreteType<CMinimapManager_TGlobalMapIcons>();
-		RegisterConcreteType<GUI_CMissionLog_TMissionLogEntries>();
-		RegisterConcreteType("base::global::CRntVector<EMapTutoType>", ArrayDataType.Create<EnumDataType<EMapTutoType>>);
+		RegisterGeneratedTypes();
 	}
+
+	static partial void RegisterGeneratedTypes();
 
 	#region Factory Registration
 
@@ -150,23 +135,4 @@ public static class DreadTypeRegistry
 	}
 
 	#endregion
-
-	private static Dictionary<string, BaseDreadType> ParseDreadTypes()
-	{
-		using var fileStream = ResourceHelper.OpenResourceFile("DataDefinitions/dread_types.json");
-		using var reader = new StreamReader(fileStream, Encoding.UTF8);
-		var jsonText = reader.ReadToEnd();
-		var typesDictionary = JsonSerializer.Deserialize<Dictionary<string, BaseDreadType>>(jsonText, JsonOptions)
-							  ?? throw new InvalidOperationException("Unable to read the type definition database!");
-
-		foreach (var (typeName, type) in typesDictionary)
-		{
-			var typeId = typeName.GetCrc64();
-
-			type.TypeName = typeName;
-			TypeIdMap[typeId] = typeName;
-		}
-
-		return typesDictionary;
-	}
 }

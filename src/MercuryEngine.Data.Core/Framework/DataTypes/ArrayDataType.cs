@@ -1,11 +1,19 @@
-﻿using MercuryEngine.Data.Core.Extensions;
+﻿using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Extensions;
 
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
+[PublicAPI]
 public class ArrayDataType<TEntry> : BaseDataType<List<TEntry>>
 where TEntry : IBinaryDataType
 {
 	private readonly Func<TEntry> entryFactory;
+
+	/// <summary>
+	/// Constructor that uses reflection to construct data types
+	/// TODO: Find alternative way to do this
+	/// </summary>
+	public ArrayDataType() : this(Activator.CreateInstance<TEntry>) { }
 
 	public ArrayDataType(Func<TEntry> entryFactory) : this(entryFactory, new List<TEntry>()) { }
 

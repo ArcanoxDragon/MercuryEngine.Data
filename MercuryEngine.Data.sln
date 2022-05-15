@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Core", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Definitions", "src\MercuryEngine.Data.Definitions\MercuryEngine.Data.Definitions.csproj", "{D330E49C-D00D-4D9C-9584-47516599ACD4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MercuryEngine.Data.SourceGenerators", "src\MercuryEngine.Data.SourceGenerators\MercuryEngine.Data.SourceGenerators.csproj", "{C8340E4D-442B-4CF8-AEC0-5F9353C94D03}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.SourceGenerators", "src\MercuryEngine.Data.SourceGenerators\MercuryEngine.Data.SourceGenerators.csproj", "{C8340E4D-442B-4CF8-AEC0-5F9353C94D03}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
