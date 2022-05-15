@@ -3,6 +3,7 @@ using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Utility;
+using MercuryEngine.Data.Types.DataTypes;
 using MercuryEngine.Data.Types.DreadDataTypeFactories;
 using MercuryEngine.Data.Types.DreadTypes;
 
@@ -32,6 +33,17 @@ public static partial class DreadTypeRegistry
 		RegisterFactory<DreadVectorType>(DreadVectorTypeFactory.Instance);
 
 		RegisterGeneratedTypes();
+
+		// Manual concrete types (TODO: Just put these as definitions in dread_types.json?)
+		RegisterConcreteType<TEnabledOccluderCollidersMap>();
+		RegisterConcreteType<LiquidVolumesDictionary>("base::global::CRntSmallDictionary<base::global::CStrId, base::spatial::CAABox2D>");
+		RegisterConcreteType<OccluderVignettesDictionary>("base::global::CRntSmallDictionary<base::global::CStrId, bool>");
+		RegisterConcreteType<CBreakableTileGroupComponent_TActorTileStatesMap>();
+		RegisterConcreteType<minimapGrid_TMinimapVisMap>();
+		RegisterConcreteType<CMinimapManager_TCustomMarkerDataMap>();
+		RegisterConcreteType<CMinimapManager_TGlobalMapIcons>();
+		RegisterConcreteType<GUI_CMissionLog_TMissionLogEntries>();
+		RegisterConcreteType("base::global::CRntVector<EMapTutoType>", ArrayDataType.Create<EnumDataType<EMapTutoType>>);
 	}
 
 	static partial void RegisterGeneratedTypes();

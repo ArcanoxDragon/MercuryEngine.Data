@@ -1,6 +1,7 @@
 ﻿using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Extensions;
 
 namespace MercuryEngine.Data.Types.DataTypes;
@@ -22,10 +23,10 @@ public class CBreakableTileGroupComponent_TActorTileStatesMap : DataStructure<CB
 
 	public sealed class TileState : DataStructure<TileState>
 	{
-		public float X { get; set; }
-		public float Y { get; set; }
+		public float              X        { get; set; }
+		public float              Y        { get; set; }
 		public EBreakableTileType TileType { get; set; }
-		public uint State { get; set; }
+		public uint               State    { get; set; }
 
 		protected override void Describe(DataStructureBuilder<TileState> builder)
 			=> builder.MsePropertyBag(fields => {

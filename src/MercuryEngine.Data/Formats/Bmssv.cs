@@ -1,5 +1,6 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework;
+using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.DataTypes;
 using MercuryEngine.Data.Types.Extensions;
@@ -15,7 +16,7 @@ public class Bmssv : BinaryFormat<Bmssv>
 	public int Unknown2 { get; private set; }
 	public int Unknown3 { get; private set; }
 
-	public List<CBlackboard_CSection> Sections { get; } = new();
+	public Dictionary<TerminatedStringDataType, DynamicDreadDataType> Sections { get; } = new();
 
 	protected override void Describe(DataStructureBuilder<Bmssv> builder)
 		// TODO: Support CBlackboard too
@@ -24,7 +25,7 @@ public class Bmssv : BinaryFormat<Bmssv>
 				  .CrcLiteral("Root")
 				  .Property(m => m.Unknown2)
 				  .CrcLiteral("hashSections")
-				  .Array(m => m.Sections)
+				  .Dictionary(m => m.Sections)
 				  .CrcLiteral("dctDeltaValues")
 				  .Property(m => m.Unknown3);
 }

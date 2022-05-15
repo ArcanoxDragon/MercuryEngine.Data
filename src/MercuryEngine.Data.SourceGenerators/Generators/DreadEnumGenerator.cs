@@ -10,14 +10,19 @@ public class DreadEnumGenerator : BaseDreadGenerator<DreadEnumType>
 
 	protected override IEnumerable<string> GenerateSourceLines(DreadEnumType dreadType, GenerationContext context)
 	{
-		var typeName = TypeNameUtility.SanitizeTypeName(dreadType.TypeName);
+		var typeName = dreadType.TypeName;
+		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName)!;
 
-		yield return $"public enum {typeName} : uint";
+		yield return $"public enum {typeEnumName} : uint";
 		yield return "{";
 
 		foreach (var (name, value) in dreadType.Values)
 			yield return $"\t{name} = {value},";
 
 		yield return "}";
+
+		var csharpDataTypeName = $"EnumDataType<{typeEnumName}>";
+
+		context.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
 	}
 }

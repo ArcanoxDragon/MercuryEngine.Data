@@ -2,4 +2,7 @@
 
 namespace MercuryEngine.Data.SourceGenerators;
 
-public record GenerationContext(IReadOnlyDictionary<string, BaseDreadType> KnownTypes);
+public record GenerationContext(IReadOnlyDictionary<string, BaseDreadType> KnownTypes)
+{
+	public List<GeneratedType> GeneratedTypes { get; } = new();
+}

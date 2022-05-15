@@ -27,32 +27,33 @@ public class DreadTypesGenerator : ISourceGenerator
 
 	public void Initialize(GeneratorInitializationContext context) { }
 
-	public void Execute(GeneratorExecutionContext context)
+	public void Execute(GeneratorExecutionContext executionContext)
 	{
-		var generatedTypesSource = string.Join(Environment.NewLine, GenerateTypesSourceLines());
-		var sourceText = SourceText.From(generatedTypesSource, Encoding.UTF8);
+		var allTypes = DreadTypeParser.ParseDreadTypes();
+		var generationContext = new GenerationContext(allTypes);
 
-		context.AddSource("GeneratedDreadTypes.g.cs", sourceText);
+		GenerateTypesFile(executionContext, generationContext);
+		GenerateRegistryPartialFile(executionContext, generationContext);
 	}
 
-	private IEnumerable<string> GenerateTypesSourceLines()
+	private void GenerateTypesFile(GeneratorExecutionContext executionContext, GenerationContext generationContext)
+	{
+		var sourceLines = string.Join(Environment.NewLine, GenerateTypesSourceLines(generationContext));
+		var sourceText = SourceText.From(sourceLines, Encoding.UTF8);
+
+		executionContext.AddSource("GeneratedDreadTypes.g.cs", sourceText);
+	}
+
+	private IEnumerable<string> GenerateTypesSourceLines(GenerationContext context)
 	{
 		yield return "#nullable enable";
 
-		yield return "using System;";
-		yield return "using MercuryEngine.Data.Core.Framework;";
-		yield return "using MercuryEngine.Data.Core.Framework.DataTypes;";
-		yield return "using MercuryEngine.Data.Core.Framework.Structures;";
-		yield return "using MercuryEngine.Data.Core.Framework.Structures.Fluent;";
-		yield return "using MercuryEngine.Data.Types.DataTypes;";
-		yield return "using MercuryEngine.Data.Types.Extensions;";
+		foreach (var line in GetStandardNamespaceImports())
+			yield return line;
 
 		yield return $"namespace {DreadTypesNamespace};";
 
-		var allTypes = DreadTypeParser.ParseDreadTypes();
-		var context = new GenerationContext(allTypes);
-
-		foreach (var (typeName, type) in allTypes)
+		foreach (var (typeName, type) in context.KnownTypes)
 		{
 			if (ExcludedTypeNames.Contains(typeName))
 				continue;
@@ -91,5 +92,49 @@ public class DreadTypesGenerator : ISourceGenerator
 				yield return source;
 			}
 		}
+	}
+
+	private void GenerateRegistryPartialFile(GeneratorExecutionContext executionContext, GenerationContext generationContext)
+	{
+		var sourceLines = string.Join(Environment.NewLine, GenerateRegistryPartialSourceLines(generationContext));
+		var sourceText = SourceText.From(sourceLines, Encoding.UTF8);
+
+		executionContext.AddSource("DreadTypeRegistry.g.cs", sourceText);
+	}
+
+	private IEnumerable<string> GenerateRegistryPartialSourceLines(GenerationContext context)
+	{
+		yield return "#nullable enable";
+
+		foreach (var line in GetStandardNamespaceImports())
+			yield return line;
+
+		yield return $"using {DreadTypesNamespace};";
+
+		yield return $"namespace {DreadTypeRegistryNamespace};";
+
+		yield return $"public static partial class {DreadTypeRegistryClassName}";
+		yield return "{";
+
+		yield return "\tstatic partial void RegisterGeneratedTypes()";
+		yield return "\t{";
+
+		foreach (var (csharpTypeName, dreadTypeName) in context.GeneratedTypes)
+			yield return $"\t\tRegisterConcreteType<{csharpTypeName}>(\"{dreadTypeName}\");";
+
+		yield return "\t}";
+
+		yield return "}";
+	}
+
+	private IEnumerable<string> GetStandardNamespaceImports()
+	{
+		yield return "using System;";
+		yield return "using MercuryEngine.Data.Core.Framework;";
+		yield return "using MercuryEngine.Data.Core.Framework.DataTypes;";
+		yield return "using MercuryEngine.Data.Core.Framework.Structures;";
+		yield return "using MercuryEngine.Data.Core.Framework.Structures.Fluent;";
+		yield return "using MercuryEngine.Data.Types.DataTypes;";
+		yield return "using MercuryEngine.Data.Types.Extensions;";
 	}
 }

@@ -11,7 +11,7 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 	protected override IEnumerable<string> GenerateSourceLines(DreadFlagsetType dreadType, GenerationContext context)
 	{
 		var typeName = dreadType.TypeName;
-		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName);
+		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName)!;
 		var enumTypeName = dreadType.Enum;
 
 		if (enumTypeName is null)
@@ -31,5 +31,9 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 			yield return $"\t{name} = {value},";
 
 		yield return "}";
+
+		var csharpDataTypeName = $"EnumDataType<{typeEnumName}>";
+
+		context.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
 	}
 }

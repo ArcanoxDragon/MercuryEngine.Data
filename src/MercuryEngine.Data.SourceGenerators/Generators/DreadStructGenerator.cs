@@ -16,7 +16,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 	protected override IEnumerable<string> GenerateSourceLines(DreadStructType dreadType, GenerationContext context)
 	{
 		var typeName = dreadType.TypeName;
-		var typeClassName = TypeNameUtility.SanitizeTypeName(typeName);
+		var typeClassName = TypeNameUtility.SanitizeTypeName(typeName)!;
 		var fields = BuildStructFields(dreadType, context);
 
 		yield return $"public class {typeClassName} : DataStructure<{typeClassName}>";
@@ -46,6 +46,8 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		yield return "\t\t});";
 		yield return "\t}";
 		yield return "}";
+
+		context.GeneratedTypes.Add(new GeneratedType(typeClassName, typeName));
 	}
 
 	private List<IStructField> BuildStructFields(DreadStructType dreadType, GenerationContext context)
