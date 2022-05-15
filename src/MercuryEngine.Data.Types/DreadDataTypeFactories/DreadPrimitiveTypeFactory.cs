@@ -10,15 +10,15 @@ public class DreadPrimitiveTypeFactory : BaseDreadDataTypeFactory<DreadPrimitive
 
 	protected override IBinaryDataType CreateDataType(DreadPrimitiveType dreadType)
 		=> dreadType.PrimitiveKind switch {
-			DreadPrimitiveKind.Bool => new BoolDataType(),
-			DreadPrimitiveKind.Int => new Int32DataType(),
-			DreadPrimitiveKind.UInt => new UInt32DataType(),
-			DreadPrimitiveKind.UInt16 => new UInt16DataType(),
-			DreadPrimitiveKind.UInt64 => new UInt64DataType(),
-			DreadPrimitiveKind.Float => new FloatDataType(),
-			DreadPrimitiveKind.String => new TerminatedStringDataType(),
-			// DreadPrimitiveKind.Property => // TODO
-			// DreadPrimitiveKind.Bytes => // TODO
+			DreadPrimitiveKind.Bool       => new BoolDataType(),
+			DreadPrimitiveKind.Int        => new Int32DataType(),
+			DreadPrimitiveKind.UInt       => new UInt32DataType(),
+			DreadPrimitiveKind.UInt16     => new UInt16DataType(),
+			DreadPrimitiveKind.UInt64     => new UInt64DataType(),
+			DreadPrimitiveKind.Float      => new FloatDataType(),
+			DreadPrimitiveKind.String     => new TerminatedStringDataType(),
+			DreadPrimitiveKind.Property   => new TerminatedStringDataType(),
+			DreadPrimitiveKind.Bytes      => new DynamicDreadDataType(),
 			DreadPrimitiveKind.Float_Vec2 => new Vector2(),
 			DreadPrimitiveKind.Float_Vec3 => new Vector3(),
 			DreadPrimitiveKind.Float_Vec4 => new Vector4(),
