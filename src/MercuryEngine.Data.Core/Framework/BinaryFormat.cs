@@ -4,8 +4,37 @@ using MercuryEngine.Data.Core.Framework.Structures;
 namespace MercuryEngine.Data.Core.Framework;
 
 public abstract class BinaryFormat<T> : DataStructure<T>
-where T : BinaryFormat<T>
+where T : BinaryFormat<T>, new()
 {
+	#region Static Factory
+
+	/// <summary>
+	/// Returns a new instance of <typeparamref name="T"/> that has been loaded from the provided <paramref name="stream"/>.
+	/// </summary>
+	public static T From(Stream stream)
+	{
+		var format = new T();
+
+		format.Read(stream);
+
+		return format;
+	}
+
+	/// <summary>
+	/// Returns a new instance of <typeparamref name="T"/> that has been loaded from the provided <paramref name="stream"/>
+	/// using the provided <paramref name="encoding"/>.
+	/// </summary>
+	public static T From(Stream stream, Encoding encoding)
+	{
+		var format = new T();
+
+		format.Read(stream, encoding);
+
+		return format;
+	}
+
+	#endregion
+
 	private static readonly Encoding DefaultEncoding = new UTF8Encoding();
 
 	/// <summary>
