@@ -1,26 +1,28 @@
 ﻿using System.Text.RegularExpressions;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Extensions;
+using MercuryEngine.Data.SourceGenerators.Extensions;
 using MercuryEngine.Data.SourceGenerators.Utility;
+using Microsoft.CodeAnalysis;
 
 namespace MercuryEngine.Data.SourceGenerators.Generators;
 
 public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 {
 	// Many fields have a prefix indicating the type; we want to strip that off
-	private static readonly Regex FieldNameRegex = new(@"(?:[abcefiopstuv]|v\d|hash|vect|vo|wp|dct|str|arr|dic|map|lst)?([a-zA-Z][a-zA-Z\d_]*)", RegexOptions.Compiled);
-
+	private static readonly Regex        FieldNameRegex       = new(@"(?:[abcefiopstuv]|v\d|hash|vect|vo|wp|dct|str|arr|dic|map|lst)?([a-zA-Z][a-zA-Z\d_]*)", RegexOptions.Compiled);
 	private static readonly List<string> ForbiddenMemberNames = new() { "Write", "Size" };
 
 	public static DreadStructGenerator Instance { get; } = new();
 
-	protected override IEnumerable<string> GenerateSourceLines(DreadStructType dreadType, GenerationContext context)
+	protected override IEnumerable<string> GenerateSourceLines(DreadStructType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		var typeName = dreadType.TypeName;
 		var typeClassName = TypeNameUtility.SanitizeTypeName(typeName)!;
-		var fields = BuildStructFields(dreadType, context);
+		var preexistingType = generationContext.PreexistingTypes.SingleOrDefault(t => t.Name == typeClassName);
+		var fields = BuildStructFields(dreadType, preexistingType, executionContext, generationContext);
 
-		yield return $"public class {typeClassName} : DataStructure<{typeClassName}>, IDreadDataType";
+		yield return $"public partial class {typeClassName} : DataStructure<{typeClassName}>, IDreadDataType";
 		yield return "{";
 
 		// Emit IDreadDataType implementation
@@ -29,6 +31,9 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		// Emit property declarations
 		foreach (var field in fields)
 		{
+			if (!field.ShouldGenerate)
+				continue;
+
 			if (field.HasSummary)
 			{
 				yield return $"\t/// <summary>";
@@ -51,10 +56,10 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		yield return "\t}";
 		yield return "}";
 
-		context.GeneratedTypes.Add(new GeneratedType(typeClassName, typeName));
+		generationContext.GeneratedTypes.Add(new GeneratedType(typeClassName, typeName));
 	}
 
-	private List<IStructField> BuildStructFields(DreadStructType dreadType, GenerationContext context)
+	private List<IStructField> BuildStructFields(DreadStructType dreadType, PreexistingType? preexistingType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		var typeName = dreadType.TypeName;
 		var parentTypeName = dreadType.Parent;
@@ -63,27 +68,27 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		// Add parent fields if necessary
 		if (parentTypeName != null)
 		{
-			if (!context.KnownTypes.TryGetValue(parentTypeName, out var parentBaseType))
+			if (!generationContext.KnownTypes.TryGetValue(parentTypeName, out var parentBaseType))
 				throw new InvalidOperationException($"Struct type \"{typeName}\" has unknown parent type \"{parentTypeName}\"");
 
 			if (parentBaseType is not DreadStructType parentType)
 				throw new InvalidOperationException($"Struct type \"{typeName}\" referred to parent type \"{parentTypeName}\", which is not a struct type");
 
-			fields.AddRange(BuildStructFields(parentType, context));
+			fields.AddRange(BuildStructFields(parentType, preexistingType, executionContext, generationContext));
 		}
 
 		// Add our own fields
 		foreach (var (fieldName, fieldTypeName) in dreadType.Fields)
 		{
-			if (!context.KnownTypes.TryGetValue(fieldTypeName, out var fieldType))
+			if (!generationContext.KnownTypes.TryGetValue(fieldTypeName, out var fieldType))
 				throw new InvalidOperationException($"Field \"{fieldName}\" on struct type \"{typeName}\" has unknown type \"{fieldTypeName}\"");
 
 			// Normalize typedefs and pointers to their underlying types
 			while (fieldType is DreadPointerType or DreadTypedefType)
 			{
 				fieldType = fieldType switch {
-					DreadPointerType pointerType => FindType(pointerType.Target!, context),
-					DreadTypedefType typedefType => FindType(typedefType.Alias!, context),
+					DreadPointerType pointerType => FindType(pointerType.Target!, generationContext),
+					DreadTypedefType typedefType => FindType(typedefType.Alias!, generationContext),
 
 					_ => throw new InvalidOperationException(),
 				};
@@ -92,8 +97,50 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			try
 			{
 				var propertyName = GeneratePropertyName(fieldName);
-				var propertyType = MapPropertyTypeName(fieldType, context);
+				var propertyType = MapPropertyTypeName(fieldType, generationContext);
 				var configureMethod = MapConfigureMethod(fieldType);
+				var preexistingProperty = FindMatchingProperty(preexistingType, fieldName);
+
+				if (preexistingProperty != null)
+				{
+					// A pre-existing type was defined (i.e. a partial class for this generated class) and there is a property
+					// that is marked as the backing property for this struct field. We must ensure that the property type matches
+					// what we need it to be, and as long as it does, we will use that property instead of defining a new one.
+
+					var requiredPropertyTypeName = propertyType.Trim('?');
+					var preexistingPropertyTypeName = preexistingProperty.Type.GetSimpleGenericName().Trim('?');
+
+					if (preexistingPropertyTypeName != requiredPropertyTypeName)
+					{
+						executionContext.ReportDiagnostic(
+							Diagnostic.Create(Constants.Diagnostics.PropertyTypeMismatchDescriptor,
+											  preexistingProperty.Locations.First(),
+											  preexistingProperty.Locations.Skip(1),
+											  preexistingProperty.Name,
+											  $"{preexistingType!.Namespace}.{preexistingType.Name}",
+											  requiredPropertyTypeName,
+											  fieldName));
+
+						continue;
+					}
+
+					// If a pre-existing property exists, it must have both a getter AND a setter.
+					if (preexistingProperty.IsReadOnly || preexistingProperty.IsWriteOnly)
+					{
+						executionContext.ReportDiagnostic(
+							Diagnostic.Create(Constants.Diagnostics.PropertyMissingGetterOrSetterDescriptor,
+											  preexistingProperty.Locations.First(),
+											  preexistingProperty.Locations.Skip(1),
+											  preexistingProperty.Name,
+											  $"{preexistingType!.Namespace}.{preexistingType.Name}",
+											  fieldName));
+
+						continue;
+					}
+
+					propertyName = preexistingProperty.Name;
+				}
+
 				var conflictingFields = fields.OfType<StructField>().Where(f => f.PropertyName == propertyName).ToList();
 
 				if (conflictingFields.Any())
@@ -104,7 +151,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 				if (ForbiddenMemberNames.Contains(propertyName))
 					propertyName += "_";
 
-				fields.Add(new StructField(fieldName, fieldTypeName, propertyName, propertyType, configureMethod));
+				fields.Add(new StructField(fieldName, fieldType.TypeName, propertyName, propertyType, configureMethod, preexistingProperty));
 			}
 			catch (Exception ex)
 			{
@@ -113,6 +160,33 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		}
 
 		return fields;
+	}
+
+	private IPropertySymbol? FindMatchingProperty(PreexistingType? preexistingType, string fieldName)
+	{
+		if (preexistingType is null)
+			return null;
+
+		foreach (var property in preexistingType.Properties)
+		{
+			var attributes = property.GetAttributes();
+
+			foreach (var attribute in attributes)
+			{
+				if (attribute.AttributeClass?.GetFullyQualifiedName() != Constants.StructPropertyAttributeClassName)
+					continue;
+
+				var fieldNameArgument = attribute.ConstructorArguments.FirstOrDefault();
+
+				if (fieldNameArgument is not { Type.SpecialType: SpecialType.System_String, Value: string propertyFieldName })
+					continue;
+
+				if (propertyFieldName == fieldName)
+					return property;
+			}
+		}
+
+		return null;
 	}
 
 	private string GeneratePropertyName(string fieldName)
@@ -231,17 +305,19 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 
 	private interface IStructField
 	{
-		bool   HasSummary { get; }
-		string FieldName  { get; }
+		bool   ShouldGenerate { get; }
+		bool   HasSummary     { get; }
+		string FieldName      { get; }
 
 		string GenerateSummary();
 		string GenerateProperty();
 		string GenerateConfigure();
 	}
 
-	private sealed record StructField(string FieldName, string FieldTypeName, string PropertyName, string PropertyType, string ConfigureMethod) : IStructField
+	private sealed record StructField(string FieldName, string FieldTypeName, string PropertyName, string PropertyType, string ConfigureMethod, IPropertySymbol? PreexistingProperty) : IStructField
 	{
-		public bool HasSummary => true;
+		public bool ShouldGenerate => PreexistingProperty is null;
+		public bool HasSummary     => true;
 
 		public string GenerateSummary()
 			=> $"Field: {FieldName}&#10;Original type: {FieldTypeName}";
@@ -255,7 +331,8 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 
 	private sealed record StructFieldError(string FieldName, string Message) : IStructField
 	{
-		public bool HasSummary => false;
+		public bool ShouldGenerate => true;
+		public bool HasSummary     => false;
 
 		public string GenerateSummary()
 			=> "";

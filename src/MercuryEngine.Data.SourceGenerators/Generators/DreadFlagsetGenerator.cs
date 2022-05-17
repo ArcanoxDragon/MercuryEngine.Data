@@ -1,6 +1,7 @@
 ﻿using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.SourceGenerators.Utility;
+using Microsoft.CodeAnalysis;
 
 namespace MercuryEngine.Data.SourceGenerators.Generators;
 
@@ -8,7 +9,7 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 {
 	public static DreadFlagsetGenerator Instance { get; } = new();
 
-	protected override IEnumerable<string> GenerateSourceLines(DreadFlagsetType dreadType, GenerationContext context)
+	protected override IEnumerable<string> GenerateSourceLines(DreadFlagsetType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		var typeName = dreadType.TypeName;
 		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName)!;
@@ -17,7 +18,7 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 		if (enumTypeName is null)
 			throw new InvalidOperationException($"Flagset type \"{typeName}\" is missing an enum name");
 
-		if (!context.KnownTypes.TryGetValue(enumTypeName, out var enumBaseType))
+		if (!generationContext.KnownTypes.TryGetValue(enumTypeName, out var enumBaseType))
 			throw new InvalidOperationException($"Flagset type \"{typeName}\" has unknown enum type \"{enumTypeName}\"");
 
 		if (enumBaseType is not DreadEnumType enumType)
@@ -35,6 +36,6 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 
 		var csharpDataTypeName = $"DreadEnumDataType<{typeEnumName}>";
 
-		context.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
+		generationContext.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
 	}
 }

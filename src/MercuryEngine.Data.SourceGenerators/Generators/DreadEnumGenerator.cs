@@ -1,6 +1,7 @@
 ﻿using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.SourceGenerators.Utility;
+using Microsoft.CodeAnalysis;
 
 namespace MercuryEngine.Data.SourceGenerators.Generators;
 
@@ -8,7 +9,7 @@ public class DreadEnumGenerator : BaseDreadGenerator<DreadEnumType>
 {
 	public static DreadEnumGenerator Instance { get; } = new();
 
-	protected override IEnumerable<string> GenerateSourceLines(DreadEnumType dreadType, GenerationContext context)
+	protected override IEnumerable<string> GenerateSourceLines(DreadEnumType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		var typeName = dreadType.TypeName;
 		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName)!;
@@ -24,6 +25,6 @@ public class DreadEnumGenerator : BaseDreadGenerator<DreadEnumType>
 
 		var csharpDataTypeName = $"DreadEnumDataType<{typeEnumName}>";
 
-		context.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
+		generationContext.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
 	}
 }

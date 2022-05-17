@@ -1,20 +1,21 @@
 ﻿using MercuryEngine.Data.Definitions.DreadTypes;
+using Microsoft.CodeAnalysis;
 
 namespace MercuryEngine.Data.SourceGenerators.Generators;
 
 public abstract class BaseDreadGenerator<T> : IDreadGenerator
 where T : IDreadType
 {
-	public string GenerateSource(IDreadType dreadType, GenerationContext context)
+	public string GenerateSource(IDreadType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		if (dreadType is not T derivedType)
 			throw new InvalidOperationException($"{GetType().Name} only supports \"{typeof(T).FullName}\" Dread types");
 
-		return GenerateSource(derivedType, context);
+		return GenerateSource(derivedType, executionContext, generationContext);
 	}
 
-	protected string GenerateSource(T dreadType, GenerationContext context)
-		=> string.Join(Environment.NewLine, GenerateSourceLines(dreadType, context));
+	protected string GenerateSource(T dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
+		=> string.Join(Environment.NewLine, GenerateSourceLines(dreadType, executionContext, generationContext));
 
-	protected abstract IEnumerable<string> GenerateSourceLines(T dreadType, GenerationContext context);
+	protected abstract IEnumerable<string> GenerateSourceLines(T dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext);
 }

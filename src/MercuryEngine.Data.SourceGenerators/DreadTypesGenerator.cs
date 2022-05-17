@@ -11,12 +11,6 @@ namespace MercuryEngine.Data.SourceGenerators;
 [Generator]
 public class DreadTypesGenerator : ISourceGenerator
 {
-	private static readonly DiagnosticDescriptor ErrorDescriptor = new(Guid.NewGuid().ToString(), "Generator Error", "Error: {0}", "DreadTypesGenerator", DiagnosticSeverity.Error, true);
-
-	private const string DreadTypesNamespace        = "MercuryEngine.Data.Types.DreadTypes";
-	private const string DreadTypeRegistryNamespace = "MercuryEngine.Data.Types";
-	private const string DreadTypeRegistryClassName = "DreadTypeRegistry";
-
 	private static readonly Dictionary<Type, IDreadGenerator> Generators = new() {
 		{ typeof(DreadEnumType), DreadEnumGenerator.Instance },
 		{ typeof(DreadFlagsetType), DreadFlagsetGenerator.Instance },
@@ -25,12 +19,16 @@ public class DreadTypesGenerator : ISourceGenerator
 
 	private static readonly List<string> ExcludedTypeNames = new() { "char", "double", "long" };
 
-	public void Initialize(GeneratorInitializationContext context) { }
+	public void Initialize(GeneratorInitializationContext context)
+	{
+		var allTypes = DreadTypeParser.ParseDreadTypes();
+
+		context.RegisterForSyntaxNotifications(() => new GenerationContext(allTypes));
+	}
 
 	public void Execute(GeneratorExecutionContext executionContext)
 	{
-		var allTypes = DreadTypeParser.ParseDreadTypes();
-		var generationContext = new GenerationContext(allTypes);
+		var generationContext = (GenerationContext) executionContext.SyntaxContextReceiver!;
 
 		GenerateTypesFile(executionContext, generationContext);
 		GenerateRegistryPartialFile(executionContext, generationContext);
@@ -38,22 +36,22 @@ public class DreadTypesGenerator : ISourceGenerator
 
 	private void GenerateTypesFile(GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
-		var sourceLines = string.Join(Environment.NewLine, GenerateTypesSourceLines(generationContext));
+		var sourceLines = string.Join(Environment.NewLine, GenerateTypesSourceLines(executionContext, generationContext));
 		var sourceText = SourceText.From(sourceLines, Encoding.UTF8);
 
 		executionContext.AddSource("GeneratedDreadTypes.g.cs", sourceText);
 	}
 
-	private IEnumerable<string> GenerateTypesSourceLines(GenerationContext context)
+	private IEnumerable<string> GenerateTypesSourceLines(GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		yield return "#nullable enable";
 
 		foreach (var line in GetStandardNamespaceImports())
 			yield return line;
 
-		yield return $"namespace {DreadTypesNamespace};";
+		yield return $"namespace {Constants.DreadTypesNamespace};";
 
-		foreach (var (typeName, type) in context.KnownTypes)
+		foreach (var (typeName, type) in generationContext.KnownTypes)
 		{
 			if (ExcludedTypeNames.Contains(typeName))
 				continue;
@@ -66,7 +64,7 @@ public class DreadTypesGenerator : ISourceGenerator
 
 			try
 			{
-				source = generator.GenerateSource(type, context);
+				source = generator.GenerateSource(type, executionContext, generationContext);
 			}
 			catch (Exception ex)
 			{
@@ -109,11 +107,11 @@ public class DreadTypesGenerator : ISourceGenerator
 		foreach (var line in GetStandardNamespaceImports())
 			yield return line;
 
-		yield return $"using {DreadTypesNamespace};";
+		yield return $"using {Constants.DreadTypesNamespace};";
 
-		yield return $"namespace {DreadTypeRegistryNamespace};";
+		yield return $"namespace {Constants.DreadTypeRegistryNamespace};";
 
-		yield return $"public static partial class {DreadTypeRegistryClassName}";
+		yield return $"public static partial class {Constants.DreadTypeRegistryClassName}";
 		yield return "{";
 
 		yield return "\tstatic partial void RegisterGeneratedTypes()";
