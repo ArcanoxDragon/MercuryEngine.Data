@@ -4,10 +4,12 @@ using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Extensions;
 
-namespace MercuryEngine.Data.Types.DataTypes;
+namespace MercuryEngine.Data.Types.DataTypes.Custom;
 
-public class GUI_CMissionLog_TMissionLogEntries : DataStructure<GUI_CMissionLog_TMissionLogEntries>
+public class GUI_CMissionLog_TMissionLogEntries : DataStructure<GUI_CMissionLog_TMissionLogEntries>, IDreadDataType
 {
+	public string TypeName => "GUI::CMissionLog::TMissionLogEntries";
+
 	public List<Entry> Entries { get; } = new();
 
 	protected override void Describe(DataStructureBuilder<GUI_CMissionLog_TMissionLogEntries> builder)

@@ -4,10 +4,12 @@ using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Extensions;
 
-namespace MercuryEngine.Data.Types.DataTypes;
+namespace MercuryEngine.Data.Types.DataTypes.Custom;
 
-public class CMinimapManager_TCustomMarkerDataMap : DataStructure<CMinimapManager_TCustomMarkerDataMap>
+public class CMinimapManager_TCustomMarkerDataMap : DataStructure<CMinimapManager_TCustomMarkerDataMap>, IDreadDataType
 {
+	public string TypeName => "CMinimapManager::TCustomMarkerDataMap";
+
 	public Dictionary<Int32DataType, Entry> Entries { get; } = new();
 
 	protected override void Describe(DataStructureBuilder<CMinimapManager_TCustomMarkerDataMap> builder)

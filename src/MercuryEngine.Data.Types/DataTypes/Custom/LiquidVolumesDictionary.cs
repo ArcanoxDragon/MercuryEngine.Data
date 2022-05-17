@@ -1,12 +1,15 @@
 ﻿using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Extensions;
 
-namespace MercuryEngine.Data.Types.DataTypes;
+namespace MercuryEngine.Data.Types.DataTypes.Custom;
 
-public class LiquidVolumesDictionary : DataStructure<LiquidVolumesDictionary>
+public class LiquidVolumesDictionary : DataStructure<LiquidVolumesDictionary>, IDreadDataType
 {
+	public string TypeName => "LiquidVolumesDictionary";
+
 	public Dictionary<TerminatedStringDataType, Entry> Entries { get; } = new();
 
 	protected override void Describe(DataStructureBuilder<LiquidVolumesDictionary> builder)

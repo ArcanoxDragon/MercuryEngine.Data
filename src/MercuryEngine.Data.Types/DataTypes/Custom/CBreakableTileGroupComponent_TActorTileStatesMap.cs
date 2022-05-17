@@ -4,10 +4,12 @@ using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Extensions;
 
-namespace MercuryEngine.Data.Types.DataTypes;
+namespace MercuryEngine.Data.Types.DataTypes.Custom;
 
-public class CBreakableTileGroupComponent_TActorTileStatesMap : DataStructure<CBreakableTileGroupComponent_TActorTileStatesMap>
+public class CBreakableTileGroupComponent_TActorTileStatesMap : DataStructure<CBreakableTileGroupComponent_TActorTileStatesMap>, IDreadDataType
 {
+	public string TypeName => "CBreakableTileGroupComponent::TActorTileStatesMap";
+
 	public Dictionary<TerminatedStringDataType, Entry> Entries { get; } = new();
 
 	protected override void Describe(DataStructureBuilder<CBreakableTileGroupComponent_TActorTileStatesMap> builder)

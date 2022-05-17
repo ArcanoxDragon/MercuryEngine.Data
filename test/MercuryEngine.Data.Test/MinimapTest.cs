@@ -9,7 +9,7 @@ using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Formats;
-using MercuryEngine.Data.Types.DataTypes;
+using MercuryEngine.Data.Types.DataTypes.Custom;
 using MercuryEngine.Data.Types.DreadTypes;
 
 namespace MercuryEngine.Data.Test;

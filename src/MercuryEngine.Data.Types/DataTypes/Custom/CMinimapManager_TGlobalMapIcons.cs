@@ -1,12 +1,15 @@
 ﻿using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Extensions;
 
-namespace MercuryEngine.Data.Types.DataTypes;
+namespace MercuryEngine.Data.Types.DataTypes.Custom;
 
-public class CMinimapManager_TGlobalMapIcons : DataStructure<CMinimapManager_TGlobalMapIcons>
+public class CMinimapManager_TGlobalMapIcons : DataStructure<CMinimapManager_TGlobalMapIcons>, IDreadDataType
 {
+	public string TypeName => "CMinimapManager::TGlobalMapIcons";
+
 	public Dictionary<TerminatedStringDataType, Entry> AreaIcons { get; } = new();
 
 	protected override void Describe(DataStructureBuilder<CMinimapManager_TGlobalMapIcons> builder)
@@ -22,7 +25,7 @@ public class CMinimapManager_TGlobalMapIcons : DataStructure<CMinimapManager_TGl
 
 	public sealed class GlobalMapIcon : DataStructure<GlobalMapIcon>
 	{
-		public string? IconId { get; set; }
+		public string?  IconId  { get; set; }
 		public Vector2? IconPos { get; set; }
 
 		protected override void Describe(DataStructureBuilder<GlobalMapIcon> builder)
