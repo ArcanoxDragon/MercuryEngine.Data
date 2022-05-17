@@ -1,5 +1,6 @@
 ﻿using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Definitions.DreadTypes;
+using MercuryEngine.Data.Types.DataTypes;
 
 namespace MercuryEngine.Data.Types.DreadDataTypeFactories;
 
@@ -11,7 +12,7 @@ public class DreadEnumTypeFactory : BaseDreadDataTypeFactory<DreadEnumType, IBin
 
 	public static void RegisterConcreteEnumType<T>(string name)
 	where T : struct, Enum
-		=> ConcreteEnumTypes.Add(name, () => new EnumDataType<T>());
+		=> ConcreteEnumTypes.Add(name, () => new DreadEnum<T>());
 
 	protected override IBinaryDataType CreateDataType(DreadEnumType dreadType)
 	{

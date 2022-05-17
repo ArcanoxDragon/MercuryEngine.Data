@@ -5,7 +5,7 @@ using MercuryEngine.Data.Types.DreadTypes;
 
 namespace MercuryEngine.Data.Types.DataTypes;
 
-public class DreadEnumDataType<T> : EnumDataType<T>, IDreadDataType
+public class DreadEnum<T> : EnumDataType<T>, IDreadDataType
 where T : struct, Enum
 {
 	private static readonly Lazy<string> TypeNameLazy = new(GetTypeName);

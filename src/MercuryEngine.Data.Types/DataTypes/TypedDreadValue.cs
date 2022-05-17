@@ -4,12 +4,12 @@ using MercuryEngine.Data.Definitions.DreadTypes;
 
 namespace MercuryEngine.Data.Types.DataTypes;
 
-public class DynamicDreadValue
+public class TypedDreadValue
 {
-	public DynamicDreadValue(BaseDreadType dreadType)
+	public TypedDreadValue(BaseDreadType dreadType)
 		: this(dreadType.TypeName, DreadTypeRegistry.CreateDataTypeFor(dreadType)) { }
 
-	public DynamicDreadValue(string typeName, IBinaryDataType data)
+	public TypedDreadValue(string typeName, IBinaryDataType data)
 	{
 		TypeName = typeName;
 		TypeId = TypeName.GetCrc64();

@@ -261,10 +261,10 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 				=> MapPrimitiveTypeName(primitiveType.PrimitiveKind),
 
 			DreadEnumType enumType
-				=> $"DreadEnumDataType<{TypeNameUtility.SanitizeTypeName(enumType.TypeName)}>",
+				=> $"DreadEnum<{TypeNameUtility.SanitizeTypeName(enumType.TypeName)}>",
 
 			DreadFlagsetType flagsetType
-				=> $"DreadEnumDataType<{TypeNameUtility.SanitizeTypeName(flagsetType.Enum)}>",
+				=> $"DreadEnum<{TypeNameUtility.SanitizeTypeName(flagsetType.Enum)}>",
 
 			DreadVectorType vectorType
 				=> $"ArrayDataType<{MapNestedDataTypeName(vectorType.ValueType!, context)}>",
@@ -285,7 +285,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			DreadPrimitiveKind.Float      => "FloatDataType",
 			DreadPrimitiveKind.String     => "TerminatedStringDataType",
 			DreadPrimitiveKind.Property   => "TerminatedStringDataType",
-			DreadPrimitiveKind.Bytes      => "DynamicDreadDataType",
+			DreadPrimitiveKind.Bytes      => "TypedDreadDataType",
 			DreadPrimitiveKind.Float_Vec2 => "Vector2",
 			DreadPrimitiveKind.Float_Vec3 => "Vector3",
 			DreadPrimitiveKind.Float_Vec4 => "Vector4",

@@ -27,10 +27,10 @@ public class Bmssv : BinaryFormat<Bmssv>
 	/// When writing data, a copy of Sections is created and the data types are converted as appropriate.
 	/// When reading data, the reverse is performed and stored in Sections.
 	/// </summary>
-	private Dictionary<TerminatedStringDataType, DynamicDreadDataType> RawSections
+	private Dictionary<TerminatedStringDataType, TypedDreadDataType> RawSections
 	{
-		get => Sections.ToDictionary(pair => new TerminatedStringDataType(pair.Key), pair => new DynamicDreadDataType(pair.Value));
-		set => Sections = value.ToDictionary(pair => pair.Key.Value, pair => (CBlackboard__CSection) pair.Value.Data!);
+		get => Sections.ToDictionary(pair => new TerminatedStringDataType(pair.Key), pair => new TypedDreadDataType(pair.Value));
+		set => Sections = value.ToDictionary(pair => pair.Key.Value, pair => (CBlackboard__CSection) pair.Value.InnerData!);
 	}
 
 	protected override void Describe(DataStructureBuilder<Bmssv> builder)

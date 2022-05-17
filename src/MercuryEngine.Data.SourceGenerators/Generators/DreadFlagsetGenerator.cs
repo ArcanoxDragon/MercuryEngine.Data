@@ -34,7 +34,7 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 
 		yield return "}";
 
-		var csharpDataTypeName = $"DreadEnumDataType<{typeEnumName}>";
+		var csharpDataTypeName = $"DreadEnum<{typeEnumName}>";
 
 		generationContext.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
 	}

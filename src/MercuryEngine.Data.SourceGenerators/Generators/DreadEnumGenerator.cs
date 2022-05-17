@@ -23,7 +23,7 @@ public class DreadEnumGenerator : BaseDreadGenerator<DreadEnumType>
 
 		yield return "}";
 
-		var csharpDataTypeName = $"DreadEnumDataType<{typeEnumName}>";
+		var csharpDataTypeName = $"DreadEnum<{typeEnumName}>";
 
 		generationContext.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
 	}

@@ -3,6 +3,7 @@ using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Utility;
+using MercuryEngine.Data.Types.DataTypes;
 using MercuryEngine.Data.Types.DataTypes.Custom;
 using MercuryEngine.Data.Types.DreadDataTypeFactories;
 using MercuryEngine.Data.Types.DreadTypes;
@@ -60,6 +61,13 @@ public static partial class DreadTypeRegistry
 	#endregion
 
 	#region Factory Access
+
+	public static TypedDreadValue CreateValueFor(ulong typeId)
+	{
+		var type = FindType(typeId);
+
+		return new TypedDreadValue(type);
+	}
 
 	public static IBinaryDataType CreateDataTypeFor(IDreadType dreadType)
 	{

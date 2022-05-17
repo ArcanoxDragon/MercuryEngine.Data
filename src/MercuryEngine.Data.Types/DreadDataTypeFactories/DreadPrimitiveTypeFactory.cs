@@ -18,7 +18,7 @@ public class DreadPrimitiveTypeFactory : BaseDreadDataTypeFactory<DreadPrimitive
 			DreadPrimitiveKind.Float      => new FloatDataType(),
 			DreadPrimitiveKind.String     => new TerminatedStringDataType(),
 			DreadPrimitiveKind.Property   => new TerminatedStringDataType(),
-			DreadPrimitiveKind.Bytes      => new DynamicDreadDataType(),
+			DreadPrimitiveKind.Bytes      => new TypedDreadDataType(),
 			DreadPrimitiveKind.Float_Vec2 => new Vector2(),
 			DreadPrimitiveKind.Float_Vec3 => new Vector3(),
 			DreadPrimitiveKind.Float_Vec4 => new Vector4(),
