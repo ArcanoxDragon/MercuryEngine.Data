@@ -24,6 +24,7 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 			throw new InvalidOperationException($"Flagset type \"{typeName}\" referred to type \"{enumTypeName}\", which is not an enum type");
 
 		yield return "[Flags]";
+		yield return $"[DreadEnum(\"{typeName}\")]";
 		yield return $"public enum {typeEnumName} : uint";
 		yield return "{";
 
@@ -32,7 +33,7 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 
 		yield return "}";
 
-		var csharpDataTypeName = $"EnumDataType<{typeEnumName}>";
+		var csharpDataTypeName = $"DreadEnumDataType<{typeEnumName}>";
 
 		context.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
 	}

@@ -13,6 +13,7 @@ public class DreadEnumGenerator : BaseDreadGenerator<DreadEnumType>
 		var typeName = dreadType.TypeName;
 		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName)!;
 
+		yield return $"[DreadEnum(\"{typeName}\")]";
 		yield return $"public enum {typeEnumName} : uint";
 		yield return "{";
 
@@ -21,7 +22,7 @@ public class DreadEnumGenerator : BaseDreadGenerator<DreadEnumType>
 
 		yield return "}";
 
-		var csharpDataTypeName = $"EnumDataType<{typeEnumName}>";
+		var csharpDataTypeName = $"DreadEnumDataType<{typeEnumName}>";
 
 		context.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
 	}

@@ -20,8 +20,11 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		var typeClassName = TypeNameUtility.SanitizeTypeName(typeName)!;
 		var fields = BuildStructFields(dreadType, context);
 
-		yield return $"public class {typeClassName} : DataStructure<{typeClassName}>";
+		yield return $"public class {typeClassName} : DataStructure<{typeClassName}>, IDreadDataType";
 		yield return "{";
+
+		// Emit IDreadDataType implementation
+		yield return $"\tpublic string TypeName => \"{typeName}\";";
 
 		// Emit property declarations
 		foreach (var field in fields)
@@ -164,7 +167,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			DreadStructType { TypeName: "char" or "double" or "long" }
 				=> "Property",
 
-			DreadEnumType or DreadFlagsetType => "Property",
+			DreadEnumType or DreadFlagsetType => "DreadEnum",
 			DreadStructType                   => "Structure",
 			DreadVectorType                   => "Array",
 			DreadDictionaryType               => "Dictionary",
@@ -184,7 +187,10 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 				=> MapPrimitiveTypeName(primitiveType.PrimitiveKind),
 
 			DreadEnumType enumType
-				=> $"EnumDataType<{TypeNameUtility.SanitizeTypeName(enumType.TypeName)}>",
+				=> $"DreadEnumDataType<{TypeNameUtility.SanitizeTypeName(enumType.TypeName)}>",
+
+			DreadFlagsetType flagsetType
+				=> $"DreadEnumDataType<{TypeNameUtility.SanitizeTypeName(flagsetType.Enum)}>",
 
 			DreadVectorType vectorType
 				=> $"ArrayDataType<{MapNestedDataTypeName(vectorType.ValueType!, context)}>",

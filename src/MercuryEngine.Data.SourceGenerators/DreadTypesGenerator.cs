@@ -134,6 +134,7 @@ public class DreadTypesGenerator : ISourceGenerator
 		yield return "using MercuryEngine.Data.Core.Framework.DataTypes;";
 		yield return "using MercuryEngine.Data.Core.Framework.Structures;";
 		yield return "using MercuryEngine.Data.Core.Framework.Structures.Fluent;";
+		yield return "using MercuryEngine.Data.Types.Attributes;";
 		yield return "using MercuryEngine.Data.Types.DataTypes;";
 		yield return "using MercuryEngine.Data.Types.Extensions;";
 	}
