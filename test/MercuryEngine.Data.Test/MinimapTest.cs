@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.DataTypes.Custom;
-using MercuryEngine.Data.Types.DreadTypes;
 
 namespace MercuryEngine.Data.Test;
 
@@ -30,11 +29,8 @@ public class MinimapTest
 		using (var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read))
 			bmssv.Read(fileStream);
 
-		foreach (var (sectionName, sectionObj) in bmssv.Sections)
+		foreach (var (sectionName, section) in bmssv.Sections)
 		{
-			if (sectionObj is not { Data: CBlackboard__CSection section })
-				continue;
-
 			if (section.Props?.SingleOrDefault(p => p.Key.Value == "MINIMAP_VISIBILITY") is not { Value.Data: minimapGrid_TMinimapVisMap minimapVisibility })
 				continue;
 

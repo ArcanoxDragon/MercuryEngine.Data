@@ -1,11 +1,24 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Types.DreadTypes;
 
 namespace MercuryEngine.Data.Types.DataTypes;
 
 [PublicAPI]
 public class DynamicDreadDataType : IBinaryDataType
 {
+	public DynamicDreadDataType() { }
+
+	public DynamicDreadDataType(string initialTypeName, IBinaryDataType initialValue)
+	{
+		CurrentValue = new DynamicDreadValue(initialTypeName, initialValue);
+	}
+
+	public DynamicDreadDataType(IDreadDataType initialValue)
+	{
+		CurrentValue = new DynamicDreadValue(initialValue.TypeName, initialValue);
+	}
+
 	public IBinaryDataType? Data => CurrentValue?.Data;
 
 	public uint Size => CurrentValue?.Data.Size ?? 0;
