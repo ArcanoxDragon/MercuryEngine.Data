@@ -1,6 +1,7 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Types.DreadTypes;
+using Newtonsoft.Json;
 
 namespace MercuryEngine.Data.Types.DataTypes;
 
@@ -22,10 +23,12 @@ public class TypedDreadDataType : IBinaryDataType
 		InnerValue = initialValue;
 	}
 
+	[JsonIgnore]
 	public IBinaryDataType? InnerData => InnerValue?.Data;
 
 	public uint Size => InnerValue?.Data.Size ?? 0;
 
+	[JsonProperty("Value")]
 	private TypedDreadValue? InnerValue { get; set; }
 
 	public void Read(BinaryReader reader)

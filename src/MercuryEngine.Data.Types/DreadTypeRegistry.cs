@@ -154,5 +154,8 @@ public static partial class DreadTypeRegistry
 		throw new KeyNotFoundException($"The type ID \"{typeId}\" ({hexDisplay}) did not refer to a known type");
 	}
 
+	public static BaseDreadType? FindType(Func<BaseDreadType, bool> typePredicate)
+		=> DreadTypeDefinitions.Values.FirstOrDefault(typePredicate);
+
 	#endregion
 }
