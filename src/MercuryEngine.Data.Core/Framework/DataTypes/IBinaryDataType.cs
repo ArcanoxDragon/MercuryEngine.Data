@@ -1,5 +1,6 @@
 ﻿using JetBrains.Annotations;
 using Newtonsoft.Json;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
@@ -24,6 +25,16 @@ public interface IBinaryDataType
 	/// Writes data for this data type into the provided <paramref name="writer"/>.
 	/// </summary>
 	void Write(BinaryWriter writer);
+
+	/// <summary>
+	/// Asynchronously reads data for this data type from the provided <paramref name="reader"/>.
+	/// </summary>
+	Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Asynchronously writes data for this data type into the provided <paramref name="writer"/>.
+	/// </summary>
+	Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

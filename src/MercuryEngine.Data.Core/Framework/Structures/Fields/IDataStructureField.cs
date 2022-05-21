@@ -1,4 +1,5 @@
 ﻿using JetBrains.Annotations;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
@@ -42,4 +43,14 @@ where T : IDataStructure
 	/// Writes the field for the provided <paramref name="structure"/> to the provided <paramref name="writer"/>.
 	/// </summary>
 	void Write(T structure, BinaryWriter writer);
+
+	/// <summary>
+	/// Asynchronously reads the field for the provided <paramref name="structure"/> from the provided <paramref name="reader"/>.
+	/// </summary>
+	Task ReadAsync(T structure, AsyncBinaryReader reader, CancellationToken cancellationToken);
+
+	/// <summary>
+	/// Asynchronously writes the field for the provided <paramref name="structure"/> to the provided <paramref name="writer"/>.
+	/// </summary>
+	Task WriteAsync(T structure, AsyncBinaryWriter writer, CancellationToken cancellationToken);
 }

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
@@ -17,6 +18,12 @@ public class BoolDataType : NumericDataType<bool>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadBooleanAsync(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }
 
 public class Int16DataType : NumericDataType<short>
@@ -26,6 +33,12 @@ public class Int16DataType : NumericDataType<short>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadInt16Async(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }
 
 public class UInt16DataType : NumericDataType<ushort>
@@ -35,6 +48,12 @@ public class UInt16DataType : NumericDataType<ushort>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadUInt16Async(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }
 
 public class Int32DataType : NumericDataType<int>
@@ -44,6 +63,12 @@ public class Int32DataType : NumericDataType<int>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadInt32Async(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }
 
 public class UInt32DataType : NumericDataType<uint>
@@ -53,6 +78,12 @@ public class UInt32DataType : NumericDataType<uint>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }
 
 public class Int64DataType : NumericDataType<long>
@@ -62,6 +93,12 @@ public class Int64DataType : NumericDataType<long>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadInt64Async(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }
 
 public class UInt64DataType : NumericDataType<ulong>
@@ -71,6 +108,12 @@ public class UInt64DataType : NumericDataType<ulong>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadUInt64Async(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }
 
 public class FloatDataType : NumericDataType<float>
@@ -80,6 +123,12 @@ public class FloatDataType : NumericDataType<float>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadSingleAsync(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }
 
 public class DoubleDataType : NumericDataType<double>
@@ -89,6 +138,12 @@ public class DoubleDataType : NumericDataType<double>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadDoubleAsync(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }
 
 public class DecimalDataType : NumericDataType<decimal>
@@ -98,4 +153,10 @@ public class DecimalDataType : NumericDataType<decimal>
 
 	public override void Write(BinaryWriter writer)
 		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadDecimalAsync(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
 }

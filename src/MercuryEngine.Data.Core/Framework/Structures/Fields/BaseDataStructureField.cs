@@ -1,4 +1,5 @@
 ﻿using MercuryEngine.Data.Core.Framework.DataTypes;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
@@ -36,6 +37,24 @@ where TData : IBinaryDataType
 		var data = GetData(structure);
 
 		data.Write(writer);
+	}
+
+	public async Task ReadAsync(TStructure structure, AsyncBinaryReader reader, CancellationToken cancellationToken)
+	{
+		var data = CreateDataType();
+
+		await data.ReadAsync(reader, cancellationToken);
+		PutData(structure, data);
+	}
+
+	public async Task WriteAsync(TStructure structure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
+	{
+		if (!HasData(structure))
+			return;
+
+		var data = GetData(structure);
+
+		await data.WriteAsync(writer, cancellationToken);
 	}
 
 	protected abstract TData GetData(TStructure structure);

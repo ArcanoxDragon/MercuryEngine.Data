@@ -1,7 +1,10 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using JetBrains.Annotations;
+using Overby.Extensions.AsyncBinaryReaderWriter;
+using Task = System.Threading.Tasks.Task;
 
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
@@ -27,6 +30,29 @@ where T : struct, Enum
 
 	public override void Write(BinaryWriter writer)
 		=> this.writeFunction(writer, Value);
+
+	public override Task ReadAsync(AsyncBinaryReader asyncReader, CancellationToken cancellationToken = default)
+	{
+		// We don't have the facilities by which to create an async lambda method for reading,
+		// so we just have to read/write enums synchronously
+
+		using var reader = new BinaryReader(asyncReader.BaseStream, Encoding.Default, true);
+
+		Read(reader);
+
+		return Task.CompletedTask;
+	}
+
+	public override async Task WriteAsync(AsyncBinaryWriter asyncWriter, CancellationToken cancellationToken = default)
+	{
+		// We don't have the facilities by which to create an async lambda method for reading,
+		// so we just have to read/write enums synchronously
+
+		var stream = await asyncWriter.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
+		await using var writer = new BinaryWriter(stream, Encoding.Default, true);
+
+		Write(writer);
+	}
 
 	#region Function Generation
 

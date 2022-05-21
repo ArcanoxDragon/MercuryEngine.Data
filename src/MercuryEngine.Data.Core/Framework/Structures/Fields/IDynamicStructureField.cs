@@ -1,4 +1,6 @@
-﻿namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
+﻿using Overby.Extensions.AsyncBinaryReaderWriter;
+
+namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
 public interface IDynamicStructureField
 {
@@ -49,4 +51,14 @@ public interface IDynamicStructureField
 	/// Writes the field's data into the provided <paramref name="writer"/>.
 	/// </summary>
 	void Write(BinaryWriter writer);
+
+	/// <summary>
+	/// Asynchronously reads data into the field from the provided <paramref name="reader"/>.
+	/// </summary>
+	Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken);
+
+	/// <summary>
+	/// Asynchronously writes the field's data into the provided <paramref name="writer"/>.
+	/// </summary>
+	Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken);
 }

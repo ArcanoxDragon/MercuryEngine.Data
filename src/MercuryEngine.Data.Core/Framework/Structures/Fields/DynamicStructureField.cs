@@ -1,6 +1,7 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.DataAdapters;
 using MercuryEngine.Data.Core.Framework.DataTypes;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
@@ -74,4 +75,13 @@ where TData : IBinaryDataType
 
 	public void Write(BinaryWriter writer)
 		=> Data.Write(writer);
+
+	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken)
+	{
+		await Data.ReadAsync(reader, cancellationToken);
+		HasValue = true;
+	}
+
+	public Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken)
+		=> Data.WriteAsync(writer, cancellationToken);
 }

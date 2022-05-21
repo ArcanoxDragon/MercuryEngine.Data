@@ -1,4 +1,6 @@
-﻿namespace MercuryEngine.Data.Core.Framework.DataTypes;
+﻿using Overby.Extensions.AsyncBinaryReaderWriter;
+
+namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
 /// <summary>
 /// Base class for data types that maintain a managed value of type <typeparamref name="T"/>.
@@ -25,6 +27,9 @@ where T : notnull
 
 	public abstract void Read(BinaryReader reader);
 	public abstract void Write(BinaryWriter writer);
+
+	public abstract Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default);
+	public abstract Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default);
 
 	public override string? ToString() => Value.ToString();
 

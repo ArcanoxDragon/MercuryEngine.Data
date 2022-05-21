@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Structures.Fields;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures;
 
@@ -31,6 +32,8 @@ public sealed class DynamicStructure : DynamicObject, IDataStructure
 	public string TypeName { get; }
 
 	public uint Size => (uint) this.fields.Values.Where(f => f.HasValue).Sum(f => f.Size);
+
+	#region I/O
 
 	public void Read(BinaryReader reader)
 	{
@@ -81,6 +84,58 @@ public sealed class DynamicStructure : DynamicObject, IDataStructure
 			}
 		}
 	}
+
+	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	{
+		foreach (var field in Fields)
+			field.ClearValue();
+
+		var fieldCount = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
+
+		for (var i = 0; i < fieldCount; i++)
+		{
+			var fieldId = await reader.ReadUInt64Async(cancellationToken).ConfigureAwait(false);
+
+			if (!this.fields.TryGetValue(fieldId, out var field))
+			{
+				var hexDisplay = BitConverter.GetBytes(fieldId).ToHexString();
+
+				throw new IOException($"Unrecognized field ID \"{fieldId}\" ({hexDisplay}) while reading field {i} of {GetType().Name}");
+			}
+
+			try
+			{
+				await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				throw new IOException($"An exception occurred while reading field {i} ({field.FriendlyDescription}) of {GetType().Name}", ex);
+			}
+		}
+	}
+
+	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	{
+		var fieldsToWrite = this.fields.Where(f => f.Value.HasValue).ToList();
+
+		await writer.WriteAsync(fieldsToWrite.Count, cancellationToken).ConfigureAwait(false);
+
+		foreach (var (fieldId, field) in fieldsToWrite)
+		{
+			await writer.WriteAsync(fieldId, cancellationToken).ConfigureAwait(false);
+
+			try
+			{
+				await field.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				throw new IOException($"An exception occurred while writing field \"{field.FieldName}\" ({field.FriendlyDescription}) of {GetType().Name}", ex);
+			}
+		}
+	}
+
+	#endregion
 
 	#region DynamicObject
 

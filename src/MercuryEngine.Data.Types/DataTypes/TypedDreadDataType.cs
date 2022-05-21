@@ -2,6 +2,7 @@
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Types.DreadTypes;
 using Newtonsoft.Json;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Types.DataTypes;
 
@@ -57,5 +58,33 @@ public class TypedDreadDataType : IBinaryDataType
 
 		writer.Write(InnerValue.TypeId);
 		InnerValue.Data.Write(writer);
+	}
+
+	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	{
+		var typeId = await reader.ReadUInt64Async(cancellationToken).ConfigureAwait(false);
+
+		if (typeId is NullTypeId)
+		{
+			// Read NULL; clear out inner value and return
+			InnerValue = null;
+			return;
+		}
+
+		InnerValue = DreadTypeRegistry.CreateValueFor(typeId);
+		await InnerValue.Data.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+	}
+
+	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	{
+		if (InnerValue is null)
+		{
+			// Write an all-zeroes type ID to indicate NULL
+			await writer.WriteAsync(NullTypeId, cancellationToken).ConfigureAwait(false);
+			return;
+		}
+
+		await writer.WriteAsync(InnerValue.TypeId, cancellationToken).ConfigureAwait(false);
+		await InnerValue.Data.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
 	}
 }

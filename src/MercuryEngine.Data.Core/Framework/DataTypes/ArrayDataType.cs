@@ -1,5 +1,6 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
@@ -56,6 +57,46 @@ where TEntry : IBinaryDataType
 			try
 			{
 				entry.Write(writer);
+			}
+			catch (Exception ex)
+			{
+				throw new IOException($"An exception occurred while reading entry {i} of an array of {typeof(TEntry).Name}", ex);
+			}
+		}
+	}
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	{
+		Value.Clear();
+
+		var entryCount = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
+
+		for (var i = 0; i < entryCount; i++)
+		{
+			var entry = this.entryFactory();
+
+			Value.Add(entry);
+
+			try
+			{
+				await entry.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				throw new IOException($"An exception occurred while reading entry {i} of an array of {typeof(TEntry).Name}", ex);
+			}
+		}
+	}
+
+	public override async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	{
+		await writer.WriteAsync((uint) Value.Count, cancellationToken).ConfigureAwait(false);
+
+		foreach (var (i, entry) in Value.Pairs())
+		{
+			try
+			{
+				await entry.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{

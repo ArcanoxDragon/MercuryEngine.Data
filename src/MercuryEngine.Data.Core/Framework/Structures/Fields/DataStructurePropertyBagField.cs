@@ -1,5 +1,6 @@
 ﻿using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
@@ -142,6 +143,55 @@ where TPropertyKey : IBinaryDataType
 			try
 			{
 				field.Write(structure, writer);
+			}
+			catch (Exception ex)
+			{
+				throw new IOException($"An exception occurred while writing property \"{propertyName}\" ({field.FriendlyDescription}) of {GetType().Name}", ex);
+			}
+		}
+	}
+
+	public async Task ReadAsync(TStructure structure, AsyncBinaryReader reader, CancellationToken cancellationToken)
+	{
+		foreach (var field in Fields)
+			field.ClearData(structure);
+
+		var fieldCount = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
+		var propertyKey = this.emptyPropertyKeyFactory(); // Reusable instance for reading each key in turn
+
+		for (var i = 0; i < fieldCount; i++)
+		{
+			await propertyKey.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+
+			if (!this.propertyKeyLookup.TryGetValue(propertyKey, out var field))
+				throw new IOException($"Unrecognized property \"{propertyKey}\" while reading field {i} of {GetType().Name}");
+
+			try
+			{
+				await field.ReadAsync(structure, reader, cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				throw new IOException($"An exception occurred while reading field {i} ({field.FriendlyDescription}) of {GetType().Name}", ex);
+			}
+		}
+	}
+
+	public async Task WriteAsync(TStructure structure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
+	{
+		var fieldsToWrite = this.innerFields.Where(f => f.Value.HasData(structure)).ToList();
+
+		await writer.WriteAsync(fieldsToWrite.Count, cancellationToken).ConfigureAwait(false);
+
+		foreach (var (propertyName, field) in fieldsToWrite)
+		{
+			var propertyKey = this.propertyKeyGenerator.GenerateKey(propertyName);
+
+			await propertyKey.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+
+			try
+			{
+				await field.WriteAsync(structure, writer, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{

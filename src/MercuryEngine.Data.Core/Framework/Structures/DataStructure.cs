@@ -3,6 +3,7 @@ using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Core.Framework.Structures.Fields;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures;
 
@@ -22,6 +23,8 @@ where T : DataStructure<T>
 	protected abstract void Describe(DataStructureBuilder<T> builder);
 
 	public uint Size => (uint) Fields.Sum(f => f.GetSize((T) this));
+
+	#region I/O
 
 	public void Read(BinaryReader reader)
 	{
@@ -52,6 +55,38 @@ where T : DataStructure<T>
 			}
 		}
 	}
+
+	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	{
+		foreach (var (i, field) in Fields.Pairs())
+		{
+			try
+			{
+				await field.ReadAsync((T) this, reader, cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				throw new IOException($"An exception occurred while reading field {i} ({field.FriendlyDescription}) of {GetType().Name} (position: {reader.BaseStream.Position})", ex);
+			}
+		}
+	}
+
+	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	{
+		foreach (var (i, field) in Fields.Pairs())
+		{
+			try
+			{
+				await field.WriteAsync((T) this, writer, cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				throw new IOException($"An exception occurred while writing field {i} ({field.FriendlyDescription}) of {GetType().Name}", ex);
+			}
+		}
+	}
+
+	#endregion
 
 	private List<IDataStructureField<T>> BuildFields()
 	{

@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using JetBrains.Annotations;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
@@ -90,5 +91,57 @@ public class TerminatedStringDataType : BaseDataType<string>
 		textWriter.Write(Value);
 		textWriter.Flush();
 		writer.Write((byte) '\0'); // Write the terminator
+	}
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	{
+		var buffer = new byte[BufferSize];
+		var builder = new StringBuilder();
+		var totalBytesRead = 0;
+
+		Task<int> ReadChunkAsync()
+			=> reader.BaseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+
+		while (await ReadChunkAsync().ConfigureAwait(false) is > 0 and var bytesRead)
+		{
+			var terminatorIndex = Array.IndexOf(buffer, (byte) '\0');
+
+			if (terminatorIndex >= 0)
+			{
+				// Found a terminator!
+
+				if (terminatorIndex + totalBytesRead > MaxLength)
+					// Too many bytes *would* be read if we tried to reach the terminator; we still need to bail
+					break;
+
+				builder.Append(Encoding.GetString(buffer[..terminatorIndex]));
+				Value = builder.ToString();
+
+				// Seek the stream back to the byte after the terminator
+				reader.BaseStream.Seek(-( bytesRead - terminatorIndex - 1 ), SeekOrigin.Current);
+
+				return;
+			}
+
+			if (bytesRead + totalBytesRead > MaxLength)
+				// Too many bytes would be read if we continued; bail now
+				break;
+
+			// Flush our current buffer to the builder and keep reading
+			builder.Append(Encoding.GetString(buffer));
+			totalBytesRead += bytesRead;
+		}
+
+		throw new InvalidDataException("Encountered end-of-stream or too many bytes while reading a terminated string");
+	}
+
+	public override async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	{
+		var stream = await writer.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
+		await using var textWriter = new StreamWriter(stream, Encoding, leaveOpen: true);
+
+		await textWriter.WriteAsync(Value).ConfigureAwait(false);
+		await textWriter.FlushAsync().ConfigureAwait(false);
+		await writer.WriteAsync((byte) '\0', cancellationToken).ConfigureAwait(false); // Write the terminator
 	}
 }
