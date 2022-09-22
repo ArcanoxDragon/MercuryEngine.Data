@@ -2,9 +2,11 @@
 using System.Text;
 using System.Threading.Tasks;
 using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.Test.Extensions;
 using MercuryEngine.Data.Test.Utility;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 
 namespace MercuryEngine.Data.Test;
 
@@ -24,14 +26,24 @@ public partial class BmssvTests
 		}
 		finally
 		{
-			var jsonDump = JsonConvert.SerializeObject(bmssv, new JsonSerializerSettings {
+			var serializer = new JsonSerializer {
 				Formatting = Formatting.Indented,
 				ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
 				Converters = {
 					new StringEnumConverter(),
 					new TerminatedStringConverter(),
 				},
-			});
+			};
+			var jsonObject = JObject.FromObject(bmssv, serializer);
+
+			jsonObject.Sort();
+
+			await using var textWriter = new StringWriter();
+			using var jsonWriter = new JsonTextWriter(textWriter);
+
+			serializer.Serialize(jsonWriter, jsonObject);
+
+			var jsonDump = textWriter.ToString();
 
 			await TestContext.Out.WriteLineAsync("JSON dump of current parsed state:");
 			await TestContext.Out.WriteLineAsync(jsonDump);
