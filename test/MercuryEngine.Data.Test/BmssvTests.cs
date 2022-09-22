@@ -4,21 +4,25 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.Test.Extensions;
 using MercuryEngine.Data.Test.Utility;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 
 namespace MercuryEngine.Data.Test;
 
 [TestFixture]
 public partial class BmssvTests
 {
-	private const string TestFreshProfile = "Fresh";
-	private const string TestHundoProfile = "Hundo";
+	private const string TestFreshProfile        = "Fresh";
+	private const string TestHundoProfile        = "Hundo";
+	private const string TestRandoWorkingProfile = "RandoWorking";
+	private const string TestRandoBrokenProfile  = "RandoBroken";
 
 	private static IEnumerable<string> GetTestFiles()
 	{
-		foreach (var profileDirectory in new[] { TestFreshProfile, TestHundoProfile }.Select(GetTestProfilePath))
+		foreach (var profileDirectory in new[] { TestFreshProfile, TestHundoProfile, TestRandoWorkingProfile, TestRandoBrokenProfile }.Select(GetTestProfilePath))
 		foreach (var file in Directory.EnumerateFiles(profileDirectory, "*.bmssv", SearchOption.AllDirectories))
 		{
 			if (Path.GetFileNameWithoutExtension(file).EndsWith("_out", StringComparison.OrdinalIgnoreCase))
@@ -44,14 +48,24 @@ public partial class BmssvTests
 		}
 		finally
 		{
-			var jsonDump = JsonConvert.SerializeObject(bmssv, new JsonSerializerSettings {
+			var serializer = new JsonSerializer {
 				Formatting = Formatting.Indented,
 				ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
 				Converters = {
 					new StringEnumConverter(),
 					new TerminatedStringConverter(),
 				},
-			});
+			};
+			var jsonObject = JObject.FromObject(bmssv, serializer);
+
+			jsonObject.Sort();
+
+			using var textWriter = new StringWriter();
+			using var jsonWriter = new JsonTextWriter(textWriter);
+			
+			serializer.Serialize(jsonWriter, jsonObject);
+
+			var jsonDump = textWriter.ToString();
 
 			TestContext.Out.WriteLine("JSON dump of current parsed state:");
 			TestContext.Out.WriteLine(jsonDump);
