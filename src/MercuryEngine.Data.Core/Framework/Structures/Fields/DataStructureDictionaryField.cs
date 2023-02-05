@@ -58,7 +58,10 @@ where TValueData : IBinaryDataType
 		if (PropertyInfo.CanWrite)
 		{
 			// Store a new dictionary
-			var collection = data.Value.ToDictionary(pair => pair.Key, pair => pair.Value);
+			var collection = new Dictionary<TKeyData, TValueData>();
+
+			foreach (var (key, value) in data.Value)
+				collection[key] = value;
 
 			PropertyInfo.SetValue(structure, collection);
 		}
