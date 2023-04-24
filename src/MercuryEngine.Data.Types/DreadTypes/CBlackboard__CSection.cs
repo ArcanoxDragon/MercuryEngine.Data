@@ -10,6 +10,18 @@ namespace MercuryEngine.Data.Types.DreadTypes;
 [PublicAPI]
 public partial class CBlackboard__CSection
 {
+	/// <summary>
+	/// Used to resolve the correct primitive type to use when writing certain data types to Blackboard sections.
+	/// The primitive kinds listed in this dictionary may have more than one type that implements that kind, and
+	/// picking the wrong implementation may cause the Blackboard to not be loadable by the game.
+	/// </summary>
+	private static readonly Dictionary<DreadPrimitiveKind, string> BlackboardPrimitiveTypes = new() {
+		{ DreadPrimitiveKind.UInt, "unsigned_int" },
+		{ DreadPrimitiveKind.UInt64, "unsigned_long" },
+		{ DreadPrimitiveKind.Float, "float" },
+		{ DreadPrimitiveKind.String, "base::global::TRntString256" },
+	};
+
 	public Dictionary<string, TypedDreadDataType> Props { get; private set; } = new();
 
 	[StructProperty("dctProps")]
@@ -65,7 +77,25 @@ public partial class CBlackboard__CSection
 	private void PutPrimitiveValue<TValue>(DreadPrimitiveKind primitiveKind, string property, TValue value)
 	where TValue : notnull
 	{
-		var primitiveType = DreadTypeRegistry.FindType(type => type is DreadPrimitiveType primitive && primitive.PrimitiveKind == primitiveKind);
+		BaseDreadType? primitiveType = null;
+
+		// See if the property already exists in the blackboard with a type implementing the same primitive kind as is being stored
+		if (Props.TryGetValue(property, out var existingValue))
+		{
+			var candidateType = DreadTypeRegistry.FindType(existingValue.InnerTypeId);
+
+			if (candidateType is DreadPrimitiveType primitive && primitive.PrimitiveKind == primitiveKind)
+				primitiveType = candidateType;
+		}
+
+		// If an existing type was not found, determine which type to use based solely on the primitive kind being stored
+		if (primitiveType == null)
+		{
+			if (BlackboardPrimitiveTypes.TryGetValue(primitiveKind, out string? typeName))
+				primitiveType = DreadTypeRegistry.FindType(typeName);
+			else
+				primitiveType = DreadTypeRegistry.FindType(type => type is DreadPrimitiveType primitive && primitive.PrimitiveKind == primitiveKind);
+		}
 
 		if (primitiveType is null)
 			throw new ArgumentOutOfRangeException(nameof(primitiveKind), $"Unsupported primitive kind \"{primitiveKind}\"");

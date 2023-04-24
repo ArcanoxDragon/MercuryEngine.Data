@@ -25,6 +25,9 @@ public class TypedDreadDataType : IBinaryDataType
 	}
 
 	[JsonIgnore]
+	public ulong InnerTypeId => InnerValue?.TypeId ?? 0L;
+
+	[JsonIgnore]
 	public IBinaryDataType? InnerData => InnerValue?.Data;
 
 	public uint Size => InnerValue?.Data.Size ?? 0;
