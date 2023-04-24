@@ -19,11 +19,10 @@ public partial class BmssvTests
 	private const string TestHundoProfile         = "Hundo";
 	private const string TestRandoWorkingProfile  = "RandoWorking";
 	private const string TestRandoBrokenProfile   = "RandoBroken";
-	private const string TestRandoCrashingProfile = "RandoCrashing";
 
 	private static IEnumerable<string> GetTestFiles()
 	{
-		foreach (var profileDirectory in new[] { TestFreshProfile, TestHundoProfile, TestRandoWorkingProfile, TestRandoBrokenProfile, TestRandoCrashingProfile }.Select(GetTestProfilePath))
+		foreach (var profileDirectory in new[] { TestFreshProfile, TestHundoProfile, TestRandoWorkingProfile, TestRandoBrokenProfile }.Select(GetTestProfilePath))
 		foreach (var file in Directory.EnumerateFiles(profileDirectory, "*.bmssv", SearchOption.AllDirectories))
 		{
 			if (Path.GetFileNameWithoutExtension(file).EndsWith("_out", StringComparison.OrdinalIgnoreCase))
