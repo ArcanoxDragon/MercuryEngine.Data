@@ -141,7 +141,7 @@ public class TerminatedStringDataType : BaseDataType<string>
 		await using var textWriter = new StreamWriter(stream, Encoding, leaveOpen: true);
 
 		await textWriter.WriteAsync(Value).ConfigureAwait(false);
-		await textWriter.FlushAsync().ConfigureAwait(false);
+		await textWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
 		await writer.WriteAsync((byte) '\0', cancellationToken).ConfigureAwait(false); // Write the terminator
 	}
 }

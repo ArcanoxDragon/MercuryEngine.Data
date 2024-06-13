@@ -15,7 +15,7 @@ where T : IDreadType
 	}
 
 	protected string GenerateSource(T dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
-		=> string.Join(Environment.NewLine, GenerateSourceLines(dreadType, executionContext, generationContext));
+		=> string.Join("\n", GenerateSourceLines(dreadType, executionContext, generationContext));
 
 	protected abstract IEnumerable<string> GenerateSourceLines(T dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext);
 }

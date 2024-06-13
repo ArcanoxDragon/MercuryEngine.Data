@@ -1,55 +1,44 @@
-﻿using MercuryEngine.Data.Definitions.DreadTypes;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using MercuryEngine.Data.Definitions.DreadTypes;
 
 namespace MercuryEngine.Data.Definitions.Json;
 
 public class DreadTypeConverter : JsonConverter<BaseDreadType>
 {
-	private static readonly JsonSerializerSettings InnerSettings = new() {
-		ContractResolver = new DefaultContractResolver {
-			NamingStrategy = new SnakeCaseNamingStrategy(),
-		},
+	private static readonly JsonSerializerOptions InnerOptions = new() {
+		PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
 	};
 
-	private static readonly JsonSerializer InnerSerializer = JsonSerializer.CreateDefault(InnerSettings);
-
-	public override void WriteJson(JsonWriter writer, BaseDreadType? value, JsonSerializer serializer)
+	public override BaseDreadType? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 	{
-		if (value is null)
-		{
-			writer.WriteNull();
-			return;
-		}
+		if (reader.TokenType == JsonTokenType.Null)
+			return null;
+		if (reader.TokenType != JsonTokenType.StartObject)
+			throw new JsonException($"Expected {JsonTokenType.StartObject} but found {reader.TokenType} while reading Dread data type");
 
-		serializer.Serialize(writer, value, value.GetType());
-	}
-
-	public override BaseDreadType? ReadJson(JsonReader reader, Type objectType, BaseDreadType? existingValue, bool hasExistingValue, JsonSerializer serializer)
-	{
-		if (existingValue is not null)
-			return existingValue;
-
-		if (reader.TokenType is JsonToken.Null)
+		if (JsonNode.Parse(ref reader) is not JsonObject obj)
 			return null;
 
-		var obj = JObject.Load(reader);
-
-		if (!obj.TryGetValue("kind", out var kindValue))
-			throw new JsonException("Object is missing the \"kind\" property");
-
-		if (kindValue.Type is not JTokenType.String)
-			throw new JsonException("The \"kind\" property was not a string");
-
-		var kind = (string) kindValue!;
+		if (obj["kind"]?.GetValue<string>() is not { } kind)
+			throw new JsonException($"Object is missing the \"kind\" property, or the property was not a string");
 
 		if (!Enum.TryParse(kind, true, out DreadTypeKind typeKind))
 			throw new JsonException($"Unrecognized \"kind\" value \"{kind}\"");
 
 		var concreteType = MapTypeKind(typeKind);
 
-		return (BaseDreadType?) obj.ToObject(concreteType, InnerSerializer);
+		return (BaseDreadType?) obj.Deserialize(concreteType, options);
+	}
+
+	public override void Write(Utf8JsonWriter writer, BaseDreadType value, JsonSerializerOptions options)
+	{
+		if (value.GetType() == typeof(BaseDreadType))
+			// This should NEVER happen, but if it SOMEHOW does, we want to throw instead of infinitely recursing
+			throw new JsonException($"Tried to serialize non-inherited instance of {nameof(BaseDreadType)}!");
+
+		JsonSerializer.Serialize(writer, value, value.GetType(), options);
 	}
 
 	private static Type MapTypeKind(DreadTypeKind typeKind) => typeKind switch {

@@ -1,7 +1,7 @@
-﻿using JetBrains.Annotations;
+﻿using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.DataTypes;
 using MercuryEngine.Data.Types.DreadTypes;
-using Newtonsoft.Json;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Types.DataTypes;
@@ -32,7 +32,7 @@ public class TypedDreadDataType : IBinaryDataType
 
 	public uint Size => InnerValue?.Data.Size ?? 0;
 
-	[JsonProperty("Value")]
+	[JsonPropertyName("Value")]
 	private TypedDreadValue? InnerValue { get; set; }
 
 	public void Read(BinaryReader reader)

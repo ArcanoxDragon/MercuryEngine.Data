@@ -1,18 +1,15 @@
 ﻿using System.Text;
+using System.Text.Json;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.Definitions.Json;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace MercuryEngine.Data.Definitions.Utility;
 
 internal static class DreadTypeParser
 {
-	private static readonly JsonSerializerSettings JsonSettings = new() {
-		ContractResolver = new DefaultContractResolver {
-			NamingStrategy = new SnakeCaseNamingStrategy(),
-		},
+	private static readonly JsonSerializerOptions JsonOptions = new() {
+		PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
 		Converters = {
 			new DreadTypeConverter(),
 		},
@@ -23,7 +20,7 @@ internal static class DreadTypeParser
 		using var fileStream = ResourceHelper.OpenResourceFile("DataDefinitions/dread_types.json");
 		using var reader = new StreamReader(fileStream, Encoding.UTF8);
 		var jsonText = reader.ReadToEnd();
-		var typesDictionary = JsonConvert.DeserializeObject<Dictionary<string, BaseDreadType>>(jsonText, JsonSettings)
+		var typesDictionary = JsonSerializer.Deserialize<Dictionary<string, BaseDreadType>>(jsonText, JsonOptions)
 							  ?? throw new InvalidOperationException("Unable to read the type definition database!");
 
 		foreach (var (typeName, type) in typesDictionary)

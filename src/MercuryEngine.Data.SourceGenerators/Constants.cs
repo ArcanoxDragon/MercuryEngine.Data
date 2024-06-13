@@ -15,7 +15,7 @@ internal static class Constants
 		public static readonly DiagnosticDescriptor PropertyTypeMismatchDescriptor = new(
 			"MD1001",
 			"Property type does not match expected type",
-			"Property \"{0}\" on type \"{1}\" must have a type of \"{2}\" in order to be used for struct field \"{3}\".",
+			"Property \"{0}\" on type \"{1}\" must have a type of \"{2}\" in order to be used for struct field \"{3}\"",
 			"MercuryEngine.Data.DreadTypes",
 			DiagnosticSeverity.Error,
 			true);
@@ -23,7 +23,7 @@ internal static class Constants
 		public static readonly DiagnosticDescriptor PropertyMissingGetterOrSetterDescriptor = new(
 			"MD1002",
 			"Property is missing a getter or a setter",
-			"Property \"{0}\" on type \"{1}\" must have both a getter and a setter in order to be used for struct field \"{2}\".",
+			"Property \"{0}\" on type \"{1}\" must have both a getter and a setter in order to be used for struct field \"{2}\"",
 			"MercuryEngine.Data.DreadTypes",
 			DiagnosticSeverity.Error,
 			true);

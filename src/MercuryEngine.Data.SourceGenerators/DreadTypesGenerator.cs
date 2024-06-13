@@ -17,7 +17,7 @@ public class DreadTypesGenerator : ISourceGenerator
 		{ typeof(DreadStructType), DreadStructGenerator.Instance },
 	};
 
-	private static readonly List<string> ExcludedTypeNames = new() { "char", "double", "long" };
+	private static readonly List<string> ExcludedTypeNames = ["char", "double", "long"];
 
 	public void Initialize(GeneratorInitializationContext context)
 	{
@@ -36,7 +36,7 @@ public class DreadTypesGenerator : ISourceGenerator
 
 	private void GenerateTypesFile(GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
-		var sourceLines = string.Join(Environment.NewLine, GenerateTypesSourceLines(executionContext, generationContext));
+		var sourceLines = string.Join("\n", GenerateTypesSourceLines(executionContext, generationContext));
 		var sourceText = SourceText.From(sourceLines, Encoding.UTF8);
 
 		executionContext.AddSource("GeneratedDreadTypes.g.cs", sourceText);
@@ -94,7 +94,7 @@ public class DreadTypesGenerator : ISourceGenerator
 
 	private void GenerateRegistryPartialFile(GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
-		var sourceLines = string.Join(Environment.NewLine, GenerateRegistryPartialSourceLines(generationContext));
+		var sourceLines = string.Join("\n", GenerateRegistryPartialSourceLines(generationContext));
 		var sourceText = SourceText.From(sourceLines, Encoding.UTF8);
 
 		executionContext.AddSource("DreadTypeRegistry.g.cs", sourceText);
