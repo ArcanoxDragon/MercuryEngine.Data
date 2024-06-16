@@ -22,7 +22,7 @@ public partial class CBlackboard__CSection
 		{ DreadPrimitiveKind.String, "base::global::TRntString256" },
 	};
 
-	public Dictionary<string, TypedDreadDataType> Props { get; private set; } = new();
+	public Dictionary<string, TypedDreadDataType> Props { get; private set; } = [];
 
 	[StructProperty("dctProps")]
 	private Dictionary<TerminatedStringDataType, TypedDreadDataType> RawProps

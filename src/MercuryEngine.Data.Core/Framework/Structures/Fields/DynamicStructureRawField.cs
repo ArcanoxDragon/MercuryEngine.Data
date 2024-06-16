@@ -9,23 +9,12 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 /// </summary>
 /// <typeparam name="TData">The data type that the value is stored as in binary data.</typeparam>
 [PublicAPI]
-public class DynamicStructureRawField<TData> : IDynamicStructureField
+public class DynamicStructureRawField<TData>(DynamicStructure structure, string fieldName, Func<TData> dataTypeFactory) : IDynamicStructureField
 where TData : IBinaryDataType
 {
-	private readonly Func<TData> dataTypeFactory;
-
-	public DynamicStructureRawField(DynamicStructure structure, string fieldName, Func<TData> dataTypeFactory)
-	{
-		this.dataTypeFactory = dataTypeFactory;
-
-		Structure = structure;
-		FieldName = fieldName;
-		Data = dataTypeFactory();
-	}
-
-	public DynamicStructure Structure { get; }
-	public string           FieldName { get; }
-	public TData            Data      { get; private set; }
+	public DynamicStructure Structure { get; }              = structure;
+	public string           FieldName { get; }              = fieldName;
+	public TData            Data      { get; private set; } = dataTypeFactory();
 
 	public uint   Size                => Data.Size;
 	public string FriendlyDescription => $"<dynamic {FieldName}[{typeof(TData).Name}]>";
@@ -43,11 +32,11 @@ where TData : IBinaryDataType
 	}
 
 	public IDynamicStructureField Clone(DynamicStructure targetStructure)
-		=> new DynamicStructureRawField<TData>(targetStructure, FieldName, this.dataTypeFactory);
+		=> new DynamicStructureRawField<TData>(targetStructure, FieldName, dataTypeFactory);
 
 	public void ClearValue()
 	{
-		Data = this.dataTypeFactory();
+		Data = dataTypeFactory();
 		HasValue = false;
 	}
 
@@ -62,7 +51,7 @@ where TData : IBinaryDataType
 
 	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken)
 	{
-		await Data.ReadAsync(reader, cancellationToken);
+		await Data.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 		HasValue = true;
 	}
 

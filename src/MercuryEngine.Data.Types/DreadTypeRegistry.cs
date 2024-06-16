@@ -12,8 +12,8 @@ namespace MercuryEngine.Data.Types;
 
 public static partial class DreadTypeRegistry
 {
-	private static readonly Dictionary<Type, IDreadDataTypeFactory> FactoryMap = new();
-	private static readonly Dictionary<ulong, string>               TypeIdMap  = new();
+	private static readonly Dictionary<Type, IDreadDataTypeFactory> FactoryMap = [];
+	private static readonly Dictionary<ulong, string>               TypeIdMap  = [];
 	private static readonly Dictionary<string, BaseDreadType>       DreadTypeDefinitions;
 
 	static DreadTypeRegistry()
@@ -130,8 +130,8 @@ public static partial class DreadTypeRegistry
 
 	public static BaseDreadType FindType(string name)
 		=> TryFindType(name, out var type)
-			   ? type
-			   : throw new KeyNotFoundException($"The type \"{name}\" did not refer to a known type");
+			? type
+			: throw new KeyNotFoundException($"The type \"{name}\" did not refer to a known type");
 
 	public static bool TryFindType(ulong typeId, [MaybeNullWhen(false)] out BaseDreadType type)
 	{

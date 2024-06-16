@@ -3,17 +3,10 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
-public abstract class BaseDataStructureField<TStructure, TData> : IDataStructureField<TStructure>
+public abstract class BaseDataStructureField<TStructure, TData>(Func<TData> dataTypeFactory) : IDataStructureField<TStructure>
 where TStructure : IDataStructure
 where TData : IBinaryDataType
 {
-	private readonly Func<TData> dataTypeFactory;
-
-	protected BaseDataStructureField(Func<TData> dataTypeFactory)
-	{
-		this.dataTypeFactory = dataTypeFactory;
-	}
-
 	public abstract string FriendlyDescription { get; }
 
 	public abstract void ClearData(TStructure structure);
@@ -43,7 +36,7 @@ where TData : IBinaryDataType
 	{
 		var data = CreateDataType();
 
-		await data.ReadAsync(reader, cancellationToken);
+		await data.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 		PutData(structure, data);
 	}
 
@@ -54,11 +47,11 @@ where TData : IBinaryDataType
 
 		var data = GetData(structure);
 
-		await data.WriteAsync(writer, cancellationToken);
+		await data.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
 	}
 
 	protected abstract TData GetData(TStructure structure);
 	protected abstract void PutData(TStructure structure, TData data);
 
-	protected virtual TData CreateDataType() => this.dataTypeFactory();
+	protected virtual TData CreateDataType() => dataTypeFactory();
 }

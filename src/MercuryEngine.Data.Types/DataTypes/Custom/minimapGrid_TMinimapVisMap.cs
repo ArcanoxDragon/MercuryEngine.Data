@@ -9,7 +9,7 @@ public class minimapGrid_TMinimapVisMap : DataStructure<minimapGrid_TMinimapVisM
 {
 	public string TypeName => "minimapGrid::TMinimapVisMap";
 
-	public Dictionary<Int32DataType, TerminatedStringDataType> Entries { get; } = new();
+	public Dictionary<Int32DataType, TerminatedStringDataType> Entries { get; } = [];
 
 	protected override void Describe(DataStructureBuilder<minimapGrid_TMinimapVisMap> builder)
 		=> builder.Dictionary(m => m.Entries);

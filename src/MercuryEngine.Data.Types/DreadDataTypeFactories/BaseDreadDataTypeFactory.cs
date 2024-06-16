@@ -9,8 +9,7 @@ where TDataType : IBinaryDataType
 {
 	public IBinaryDataType CreateDataType(IDreadType dreadType)
 	{
-		if (dreadType is null)
-			throw new ArgumentNullException(nameof(dreadType));
+		ArgumentNullException.ThrowIfNull(dreadType);
 		if (dreadType is not TDreadType derivedDreadType)
 			throw new InvalidOperationException($"{GetType().Name} does not support the Dread type \"{dreadType.GetType().Name}\".");
 

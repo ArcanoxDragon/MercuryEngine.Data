@@ -10,14 +10,14 @@ public class CMinimapManager_TGlobalMapIcons : DataStructure<CMinimapManager_TGl
 {
 	public string TypeName => "CMinimapManager::TGlobalMapIcons";
 
-	public Dictionary<TerminatedStringDataType, Entry> AreaIcons { get; } = new();
+	public Dictionary<TerminatedStringDataType, Entry> AreaIcons { get; } = [];
 
 	protected override void Describe(DataStructureBuilder<CMinimapManager_TGlobalMapIcons> builder)
 		=> builder.Dictionary(m => m.AreaIcons);
 
 	public sealed class Entry : DataStructure<Entry>
 	{
-		public List<GlobalMapIcon> Icons { get; } = new();
+		public List<GlobalMapIcon> Icons { get; } = [];
 
 		protected override void Describe(DataStructureBuilder<Entry> builder)
 			=> builder.Array(m => m.Icons);

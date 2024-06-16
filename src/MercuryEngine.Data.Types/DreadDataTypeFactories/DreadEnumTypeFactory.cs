@@ -8,7 +8,7 @@ public class DreadEnumTypeFactory : BaseDreadDataTypeFactory<DreadEnumType, IBin
 {
 	public static DreadEnumTypeFactory Instance { get; } = new();
 
-	private static readonly Dictionary<string, EnumTypeFactory> ConcreteEnumTypes = new();
+	private static readonly Dictionary<string, EnumTypeFactory> ConcreteEnumTypes = [];
 
 	public static void RegisterConcreteEnumType<T>(string name)
 	where T : struct, Enum

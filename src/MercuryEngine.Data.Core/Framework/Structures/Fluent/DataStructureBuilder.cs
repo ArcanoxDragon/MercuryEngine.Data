@@ -16,7 +16,7 @@ where T : IDataStructure
 {
 	private protected DataStructureBuilder() { }
 
-	protected List<IDataStructureField<T>> Fields { get; } = new();
+	protected List<IDataStructureField<T>> Fields { get; } = [];
 
 	#region String Literals
 

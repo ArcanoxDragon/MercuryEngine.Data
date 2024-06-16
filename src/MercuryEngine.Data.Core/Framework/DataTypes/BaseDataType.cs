@@ -5,23 +5,12 @@ namespace MercuryEngine.Data.Core.Framework.DataTypes;
 /// <summary>
 /// Base class for data types that maintain a managed value of type <typeparamref name="T"/>.
 /// </summary>
-public abstract class BaseDataType<T> : IBinaryDataType<T>, IEquatable<BaseDataType<T>>
+public abstract class BaseDataType<T>(T initialValue) : IBinaryDataType<T>, IEquatable<BaseDataType<T>>
 where T : notnull
 {
 	public static IEqualityComparer<IBinaryDataType<T>> EqualityComparer { get; } = new EqualityComparerImpl();
 
-	private T value; // Must use a backing field to avoid virtual member calls in the constructor
-
-	protected BaseDataType(T initialValue)
-	{
-		this.value = initialValue;
-	}
-
-	public virtual T Value
-	{
-		get => this.value;
-		set => this.value = value;
-	}
+	public virtual T Value { get; set; } = initialValue;
 
 	public abstract uint Size { get; }
 

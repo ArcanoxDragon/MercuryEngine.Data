@@ -3,11 +3,9 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
-public abstract class NumericDataType<T> : BaseDataType<T>
+public abstract class NumericDataType<T>() : BaseDataType<T>(default)
 where T : unmanaged
 {
-	protected NumericDataType() : base(default) { }
-
 	public override uint Size => (uint) Unsafe.SizeOf<T>();
 }
 

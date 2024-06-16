@@ -10,14 +10,14 @@ public class CBreakableTileGroupComponent_TActorTileStatesMap : DataStructure<CB
 {
 	public string TypeName => "CBreakableTileGroupComponent::TActorTileStatesMap";
 
-	public Dictionary<TerminatedStringDataType, Entry> Entries { get; } = new();
+	public Dictionary<TerminatedStringDataType, Entry> Entries { get; } = [];
 
 	protected override void Describe(DataStructureBuilder<CBreakableTileGroupComponent_TActorTileStatesMap> builder)
 		=> builder.Dictionary(m => m.Entries);
 
 	public sealed class Entry : DataStructure<Entry>
 	{
-		public List<TileState> States { get; } = new();
+		public List<TileState> States { get; } = [];
 
 		protected override void Describe(DataStructureBuilder<Entry> builder)
 			=> builder.Array(m => m.States);

@@ -5,23 +5,20 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
 [PublicAPI]
-public class ArrayDataType<TEntry> : BaseDataType<List<TEntry>>
+public class ArrayDataType<TEntry>(Func<TEntry> entryFactory, List<TEntry> initialValue) : BaseDataType<List<TEntry>>(initialValue)
 where TEntry : IBinaryDataType
 {
-	private readonly Func<TEntry> entryFactory;
+	private readonly Func<TEntry> entryFactory = entryFactory;
 
 	/// <summary>
 	/// Constructor that uses reflection to construct data types
 	/// TODO: Find alternative way to do this
 	/// </summary>
-	public ArrayDataType() : this(Activator.CreateInstance<TEntry>) { }
+	public ArrayDataType()
+		: this(Activator.CreateInstance<TEntry>) { }
 
-	public ArrayDataType(Func<TEntry> entryFactory) : this(entryFactory, new List<TEntry>()) { }
-
-	public ArrayDataType(Func<TEntry> entryFactory, List<TEntry> initialValue) : base(initialValue)
-	{
-		this.entryFactory = entryFactory;
-	}
+	public ArrayDataType(Func<TEntry> entryFactory)
+		: this(entryFactory, []) { }
 
 	public override uint Size => (uint) Value.Sum(e => e.Size);
 

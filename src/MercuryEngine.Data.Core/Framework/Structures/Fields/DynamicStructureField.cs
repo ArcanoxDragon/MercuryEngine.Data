@@ -11,26 +11,18 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 /// <typeparam name="TValue">The managed type that the property will have on the <see cref="DynamicStructure"/>.</typeparam>
 /// <typeparam name="TData">The data type that the value is stored as in binary data.</typeparam>
 [PublicAPI]
-public class DynamicStructureField<TValue, TData> : IDynamicStructureField
+public class DynamicStructureField<TValue, TData>(
+	DynamicStructure structure,
+	string fieldName,
+	Func<TData> dataTypeFactory,
+	IDataAdapter<TData, TValue> dataAdapter
+) : IDynamicStructureField
 where TValue : notnull
 where TData : IBinaryDataType
 {
-	private readonly Func<TData>                 dataTypeFactory;
-	private readonly IDataAdapter<TData, TValue> dataAdapter;
-
-	public DynamicStructureField(DynamicStructure structure, string fieldName, Func<TData> dataTypeFactory, IDataAdapter<TData, TValue> dataAdapter)
-	{
-		Structure = structure;
-		FieldName = fieldName;
-		Data = dataTypeFactory();
-
-		this.dataTypeFactory = dataTypeFactory;
-		this.dataAdapter = dataAdapter;
-	}
-
-	public DynamicStructure Structure { get; }
-	public string           FieldName { get; }
-	public TData            Data      { get; private set; }
+	public DynamicStructure Structure { get; }              = structure;
+	public string           FieldName { get; }              = fieldName;
+	public TData            Data      { get; private set; } = dataTypeFactory();
 
 	public uint   Size                => Data.Size;
 	public string FriendlyDescription => $"<dynamic {FieldName}[{typeof(TValue).Name}, {typeof(TData).Name}]>";
@@ -39,12 +31,12 @@ where TData : IBinaryDataType
 
 	public TValue Value
 	{
-		get => this.dataAdapter.Get(Data);
+		get => dataAdapter.Get(Data);
 		set
 		{
 			var data = Data;
 
-			this.dataAdapter.Put(ref data, value);
+			dataAdapter.Put(ref data, value);
 
 			if (!ReferenceEquals(data, Data))
 				Data = data;
@@ -62,7 +54,7 @@ where TData : IBinaryDataType
 	}
 
 	public IDynamicStructureField Clone(DynamicStructure targetStructure)
-		=> new DynamicStructureField<TValue, TData>(targetStructure, FieldName, this.dataTypeFactory, this.dataAdapter);
+		=> new DynamicStructureField<TValue, TData>(targetStructure, FieldName, dataTypeFactory, dataAdapter);
 
 	public void ClearValue()
 		=> HasValue = false;
@@ -78,7 +70,7 @@ where TData : IBinaryDataType
 
 	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken)
 	{
-		await Data.ReadAsync(reader, cancellationToken);
+		await Data.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 		HasValue = true;
 	}
 

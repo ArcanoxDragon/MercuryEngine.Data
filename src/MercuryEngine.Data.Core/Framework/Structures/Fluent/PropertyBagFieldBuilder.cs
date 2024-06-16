@@ -12,7 +12,7 @@ where TStructure : IDataStructure
 {
 	private protected PropertyBagFieldBuilder() { }
 
-	protected Dictionary<string, IDataStructureField<TStructure>> Fields { get; } = new();
+	protected Dictionary<string, IDataStructureField<TStructure>> Fields { get; } = [];
 
 	#region String Properties
 

@@ -9,7 +9,7 @@ public class OccluderVignettesDictionary : DataStructure<OccluderVignettesDictio
 {
 	public string TypeName => "OccluderVignettesDictionary";
 
-	public Dictionary<TerminatedStringDataType, BoolDataType> Entries { get; } = new();
+	public Dictionary<TerminatedStringDataType, BoolDataType> Entries { get; } = [];
 
 	protected override void Describe(DataStructureBuilder<OccluderVignettesDictionary> builder)
 		=> builder.Dictionary(m => m.Entries);

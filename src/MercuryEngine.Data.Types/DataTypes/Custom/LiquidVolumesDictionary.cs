@@ -10,7 +10,7 @@ public class LiquidVolumesDictionary : DataStructure<LiquidVolumesDictionary>, I
 {
 	public string TypeName => "LiquidVolumesDictionary";
 
-	public Dictionary<TerminatedStringDataType, Entry> Entries { get; } = new();
+	public Dictionary<TerminatedStringDataType, Entry> Entries { get; } = [];
 
 	protected override void Describe(DataStructureBuilder<LiquidVolumesDictionary> builder)
 		=> builder.Dictionary(m => m.Entries);

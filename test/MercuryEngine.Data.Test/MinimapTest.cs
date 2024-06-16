@@ -15,9 +15,12 @@ namespace MercuryEngine.Data.Test;
 
 [TestFixture]
 [SupportedOSPlatform("Windows")]
-public class MinimapTest
+public partial class MinimapTest
 {
-	private static readonly Regex MinimapVisRegex = new(@"(\d+)([ @o])", RegexOptions.Compiled);
+	[GeneratedRegex(@"(\d+)([ @o])", RegexOptions.Compiled)]
+	private static partial Regex GetMinimapVisRegex();
+
+	private static readonly Regex MinimapVisRegex = GetMinimapVisRegex();
 
 	[TestCase("Fresh")]
 	[TestCase("Hundo")]

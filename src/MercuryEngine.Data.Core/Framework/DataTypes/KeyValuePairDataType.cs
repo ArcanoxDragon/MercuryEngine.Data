@@ -2,18 +2,12 @@
 
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
-public class KeyValuePairDataType<TKey, TValue> : IBinaryDataType
+public class KeyValuePairDataType<TKey, TValue>(TKey key, TValue value) : IBinaryDataType
 where TKey : IBinaryDataType
 where TValue : IBinaryDataType
 {
-	public KeyValuePairDataType(TKey initialKey, TValue initialValue)
-	{
-		Key = initialKey;
-		Value = initialValue;
-	}
-
-	public TKey   Key   { get; }
-	public TValue Value { get; }
+	public TKey   Key   { get; } = key;
+	public TValue Value { get; } = value;
 
 	public uint Size => Key.Size + Value.Size;
 

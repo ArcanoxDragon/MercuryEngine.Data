@@ -5,14 +5,12 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Core.Framework.DataTypes;
 
 [PublicAPI]
-public class TerminatedStringDataType : BaseDataType<string>
+public class TerminatedStringDataType(string initialValue) : BaseDataType<string>(initialValue)
 {
 	private const int BufferSize       = 2048;
 	private const int DefaultMaxLength = 1024 * 8; // 8 kB maximum by default
 
 	public TerminatedStringDataType() : this(string.Empty) { }
-
-	public TerminatedStringDataType(string initialValue) : base(initialValue) { }
 
 	/// <summary>
 	/// Gets or sets the string value of this <see cref="TerminatedStringDataType"/>.
@@ -22,8 +20,7 @@ public class TerminatedStringDataType : BaseDataType<string>
 		get => base.Value;
 		set
 		{
-			if (value is null)
-				throw new ArgumentNullException(nameof(value));
+			ArgumentNullException.ThrowIfNull(value);
 
 			if (Encoding.GetByteCount(value) > MaxLength)
 				throw new ArgumentOutOfRangeException(nameof(value), $"Value cannot be larger than the maximum length of {MaxLength} bytes.");

@@ -16,7 +16,7 @@ public class Bmssv : BinaryFormat<Bmssv>
 	/// <summary>
 	/// A dictionary of all Blackboard sections present in the BMSSV file.
 	/// </summary>
-	public Dictionary<string, CBlackboard__CSection> Sections { get; private set; } = new();
+	public Dictionary<string, CBlackboard__CSection> Sections { get; private set; } = [];
 
 	private int Unknown1 { get; set; }
 	private int Unknown2 { get; set; }

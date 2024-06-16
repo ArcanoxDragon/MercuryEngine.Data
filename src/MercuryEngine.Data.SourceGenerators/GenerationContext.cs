@@ -6,8 +6,8 @@ namespace MercuryEngine.Data.SourceGenerators;
 
 public record GenerationContext(IReadOnlyDictionary<string, BaseDreadType> KnownTypes) : ISyntaxContextReceiver
 {
-	public List<PreexistingType> PreexistingTypes { get; } = new();
-	public List<GeneratedType>   GeneratedTypes   { get; } = new();
+	public List<PreexistingType> PreexistingTypes { get; } = [];
+	public List<GeneratedType>   GeneratedTypes   { get; } = [];
 
 	public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
 	{

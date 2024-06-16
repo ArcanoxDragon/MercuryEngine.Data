@@ -88,12 +88,9 @@ where TData : IBinaryDataType
 /// </summary>
 /// <typeparam name="TStructure">The type of the <see cref="DataStructure{T}"/> that contains the property to be read/written.</typeparam>
 /// <typeparam name="TCollection">The type of data that the collection stores.</typeparam>
-public class DataStructureCollectionField<TStructure, TCollection> : DataStructureCollectionField<TStructure, TCollection, TCollection>
+public class DataStructureCollectionField<TStructure, TCollection>(
+	Func<TCollection> entryFactory,
+	Expression<Func<TStructure, List<TCollection>?>> propertyExpression
+) : DataStructureCollectionField<TStructure, TCollection, TCollection>(entryFactory, propertyExpression, PassthroughDataAdapter<TCollection>.Instance)
 where TStructure : IDataStructure
-where TCollection : IBinaryDataType
-{
-	public DataStructureCollectionField(
-		Func<TCollection> entryFactory,
-		Expression<Func<TStructure, List<TCollection>?>> propertyExpression
-	) : base(entryFactory, propertyExpression, PassthroughDataAdapter<TCollection>.Instance) { }
-}
+where TCollection : IBinaryDataType;

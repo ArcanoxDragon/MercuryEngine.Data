@@ -3,6 +3,7 @@ using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.Definitions.Utility;
 using MercuryEngine.Data.SourceGenerators.Generators;
+using MercuryEngine.Data.SourceGenerators.Utility;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
@@ -82,7 +83,7 @@ public class DreadTypesGenerator : ISourceGenerator
 			{
 				// XmlDoc comments
 				yield return "/// <summary>";
-				yield return $"/// Original type name: {typeName}&#10;";
+				yield return $"/// Original type name: {TypeNameUtility.XmlEscapeTypeName(typeName)}&#10;";
 				yield return $"/// Kind: {type.Kind}";
 				yield return "/// </summary>";
 

@@ -11,7 +11,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 {
 	// Many fields have a prefix indicating the type; we want to strip that off
 	private static readonly Regex        FieldNameRegex       = new(@"(?:[abcefiopstuv]|v\d|hash|vect|vo|wp|dct|str|arr|dic|map|lst)?([a-zA-Z][a-zA-Z\d_]*)", RegexOptions.Compiled);
-	private static readonly List<string> ForbiddenMemberNames = new() { "Write", "Size" };
+	private static readonly List<string> ForbiddenMemberNames = ["Write", "Size"];
 
 	public static DreadStructGenerator Instance { get; } = new();
 
@@ -320,7 +320,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		public bool HasSummary     => true;
 
 		public string GenerateSummary()
-			=> $"Field: {FieldName}&#10;Original type: {FieldTypeName}";
+			=> $"Field: {FieldName}&#10;Original type: {TypeNameUtility.XmlEscapeTypeName(FieldTypeName)}";
 
 		public string GenerateProperty()
 			=> $"public {PropertyType} {PropertyName} {{ get; set; }}";

@@ -10,7 +10,7 @@ public class CMinimapManager_TCustomMarkerDataMap : DataStructure<CMinimapManage
 {
 	public string TypeName => "CMinimapManager::TCustomMarkerDataMap";
 
-	public Dictionary<Int32DataType, Entry> Entries { get; } = new();
+	public Dictionary<Int32DataType, Entry> Entries { get; } = [];
 
 	protected override void Describe(DataStructureBuilder<CMinimapManager_TCustomMarkerDataMap> builder)
 		=> builder.Dictionary(m => m.Entries);

@@ -4,14 +4,9 @@ using MercuryEngine.Data.Core.Utility;
 
 namespace MercuryEngine.Data.Core.Framework.DataAdapters;
 
-public class PropertyExpressionAdapter<TOwner, TProperty> : IDataAdapter<TOwner, TProperty>
+public class PropertyExpressionAdapter<TOwner, TProperty>(Expression<Func<TOwner, TProperty>> propertyExpression) : IDataAdapter<TOwner, TProperty>
 {
-	private readonly PropertyInfo propertyInfo;
-
-	public PropertyExpressionAdapter(Expression<Func<TOwner, TProperty>> propertyExpression)
-	{
-		this.propertyInfo = ExpressionUtility.GetProperty(propertyExpression);
-	}
+	private readonly PropertyInfo propertyInfo = ExpressionUtility.GetProperty(propertyExpression);
 
 	public string PropertyName => this.propertyInfo.Name;
 

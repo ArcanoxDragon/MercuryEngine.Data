@@ -3,24 +3,14 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
-public class DynamicStructureCollectionField<TCollection> : IDynamicStructureField
+public class DynamicStructureCollectionField<TCollection>(DynamicStructure structure, string fieldName, Func<TCollection> entryFactory) : IDynamicStructureField
 where TCollection : IBinaryDataType
 {
-	private readonly Func<TCollection> entryFactory;
-
 	private bool hasDataFlag;
 
-	public DynamicStructureCollectionField(DynamicStructure structure, string fieldName, Func<TCollection> entryFactory)
-	{
-		this.entryFactory = entryFactory;
-		Structure = structure;
-		FieldName = fieldName;
-		Data = new ArrayDataType<TCollection>(entryFactory);
-	}
-
-	public DynamicStructure           Structure { get; }
-	public string                     FieldName { get; }
-	public ArrayDataType<TCollection> Data      { get; }
+	public DynamicStructure           Structure { get; } = structure;
+	public string                     FieldName { get; } = fieldName;
+	public ArrayDataType<TCollection> Data      { get; } = new(entryFactory);
 
 	public List<TCollection> Collection          => Data.Value;
 	public uint              Size                => Data.Size;
@@ -35,7 +25,7 @@ where TCollection : IBinaryDataType
 	}
 
 	public IDynamicStructureField Clone(DynamicStructure targetStructure)
-		=> new DynamicStructureCollectionField<TCollection>(targetStructure, FieldName, this.entryFactory);
+		=> new DynamicStructureCollectionField<TCollection>(targetStructure, FieldName, entryFactory);
 
 	public void ClearValue()
 	{
