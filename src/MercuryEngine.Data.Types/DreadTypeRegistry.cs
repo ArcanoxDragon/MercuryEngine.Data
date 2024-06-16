@@ -29,7 +29,6 @@ public static partial class DreadTypeRegistry
 		RegisterFactory<DreadFlagsetType>(DreadFlagsetTypeFactory.Instance);
 		RegisterFactory<DreadPointerType>(DreadPointerTypeFactory.Instance);
 		RegisterFactory<DreadPrimitiveType>(DreadPrimitiveTypeFactory.Instance);
-		RegisterFactory<DreadStructType>(DreadStructTypeFactory.Instance);
 		RegisterFactory<DreadTypedefType>(DreadTypedefTypeFactory.Instance);
 		RegisterFactory<DreadVectorType>(DreadVectorTypeFactory.Instance);
 
