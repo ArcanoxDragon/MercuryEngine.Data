@@ -1,8 +1,8 @@
 {
-  "profiles": {
-    "Source Generator": {
-      "commandName": "DebugRoslynComponent",
-      "targetProject": "..\\MercuryEngine.Data.Types\\MercuryEngine.Data.Types.csproj"
-    }
-  }
+	"profiles": {
+		"Source Generator": {
+			"commandName": "DebugRoslynComponent",
+			"targetProject": "..\\MercuryEngine.Data.Types\\MercuryEngine.Data.Types.csproj"
+		}
+	}
 }

@@ -22,10 +22,10 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		var preexistingType = generationContext.PreexistingTypes.SingleOrDefault(t => t.Name == typeClassName);
 		var fields = BuildStructFields(dreadType, preexistingType, executionContext, generationContext);
 
-		yield return $"public partial class {typeClassName} : DataStructure<{typeClassName}>, IDreadDataType";
+		yield return $"public partial class {typeClassName} : DataStructure<{typeClassName}>, ITypedDreadField";
 		yield return "{";
 
-		// Emit IDreadDataType implementation
+		// Emit ITypedDreadField implementation
 		yield return $"\tpublic string TypeName => \"{typeName}\";";
 
 		// Emit property declarations
@@ -267,25 +267,37 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 				=> $"DreadEnum<{TypeNameUtility.SanitizeTypeName(flagsetType.Enum)}>",
 
 			DreadVectorType vectorType
-				=> $"ArrayDataType<{MapNestedDataTypeName(vectorType.ValueType!, context)}>",
+				=> $"ArrayField<{MapNestedDataTypeName(vectorType.ValueType!, context)}>",
 
 			DreadDictionaryType dictionaryType
-				=> $"DictionaryDataType<{MapNestedDataTypeName(dictionaryType.KeyType!, context)}, {MapNestedDataTypeName(dictionaryType.ValueType!, context)}>",
+				=> $"DictionaryField<{MapNestedDataTypeName(dictionaryType.KeyType!, context)}, {MapNestedDataTypeName(dictionaryType.ValueType!, context)}>",
 
 			_ => TypeNameUtility.SanitizeTypeName(typeName)!,
 		};
 
+	private string? GetNestedTypeFactory(string nestedTypeName, GenerationContext context, bool useDefaultConstructor)
+		=> FindType(nestedTypeName, context) switch {
+			DreadVectorType vector
+				=> $"ArrayField.Create<{MapNestedDataTypeName(vector.ValueType!, context)}>",
+
+			DreadDictionaryType dictionary
+				=> $"DictionaryField.Create<{MapNestedDataTypeName(dictionary.KeyType!, context)}, {MapNestedDataTypeName(dictionary.ValueType!, context)}>",
+
+			_ when useDefaultConstructor => $"() => new {MapNestedDataTypeName(nestedTypeName, context)}()",
+			_                            => null,
+		};
+
 	private string MapPrimitiveTypeName(DreadPrimitiveKind primitiveKind)
 		=> primitiveKind switch {
-			DreadPrimitiveKind.Bool       => "BoolDataType",
-			DreadPrimitiveKind.Int        => "Int32DataType",
-			DreadPrimitiveKind.UInt       => "UInt32DataType",
-			DreadPrimitiveKind.UInt16     => "UInt16DataType",
-			DreadPrimitiveKind.UInt64     => "UInt64DataType",
-			DreadPrimitiveKind.Float      => "FloatDataType",
-			DreadPrimitiveKind.String     => "TerminatedStringDataType",
-			DreadPrimitiveKind.Property   => "TerminatedStringDataType",
-			DreadPrimitiveKind.Bytes      => "TypedDreadDataType",
+			DreadPrimitiveKind.Bool       => "BooleanField",
+			DreadPrimitiveKind.Int        => "Int32Field",
+			DreadPrimitiveKind.UInt       => "UInt32Field",
+			DreadPrimitiveKind.UInt16     => "UInt16Field",
+			DreadPrimitiveKind.UInt64     => "UInt64Field",
+			DreadPrimitiveKind.Float      => "FloatField",
+			DreadPrimitiveKind.String     => "TerminatedStringField",
+			DreadPrimitiveKind.Property   => "TerminatedStringField",
+			DreadPrimitiveKind.Bytes      => "DreadTypePrefixedField",
 			DreadPrimitiveKind.Float_Vec2 => "Vector2",
 			DreadPrimitiveKind.Float_Vec3 => "Vector3",
 			DreadPrimitiveKind.Float_Vec4 => "Vector4",

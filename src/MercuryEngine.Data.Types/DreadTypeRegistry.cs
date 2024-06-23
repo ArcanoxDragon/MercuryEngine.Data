@@ -1,20 +1,20 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using MercuryEngine.Data.Core.Extensions;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Utility;
-using MercuryEngine.Data.Types.DataTypes;
-using MercuryEngine.Data.Types.DataTypes.Custom;
-using MercuryEngine.Data.Types.DreadDataTypeFactories;
+using MercuryEngine.Data.Types.DreadFieldFactories;
 using MercuryEngine.Data.Types.DreadTypes;
+using MercuryEngine.Data.Types.DreadTypes.Custom;
+using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types;
 
 public static partial class DreadTypeRegistry
 {
-	private static readonly Dictionary<Type, IDreadDataTypeFactory> FactoryMap = [];
-	private static readonly Dictionary<ulong, string>               TypeIdMap  = [];
-	private static readonly Dictionary<string, BaseDreadType>       DreadTypeDefinitions;
+	private static readonly Dictionary<Type, IDreadFieldFactory> FactoryMap = [];
+	private static readonly Dictionary<ulong, string>            TypeIdMap  = [];
+	private static readonly Dictionary<string, BaseDreadType>    DreadTypeDefinitions;
 
 	static DreadTypeRegistry()
 	{
@@ -23,14 +23,14 @@ public static partial class DreadTypeRegistry
 		foreach (var typeName in DreadTypeDefinitions.Keys)
 			TypeIdMap[typeName.GetCrc64()] = typeName;
 
-		RegisterFactory<DreadConcreteType>(DreadConcreteTypeFactory.Instance);
-		RegisterFactory<DreadDictionaryType>(DreadDictionaryTypeFactory.Instance);
-		RegisterFactory<DreadEnumType>(DreadEnumTypeFactory.Instance);
-		RegisterFactory<DreadFlagsetType>(DreadFlagsetTypeFactory.Instance);
-		RegisterFactory<DreadPointerType>(DreadPointerTypeFactory.Instance);
-		RegisterFactory<DreadPrimitiveType>(DreadPrimitiveTypeFactory.Instance);
-		RegisterFactory<DreadTypedefType>(DreadTypedefTypeFactory.Instance);
-		RegisterFactory<DreadVectorType>(DreadVectorTypeFactory.Instance);
+		RegisterFactory<DreadConcreteType>(DreadConcreteFieldFactory.Instance);
+		RegisterFactory<DreadDictionaryType>(DreadDictionaryFieldFactory.Instance);
+		RegisterFactory<DreadEnumType>(DreadEnumFieldFactory.Instance);
+		RegisterFactory<DreadFlagsetType>(DreadFlagsetFieldFactory.Instance);
+		RegisterFactory<DreadPointerType>(DreadPointerFieldFactory.Instance);
+		RegisterFactory<DreadPrimitiveType>(DreadPrimitiveFieldFactory.Instance);
+		RegisterFactory<DreadTypedefType>(DreadTypedefFieldFactory.Instance);
+		RegisterFactory<DreadVectorType>(DreadVectorFieldFactory.Instance);
 
 		RegisterGeneratedTypes();
 
@@ -43,42 +43,46 @@ public static partial class DreadTypeRegistry
 		RegisterConcreteType<CMinimapManager_TCustomMarkerDataMap>();
 		RegisterConcreteType<CMinimapManager_TGlobalMapIcons>();
 		RegisterConcreteType<GUI_CMissionLog_TMissionLogEntries>();
-		RegisterConcreteType("base::global::CRntVector<EMapTutoType>", ArrayDataType.Create<EnumDataType<EMapTutoType>>);
+		RegisterConcreteType("base::global::CRntVector<EMapTutoType>", BinaryArray.Create<EnumField<EMapTutoType>>);
 	}
 
 	static partial void RegisterGeneratedTypes();
 
 	#region Factory Registration
 
-	public static void RegisterFactory<T>(IDreadDataTypeFactory factory)
+	public static void RegisterFactory<T>(IDreadFieldFactory factory)
 	where T : IDreadType
 		=> RegisterFactory(typeof(T), factory);
 
-	public static void RegisterFactory(Type dreadType, IDreadDataTypeFactory factory)
+	public static void RegisterFactory(Type dreadType, IDreadFieldFactory factory)
 		=> FactoryMap.Add(dreadType, factory);
 
 	#endregion
 
 	#region Factory Access
 
-	public static TypedDreadValue CreateValueFor(ulong typeId)
+	public static ITypedDreadField GetTypedField(ulong typeId)
 	{
 		var type = FindType(typeId);
+		var field = GetFieldForType(type);
 
-		return new TypedDreadValue(type);
+		if (field is not ITypedDreadField typedField || typedField.TypeName != type.TypeName)
+			typedField = new TypedFieldWrapper(type.TypeName, field);
+
+		return typedField;
 	}
 
-	public static IBinaryDataType CreateDataTypeFor(IDreadType dreadType)
+	public static IBinaryField GetFieldForType(IDreadType dreadType)
 	{
-		var factory = GetFactoryFor(dreadType);
+		var factory = GetFieldFactoryForType(dreadType);
 
 		if (factory is null)
 			throw new InvalidOperationException($"No factory implementation registered for type \"{dreadType.GetType().FullName}\"");
 
-		return factory.CreateDataType(dreadType);
+		return factory.CreateField(dreadType);
 	}
 
-	private static IDreadDataTypeFactory? GetFactoryFor(IDreadType dreadType)
+	private static IDreadFieldFactory? GetFieldFactoryForType(IDreadType dreadType)
 	{
 		if (FactoryMap.TryGetValue(dreadType.GetType(), out var factory))
 			return factory;
@@ -102,19 +106,19 @@ public static partial class DreadTypeRegistry
 	#region Concrete Type Registration
 
 	public static void RegisterConcreteType<T>()
-	where T : IBinaryDataType, new()
+	where T : IBinaryField, new()
 		=> RegisterConcreteType(() => new T());
 
 	public static void RegisterConcreteType<T>(string typeName)
-	where T : IBinaryDataType, new()
+	where T : IBinaryField, new()
 		=> RegisterConcreteType(typeName, () => new T());
 
-	public static void RegisterConcreteType<T>(Func<T> concreteTypeFactory)
-	where T : IBinaryDataType
-		=> RegisterConcreteType(typeof(T).Name.Replace("_", "::"), concreteTypeFactory);
+	public static void RegisterConcreteType<T>(Func<T> fieldFactory)
+	where T : IBinaryField
+		=> RegisterConcreteType(typeof(T).Name.Replace("_", "::"), fieldFactory);
 
 	public static void RegisterConcreteType<T>(string typeName, Func<T> concreteTypeFactory)
-	where T : IBinaryDataType
+	where T : IBinaryField
 	{
 		TypeIdMap.TryAdd(typeName.GetCrc64(), typeName);
 		DreadTypeDefinitions[typeName] = new DreadConcreteType(typeName, () => concreteTypeFactory());
@@ -148,7 +152,7 @@ public static partial class DreadTypeRegistry
 		if (TryFindType(typeId, out var type))
 			return type;
 
-		var hexDisplay = BitConverter.GetBytes(typeId).ToHexString();
+		var hexDisplay = typeId.ToHexString();
 
 		throw new KeyNotFoundException($"The type ID \"{typeId}\" ({hexDisplay}) did not refer to a known type");
 	}

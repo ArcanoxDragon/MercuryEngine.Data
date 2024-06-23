@@ -16,6 +16,12 @@
 			<Private>true</Private>
 		</ProjectReference>
 	</ItemGroup>
+	
+	<ItemGroup>
+		<Compile Include="..\MercuryEngine.Data.Core\Extensions\BinaryExtensions.cs" LinkBase="FromCore" />
+		<Compile Include="..\MercuryEngine.Data.Core\Extensions\Crc64Extensions.cs" LinkBase="FromCore" />
+		<Compile Include="..\MercuryEngine.Data.Core\Utility\Crc64.cs" LinkBase="FromCore" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" PrivateAssets="all" GeneratePathProperty="true" />
@@ -24,6 +30,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="System.Memory" Version="4.5.5" PrivateAssets="all" GeneratePathProperty="true" />
 		<PackageReference Include="System.Text.Encodings.Web" Version="8.0.0" PrivateAssets="all" GeneratePathProperty="true" />
 		<PackageReference Include="System.Text.Json" Version="8.0.3" PrivateAssets="all" GeneratePathProperty="true" />
 	</ItemGroup>
@@ -38,6 +45,7 @@
 												 IncludeRuntimeDependency="false" />
 			<TargetPathWithTargetPlatformMoniker Include="$(PKGSystem_Text_Encodings_Web)\lib\netstandard2.0\System.Text.Encodings.Web.dll"
 												 IncludeRuntimeDependency="false" />
+			<TargetPathWithTargetPlatformMoniker Include="$(PKGSystem_Memory)\lib\netstandard2.0\System.Memory.dll" IncludeRuntimeDependency="false" />
 			<TargetPathWithTargetPlatformMoniker Include="$(PKGSystem_Text_Json)\lib\netstandard2.0\System.Text.Json.dll" IncludeRuntimeDependency="false" />
 			<TargetPathWithTargetPlatformMoniker Include="..\MercuryEngine.Data.Definitions\bin\$(Configuration)\netstandard2.0\MercuryEngine.Data.Definitions.dll"
 												 IncludeRuntimeDependency="false" />

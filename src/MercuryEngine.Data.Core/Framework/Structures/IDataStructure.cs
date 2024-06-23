@@ -1,7 +1,7 @@
 ﻿using JetBrains.Annotations;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
 
 namespace MercuryEngine.Data.Core.Framework.Structures;
 
 [PublicAPI]
-public interface IDataStructure : IBinaryDataType { }
+public interface IDataStructure : IBinaryField { }

@@ -1,4 +1,3 @@
-using System;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Utility;
 
@@ -20,7 +19,7 @@ public class Tests
 	public void TestCrc64(string text)
 	{
 		var crc64 = Crc64.Calculate(text);
-		var crc64Hex = BitConverter.GetBytes(crc64).ToHexString();
+		var crc64Hex = crc64.ToHexString();
 
 		TestContext.Out.WriteLine($"\"{text}\" = {crc64Hex}");
 	}

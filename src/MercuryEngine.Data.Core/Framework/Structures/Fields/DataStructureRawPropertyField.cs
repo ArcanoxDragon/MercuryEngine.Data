@@ -1,38 +1,38 @@
 ﻿using System.Linq.Expressions;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
 /// <summary>
-/// An <see cref="IDataStructureField"/> that handles reading and writing a raw <see cref="IBinaryDataType"/> that
+/// An <see cref="IDataStructureField"/> that handles reading and writing a raw <see cref="IBinaryField"/> that
 /// is a child of (e.g. property on) a <see cref="DataStructure{T}"/>.
 /// </summary>
-public class DataStructureRawPropertyField<TStructure, TData> : BaseDataStructureFieldWithProperty<TStructure, TData, TData?>
+public class DataStructureRawPropertyField<TStructure, TField> : BaseDataStructureFieldWithProperty<TStructure, TField, TField?>
 where TStructure : IDataStructure
-where TData : class, IBinaryDataType
+where TField : class, IBinaryField
 {
 	public DataStructureRawPropertyField(
-		Func<TData> dataTypeFactory,
-		Expression<Func<TStructure, TData?>> propertyExpression
-	) : base(dataTypeFactory, propertyExpression)
+		Func<TField> fieldFactory,
+		Expression<Func<TStructure, TField?>> propertyExpression
+	) : base(fieldFactory, propertyExpression)
 	{
 		if (!PropertyInfo.CanRead)
 			throw new ArgumentException("A property must have a getter in order to be used in a DataStructureRawPropertyField");
 	}
 
-	public override string FriendlyDescription => $"{PropertyInfo.Name}[{typeof(TData).Name}]";
+	public override string FriendlyDescription => $"{PropertyInfo.Name}[{typeof(TField).Name}]";
 
-	protected override TData GetData(TStructure structure)
+	protected override TField GetFieldForStorage(TStructure structure)
 	{
-		var data = (TData?) PropertyInfo.GetValue(structure);
+		var field = (TField?) PropertyInfo.GetValue(structure);
 
-		if (data is null)
+		if (field is null)
 			throw new InvalidOperationException($"The value retrieved from {typeof(TStructure).Name} property \"{PropertyInfo.Name}\" was null.");
 
-		return data;
+		return field;
 	}
 
-	protected override void PutData(TStructure structure, TData data)
+	protected override void LoadFieldFromStorage(TStructure structure, TField data)
 	{
 		if (!PropertyInfo.CanWrite)
 			return;

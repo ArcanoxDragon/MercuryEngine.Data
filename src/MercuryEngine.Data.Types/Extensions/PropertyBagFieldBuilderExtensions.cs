@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
-using MercuryEngine.Data.Types.DataTypes;
+using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.Extensions;
 

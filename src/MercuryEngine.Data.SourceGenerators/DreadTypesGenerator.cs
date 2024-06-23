@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.Definitions.Utility;
@@ -33,6 +34,7 @@ public class DreadTypesGenerator : ISourceGenerator
 
 		GenerateTypesFile(executionContext, generationContext);
 		GenerateRegistryPartialFile(executionContext, generationContext);
+		GenerateTypeNamesMappingFile(executionContext, generationContext);
 	}
 
 	private void GenerateTypesFile(GeneratorExecutionContext executionContext, GenerationContext generationContext)
@@ -130,11 +132,41 @@ public class DreadTypesGenerator : ISourceGenerator
 	{
 		yield return "using System;";
 		yield return "using MercuryEngine.Data.Core.Framework;";
-		yield return "using MercuryEngine.Data.Core.Framework.DataTypes;";
+		yield return "using MercuryEngine.Data.Core.Framework.Fields;";
 		yield return "using MercuryEngine.Data.Core.Framework.Structures;";
 		yield return "using MercuryEngine.Data.Core.Framework.Structures.Fluent;";
 		yield return "using MercuryEngine.Data.Types.Attributes;";
-		yield return "using MercuryEngine.Data.Types.DataTypes;";
 		yield return "using MercuryEngine.Data.Types.Extensions;";
+		yield return "using MercuryEngine.Data.Types.Fields;";
+	}
+
+	private void GenerateTypeNamesMappingFile(GeneratorExecutionContext executionContext, GenerationContext generationContext)
+	{
+		var sourceLines = string.Join("\n", GenerateTypeNamesMappingSourceLines(generationContext));
+		var sourceText = SourceText.From(sourceLines, Encoding.UTF8);
+
+		executionContext.AddSource("dread_type_names.g.json", sourceText);
+	}
+
+	private IEnumerable<string> GenerateTypeNamesMappingSourceLines(GenerationContext context)
+	{
+		yield return "/*";
+		yield return "{";
+
+		foreach (var (typeName, _) in context.KnownTypes)
+		{
+			yield return $"\"{typeName}\": {{";
+
+			var crc64 = typeName.GetCrc64();
+			var hex = crc64.ToHexString();
+
+			yield return $"\t\"crc_ulong\": {crc64},";
+			yield return $"\t\"crc_hex\": \"{hex}\"";
+
+			yield return "}";
+		}
+
+		yield return "}";
+		yield return "*/";
 	}
 }

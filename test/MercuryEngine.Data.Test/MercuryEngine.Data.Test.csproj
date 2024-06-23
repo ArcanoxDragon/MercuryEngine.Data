@@ -1,13 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
-
 		<IsPackable>false</IsPackable>
-
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
 		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 
@@ -16,8 +13,8 @@
 		<PackageReference Include="NUnit" Version="4.1.0" />
 		<PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
 		<PackageReference Include="coverlet.collector" Version="6.0.2">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="System.Drawing.Common" Version="8.0.6" />
 	</ItemGroup>

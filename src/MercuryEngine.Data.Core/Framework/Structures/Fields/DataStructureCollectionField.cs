@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 using MercuryEngine.Data.Core.Framework.DataAdapters;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
@@ -8,56 +8,56 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 /// An <see cref="IDataStructureField"/> that handles reading and writing the value of a collection (<see cref="List{T}"/>) property on a <see cref="DataStructure{T}"/>.
 /// </summary>
 /// <typeparam name="TStructure">The type of the <see cref="DataStructure{T}"/> that contains the property to be read/written.</typeparam>
-/// <typeparam name="TCollection">The type of item that the collection stores.</typeparam>
-/// <typeparam name="TData">The data type that represents the format by which <typeparamref name="TCollection"/> is read and written.</typeparam>
-public class DataStructureCollectionField<TStructure, TCollection, TData> : BaseDataStructureFieldWithProperty<TStructure, ArrayDataType<TData>, List<TCollection>?>
+/// <typeparam name="TItem">The type of item that the collection stores.</typeparam>
+/// <typeparam name="TItemField">The data type that represents the format by which <typeparamref name="TItem"/> is read and written.</typeparam>
+public class DataStructureCollectionField<TStructure, TItem, TItemField> : BaseDataStructureFieldWithProperty<TStructure, ArrayField<TItemField>, List<TItem>?>
 where TStructure : IDataStructure
-where TCollection : notnull
-where TData : IBinaryDataType
+where TItem : notnull
+where TItemField : IBinaryField
 {
-	private readonly Func<TData>                      entryFactory;
-	private readonly IDataAdapter<TData, TCollection> entryDataAdapter;
+	private readonly Func<TItemField>                 itemFactory;
+	private readonly IFieldAdapter<TItemField, TItem> itemFieldAdapter;
 
 	public DataStructureCollectionField(
-		Func<TData> entryFactory,
-		Expression<Func<TStructure, List<TCollection>?>> propertyExpression,
-		IDataAdapter<TData, TCollection> entryDataAdapter
-	) : base(() => new ArrayDataType<TData>(entryFactory), propertyExpression)
+		Func<TItemField> itemFactory,
+		Expression<Func<TStructure, List<TItem>?>> propertyExpression,
+		IFieldAdapter<TItemField, TItem> itemFieldAdapter
+	) : base(() => new ArrayField<TItemField>(itemFactory), propertyExpression)
 	{
-		this.entryFactory = entryFactory;
-		this.entryDataAdapter = entryDataAdapter;
+		this.itemFactory = itemFactory;
+		this.itemFieldAdapter = itemFieldAdapter;
 
 		if (!PropertyInfo.CanRead)
 			throw new ArgumentException("A property must have a getter in order to be used in a DataStructureCollectionField");
 	}
 
-	public override string FriendlyDescription => $"{PropertyInfo.Name}[array of {typeof(TCollection).Name}]";
+	public override string FriendlyDescription => $"{PropertyInfo.Name}[array of {typeof(TItem).Name}]";
 
-	protected override ArrayDataType<TData> GetData(TStructure structure)
+	protected override ArrayField<TItemField> GetFieldForStorage(TStructure structure)
 	{
 		var collection = GetSourceCollection(structure);
 
 		if (collection is null)
 			throw new InvalidOperationException($"Source collection was null for property \"{FriendlyDescription}\" while writing data");
 
-		var data = CreateDataType();
+		var field = CreateFieldInstance();
 
-		data.Value.Clear();
+		field.Value.Clear();
 
 		foreach (var item in collection)
 		{
-			var entry = this.entryFactory();
+			var entry = this.itemFactory();
 
-			this.entryDataAdapter.Put(ref entry, item);
-			data.Value.Add(entry);
+			this.itemFieldAdapter.Put(ref entry, item);
+			field.Value.Add(entry);
 		}
 
-		return data;
+		return field;
 	}
 
-	protected override void PutData(TStructure structure, ArrayDataType<TData> data)
+	protected override void LoadFieldFromStorage(TStructure structure, ArrayField<TItemField> data)
 	{
-		var items = data.Value.Select(entry => this.entryDataAdapter.Get(entry));
+		var items = data.Value.Select(this.itemFieldAdapter.Get);
 
 		if (PropertyInfo.CanWrite)
 		{
@@ -79,8 +79,8 @@ where TData : IBinaryDataType
 		}
 	}
 
-	private List<TCollection>? GetSourceCollection(TStructure structure)
-		=> (List<TCollection>?) PropertyInfo.GetValue(structure);
+	private List<TItem>? GetSourceCollection(TStructure structure)
+		=> (List<TItem>?) PropertyInfo.GetValue(structure);
 }
 
 /// <summary>
@@ -89,8 +89,8 @@ where TData : IBinaryDataType
 /// <typeparam name="TStructure">The type of the <see cref="DataStructure{T}"/> that contains the property to be read/written.</typeparam>
 /// <typeparam name="TCollection">The type of data that the collection stores.</typeparam>
 public class DataStructureCollectionField<TStructure, TCollection>(
-	Func<TCollection> entryFactory,
+	Func<TCollection> itemFactory,
 	Expression<Func<TStructure, List<TCollection>?>> propertyExpression
-) : DataStructureCollectionField<TStructure, TCollection, TCollection>(entryFactory, propertyExpression, PassthroughDataAdapter<TCollection>.Instance)
+) : DataStructureCollectionField<TStructure, TCollection, TCollection>(itemFactory, propertyExpression, PassthroughFieldAdapter<TCollection>.Instance)
 where TStructure : IDataStructure
-where TCollection : IBinaryDataType;
+where TCollection : IBinaryField;

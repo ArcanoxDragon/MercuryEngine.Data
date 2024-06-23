@@ -1,10 +1,10 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
-using MercuryEngine.Data.Types.DataTypes;
 using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Extensions;
+using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Formats;
 
@@ -27,20 +27,20 @@ public class Bmssv : BinaryFormat<Bmssv>
 	/// When writing data, a copy of Sections is created and the data types are converted as appropriate.
 	/// When reading data, the reverse is performed and stored in Sections.
 	/// </summary>
-	private Dictionary<TerminatedStringDataType, TypedDreadDataType> RawSections
+	private Dictionary<TerminatedStringField, DreadTypePrefixedField> RawSections
 	{
-		get => Sections.ToDictionary(pair => new TerminatedStringDataType(pair.Key), pair => new TypedDreadDataType(pair.Value));
+		get => Sections.ToDictionary(pair => new TerminatedStringField(pair.Key), pair => new DreadTypePrefixedField(pair.Value));
 		set => Sections = value.ToDictionary(pair => pair.Key.Value, pair => (CBlackboard__CSection) pair.Value.InnerData!);
 	}
 
 	protected override void Describe(DataStructureBuilder<Bmssv> builder)
 		// TODO: Support CBlackboard too
 		=> builder.CrcLiteral("CGameBlackboard")
-				  .Property(m => m.Unknown1)
-				  .CrcLiteral("Root")
-				  .Property(m => m.Unknown2)
-				  .CrcLiteral("hashSections")
-				  .Dictionary(m => m.RawSections)
-				  .CrcLiteral("dctDeltaValues")
-				  .Property(m => m.Unknown3);
+			.Property(m => m.Unknown1)
+			.CrcLiteral("Root")
+			.Property(m => m.Unknown2)
+			.CrcLiteral("hashSections")
+			.Dictionary(m => m.RawSections)
+			.CrcLiteral("dctDeltaValues")
+			.Property(m => m.Unknown3);
 }

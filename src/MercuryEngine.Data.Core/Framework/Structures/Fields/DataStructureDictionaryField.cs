@@ -1,5 +1,5 @@
 ﻿using System.Linq.Expressions;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
@@ -7,58 +7,58 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 /// An <see cref="IDataStructureField"/> that handles reading and writing the value of a dictionary (<see cref="Dictionary{TKey, TValue}"/>) property on a <see cref="DataStructure{T}"/>.
 /// </summary>
 /// <typeparam name="TStructure">The type of the <see cref="DataStructure{T}"/> that contains the property to be read/written.</typeparam>
-/// <typeparam name="TKeyData">The type of key that the dictionary stores.</typeparam>
-/// <typeparam name="TValueData">The type of value that the dictionary stores.</typeparam>
-public class DataStructureDictionaryField<TStructure, TKeyData, TValueData> : BaseDataStructureFieldWithProperty<TStructure, ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>>, Dictionary<TKeyData, TValueData>?>
+/// <typeparam name="TKeyField">The type of key that the dictionary stores.</typeparam>
+/// <typeparam name="TValueField">The type of value that the dictionary stores.</typeparam>
+public class DataStructureDictionaryField<TStructure, TKeyField, TValueField> : BaseDataStructureFieldWithProperty<TStructure, DictionaryField<TKeyField, TValueField>, Dictionary<TKeyField, TValueField>?>
 where TStructure : IDataStructure
-where TKeyData : IBinaryDataType
-where TValueData : IBinaryDataType
+where TKeyField : IBinaryField
+where TValueField : IBinaryField
 {
-	private static Func<KeyValuePairDataType<TKeyData, TValueData>> CreatePairFactory(Func<TKeyData> keyDataTypeFactory, Func<TValueData> valueDataTypeFactory)
+	private static Func<KeyValuePairField<TKeyField, TValueField>> CreatePairFactory(Func<TKeyField> keyFieldFactory, Func<TValueField> valueFieldFactory)
 	{
 		// 🍐🏭
 
 		return () => {
-			var key = keyDataTypeFactory();
-			var value = valueDataTypeFactory();
+			var key = keyFieldFactory();
+			var value = valueFieldFactory();
 
-			return new KeyValuePairDataType<TKeyData, TValueData>(key, value);
+			return new KeyValuePairField<TKeyField, TValueField>(key, value);
 		};
 	}
 
 	public DataStructureDictionaryField(
-		Func<TKeyData> keyDataTypeFactory,
-		Func<TValueData> valueDataTypeFactory,
-		Expression<Func<TStructure, Dictionary<TKeyData, TValueData>?>> propertyExpression
-	) : base(() => new ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>>(CreatePairFactory(keyDataTypeFactory, valueDataTypeFactory)), propertyExpression)
+		Func<TKeyField> keyFieldFactory,
+		Func<TValueField> valueFieldFactory,
+		Expression<Func<TStructure, Dictionary<TKeyField, TValueField>?>> propertyExpression
+	) : base(() => new DictionaryField<TKeyField, TValueField>(CreatePairFactory(keyFieldFactory, valueFieldFactory)), propertyExpression)
 	{
 		if (!PropertyInfo.CanRead)
 			throw new ArgumentException("A property must have a getter in order to be used in a DataStructureDictionaryField");
 	}
 
-	public override string FriendlyDescription => $"{PropertyInfo.Name}[dictionary of {typeof(TKeyData).Name},{typeof(TValueData).Name}]";
+	public override string FriendlyDescription => $"{PropertyInfo.Name}[dictionary of {typeof(TKeyField).Name},{typeof(TValueField).Name}]";
 
-	protected override ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>> GetData(TStructure structure)
+	protected override DictionaryField<TKeyField, TValueField> GetFieldForStorage(TStructure structure)
 	{
 		var dictionary = GetSourceDictionary(structure);
 
 		if (dictionary is null)
 			throw new InvalidOperationException($"Source dictionary was null for property \"{FriendlyDescription}\" while writing data");
 
-		var data = CreateDataType();
+		var field = CreateFieldInstance();
 
-		data.Value.Clear();
-		data.Value.AddRange(dictionary.Select(pair => new KeyValuePairDataType<TKeyData, TValueData>(pair.Key, pair.Value)));
+		field.Value.Clear();
+		field.Value.AddRange(dictionary.Select(pair => new KeyValuePairField<TKeyField, TValueField>(pair.Key, pair.Value)));
 
-		return data;
+		return field;
 	}
 
-	protected override void PutData(TStructure structure, ArrayDataType<KeyValuePairDataType<TKeyData, TValueData>> data)
+	protected override void LoadFieldFromStorage(TStructure structure, DictionaryField<TKeyField, TValueField> data)
 	{
 		if (PropertyInfo.CanWrite)
 		{
 			// Store a new dictionary
-			var collection = new Dictionary<TKeyData, TValueData>();
+			var collection = new Dictionary<TKeyField, TValueField>();
 
 			foreach (var (key, value) in data.Value)
 				collection[key] = value;
@@ -80,6 +80,6 @@ where TValueData : IBinaryDataType
 		}
 	}
 
-	private Dictionary<TKeyData, TValueData>? GetSourceDictionary(TStructure structure)
-		=> (Dictionary<TKeyData, TValueData>?) PropertyInfo.GetValue(structure);
+	private Dictionary<TKeyField, TValueField>? GetSourceDictionary(TStructure structure)
+		=> (Dictionary<TKeyField, TValueField>?) PropertyInfo.GetValue(structure);
 }

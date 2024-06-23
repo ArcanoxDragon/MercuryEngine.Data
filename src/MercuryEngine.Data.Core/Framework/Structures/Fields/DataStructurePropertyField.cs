@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 using MercuryEngine.Data.Core.Framework.DataAdapters;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
@@ -9,47 +9,47 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 /// </summary>
 /// <typeparam name="TStructure">The type of the <see cref="DataStructure{T}"/> that contains the property to be read/written.</typeparam>
 /// <typeparam name="TProperty">The type of value that the property stores.</typeparam>
-/// <typeparam name="TData">The <see cref="IBinaryDataType"/> that represents the binary format used for reading and writing the property's value.</typeparam>
-public class DataStructurePropertyField<TStructure, TProperty, TData> : BaseDataStructureFieldWithProperty<TStructure, TData, TProperty>
+/// <typeparam name="TField">The <see cref="IBinaryField"/> that represents the binary format used for reading and writing the property's value.</typeparam>
+public class DataStructurePropertyField<TStructure, TProperty, TField> : BaseDataStructureFieldWithProperty<TStructure, TField, TProperty>
 where TStructure : IDataStructure
-where TData : IBinaryDataType
+where TField : IBinaryField
 {
-	private readonly IDataAdapter<TData, TProperty> dataAdapter;
+	private readonly IFieldAdapter<TField, TProperty> fieldAdapter;
 
 	public DataStructurePropertyField(
-		Func<TData> dataTypeFactory,
+		Func<TField> fieldFactory,
 		Expression<Func<TStructure, TProperty?>> propertyExpression,
-		IDataAdapter<TData, TProperty> dataAdapter
-	) : base(dataTypeFactory, propertyExpression)
+		IFieldAdapter<TField, TProperty> fieldAdapter
+	) : base(fieldFactory, propertyExpression)
 	{
-		this.dataAdapter = dataAdapter;
+		this.fieldAdapter = fieldAdapter;
 
 		if (!PropertyInfo.CanRead)
 			throw new ArgumentException("A property must have a getter in order to be used in a DataStructurePropertyField");
 	}
 
-	public override string FriendlyDescription => $"{PropertyInfo.Name}[{typeof(TProperty).Name},{typeof(TData).Name}]";
+	public override string FriendlyDescription => $"{PropertyInfo.Name}[{typeof(TProperty).Name},{typeof(TField).Name}]";
 
-	protected override TData GetData(TStructure structure)
+	protected override TField GetFieldForStorage(TStructure structure)
 	{
 		var value = (TProperty?) PropertyInfo.GetValue(structure);
 
 		if (value is null)
 			throw new InvalidOperationException($"The value retrieved from {typeof(TStructure).Name} property \"{PropertyInfo.Name}\" was null while writing data.");
 
-		var data = CreateDataType();
+		var field = CreateFieldInstance();
 
-		this.dataAdapter.Put(ref data, value);
+		this.fieldAdapter.Put(ref field, value);
 
-		return data;
+		return field;
 	}
 
-	protected override void PutData(TStructure structure, TData data)
+	protected override void LoadFieldFromStorage(TStructure structure, TField data)
 	{
 		if (!PropertyInfo.CanWrite)
 			return;
 
-		var value = this.dataAdapter.Get(data);
+		var value = this.fieldAdapter.Get(data);
 
 		PropertyInfo.SetValue(structure, value);
 	}

@@ -1,13 +1,13 @@
-﻿using MercuryEngine.Data.Core.Framework.DataTypes;
+﻿using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Definitions.DreadTypes;
 
 namespace MercuryEngine.Data.Types.DreadTypes;
 
 public class DreadConcreteType : BaseDreadType
 {
-	private readonly Func<IBinaryDataType> dataTypeFactory;
+	private readonly Func<IBinaryField> dataTypeFactory;
 
-	public DreadConcreteType(string typeName, Func<IBinaryDataType> dataTypeFactory)
+	public DreadConcreteType(string typeName, Func<IBinaryField> dataTypeFactory)
 	{
 		TypeName = typeName;
 
@@ -16,5 +16,5 @@ public class DreadConcreteType : BaseDreadType
 
 	public override DreadTypeKind Kind => DreadTypeKind.Concrete;
 
-	internal IBinaryDataType CreateDataType() => this.dataTypeFactory();
+	internal IBinaryField CreateDataType() => this.dataTypeFactory();
 }

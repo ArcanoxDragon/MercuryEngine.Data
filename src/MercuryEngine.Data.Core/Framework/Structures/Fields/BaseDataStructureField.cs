@@ -1,25 +1,34 @@
-﻿using MercuryEngine.Data.Core.Framework.DataTypes;
+﻿using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.Mapping;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
-public abstract class BaseDataStructureField<TStructure, TData>(Func<TData> dataTypeFactory) : IDataStructureField<TStructure>
+public abstract class BaseDataStructureField<TStructure, TField>(Func<TField> fieldFactory) : IDataStructureField<TStructure>, IDataMapperAware
 where TStructure : IDataStructure
-where TData : IBinaryDataType
+where TField : IBinaryField
 {
 	public abstract string FriendlyDescription { get; }
+
+	protected DataMapper? DataMapper { get; set; }
+
+	DataMapper? IDataMapperAware.DataMapper
+	{
+		get => DataMapper;
+		set => DataMapper = value;
+	}
 
 	public abstract void ClearData(TStructure structure);
 	public abstract bool HasData(TStructure structure);
 
-	public virtual uint GetSize(TStructure structure) => GetData(structure).Size;
+	public virtual uint GetSize(TStructure structure) => GetFieldForStorage(structure).Size;
 
 	public virtual void Read(TStructure structure, BinaryReader reader)
 	{
-		var data = CreateDataType();
+		var data = CreateFieldInstance();
 
 		data.Read(reader);
-		PutData(structure, data);
+		LoadFieldFromStorage(structure, data);
 	}
 
 	public virtual void Write(TStructure structure, BinaryWriter writer)
@@ -27,17 +36,17 @@ where TData : IBinaryDataType
 		if (!HasData(structure))
 			return;
 
-		var data = GetData(structure);
+		var data = GetFieldForStorage(structure);
 
-		data.Write(writer);
+		data.WriteWithDataMapper(writer, DataMapper);
 	}
 
 	public async Task ReadAsync(TStructure structure, AsyncBinaryReader reader, CancellationToken cancellationToken)
 	{
-		var data = CreateDataType();
+		var data = CreateFieldInstance();
 
 		await data.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
-		PutData(structure, data);
+		LoadFieldFromStorage(structure, data);
 	}
 
 	public async Task WriteAsync(TStructure structure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
@@ -45,13 +54,13 @@ where TData : IBinaryDataType
 		if (!HasData(structure))
 			return;
 
-		var data = GetData(structure);
+		var data = GetFieldForStorage(structure);
 
-		await data.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+		await data.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
 	}
 
-	protected abstract TData GetData(TStructure structure);
-	protected abstract void PutData(TStructure structure, TData data);
+	protected abstract TField GetFieldForStorage(TStructure structure);
+	protected abstract void LoadFieldFromStorage(TStructure structure, TField data);
 
-	protected virtual TData CreateDataType() => dataTypeFactory();
+	protected virtual TField CreateFieldInstance() => fieldFactory();
 }

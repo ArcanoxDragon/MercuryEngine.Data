@@ -90,6 +90,7 @@ where T : BinaryFormat<T>, new()
 	{
 		using var writer = new BinaryWriter(stream, encoding, true);
 
+		DataMapper?.Reset();
 		Write(writer);
 	}
 
@@ -113,6 +114,7 @@ where T : BinaryFormat<T>, new()
 	{
 		using var writer = new AsyncBinaryWriter(stream, encoding, true);
 
+		DataMapper?.Reset();
 		await WriteAsync(writer, cancellationToken).ConfigureAwait(false);
 	}
 }

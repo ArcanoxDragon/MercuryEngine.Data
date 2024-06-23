@@ -1,19 +1,19 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Utility;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
-public abstract class BaseDataStructureFieldWithProperty<TStructure, TData, TProperty> : BaseDataStructureField<TStructure, TData>
+public abstract class BaseDataStructureFieldWithProperty<TStructure, TField, TProperty> : BaseDataStructureField<TStructure, TField>
 where TStructure : IDataStructure
-where TData : IBinaryDataType
+where TField : IBinaryField
 {
 	private static readonly NullabilityInfoContext NullabilityInfoContext = new();
 
-	protected BaseDataStructureFieldWithProperty(Func<TData> dataTypeFactory, Expression<Func<TStructure, TProperty?>> propertyExpression) : base(dataTypeFactory)
+	protected BaseDataStructureFieldWithProperty(Func<TField> fieldFactory, Expression<Func<TStructure, TProperty?>> propertyExpression) : base(fieldFactory)
 	{
-		PropertyInfo = ExpressionUtility.GetProperty(propertyExpression);
+		PropertyInfo = ReflectionUtility.GetProperty(propertyExpression);
 		NullabilityInfo = NullabilityInfoContext.Create(PropertyInfo);
 	}
 

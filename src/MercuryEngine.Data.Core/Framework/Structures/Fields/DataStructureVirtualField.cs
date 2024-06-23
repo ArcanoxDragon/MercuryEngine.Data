@@ -1,4 +1,4 @@
-﻿using MercuryEngine.Data.Core.Framework.DataTypes;
+﻿using MercuryEngine.Data.Core.Framework.Fields;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 
@@ -6,22 +6,22 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fields;
 /// A field on a data structure that does not get exposed on the <typeparamref name="TStructure"/> type itself,
 /// but that is included in the binary data when the <typeparamref name="TStructure"/> is written to a binary format.
 /// </summary>
-public class DataStructureVirtualField<TStructure, TData>(
-	Func<TData> dataTypeFactory,
-	TData initialValue,
+public class DataStructureVirtualField<TStructure, TField>(
+	Func<TField> fieldFactory,
+	TField initialValue,
 	string? description = null
-) : BaseDataStructureField<TStructure, TData>(dataTypeFactory)
+) : BaseDataStructureField<TStructure, TField>(fieldFactory)
 where TStructure : IDataStructure
-where TData : class, IBinaryDataType
+where TField : class, IBinaryField
 {
 	private const string DefaultDescription = "<virtual>";
 
-	public DataStructureVirtualField(Func<TData> dataTypeFactory, string? description = null)
-		: this(dataTypeFactory, dataTypeFactory(), description) { }
+	public DataStructureVirtualField(Func<TField> fieldFactory, string? description = null)
+		: this(fieldFactory, fieldFactory(), description) { }
 
 	public override string FriendlyDescription { get; } = description ?? DefaultDescription;
 
-	private TData Data { get; set; } = initialValue;
+	private TField Data { get; set; } = initialValue;
 
 	public override void ClearData(TStructure structure)
 	{
@@ -30,6 +30,6 @@ where TData : class, IBinaryDataType
 
 	public override bool HasData(TStructure structure) => true;
 
-	protected override TData GetData(TStructure structure) => Data;
-	protected override void PutData(TStructure structure, TData data) => Data = data;
+	protected override TField GetFieldForStorage(TStructure structure) => Data;
+	protected override void LoadFieldFromStorage(TStructure structure, TField data) => Data = data;
 }

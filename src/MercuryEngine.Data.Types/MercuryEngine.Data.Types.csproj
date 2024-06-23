@@ -22,8 +22,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\MercuryEngine.Data.SourceGenerators\MercuryEngine.Data.SourceGenerators.csproj" OutputItemType="Analyzer"
-						  ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\MercuryEngine.Data.SourceGenerators\MercuryEngine.Data.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>

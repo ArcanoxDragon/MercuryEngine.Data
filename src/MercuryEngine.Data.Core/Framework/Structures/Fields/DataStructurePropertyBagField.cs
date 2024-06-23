@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Core.Framework.DataTypes;
+﻿using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -14,7 +15,7 @@ public static class DataStructurePropertyBagField
 		Action<PropertyBagFieldBuilder<TStructure>> configure,
 		IEqualityComparer<TPropertyKey> keyEqualityComparer)
 	where TStructure : IDataStructure
-	where TPropertyKey : IBinaryDataType
+	where TPropertyKey : IBinaryField
 	{
 		var builder = new Builder<TStructure>();
 
@@ -28,7 +29,7 @@ public static class DataStructurePropertyBagField
 		Func<TPropertyKey> emptyPropertyKeyFactory,
 		Action<PropertyBagFieldBuilder<TStructure>> configure)
 	where TStructure : IDataStructure
-	where TPropertyKey : IBinaryDataType
+	where TPropertyKey : IBinaryField
 		=> Create(propertyKeyGenerator, emptyPropertyKeyFactory, configure, EqualityComparer<TPropertyKey>.Default);
 
 	public static DataStructurePropertyBagField<TStructure, TPropertyKey> Create<TStructure, TPropertyKey>(
@@ -36,14 +37,14 @@ public static class DataStructurePropertyBagField
 		Action<PropertyBagFieldBuilder<TStructure>> configure,
 		IEqualityComparer<TPropertyKey> keyEqualityComparer)
 	where TStructure : IDataStructure
-	where TPropertyKey : IBinaryDataType, new()
+	where TPropertyKey : IBinaryField, new()
 		=> Create(propertyKeyGenerator, () => new TPropertyKey(), configure, keyEqualityComparer);
 
 	public static DataStructurePropertyBagField<TStructure, TPropertyKey> Create<TStructure, TPropertyKey>(
 		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
 		Action<PropertyBagFieldBuilder<TStructure>> configure)
 	where TStructure : IDataStructure
-	where TPropertyKey : IBinaryDataType, new()
+	where TPropertyKey : IBinaryField, new()
 		=> Create(propertyKeyGenerator, configure, EqualityComparer<TPropertyKey>.Default);
 
 	#endregion
@@ -64,9 +65,9 @@ public static class DataStructurePropertyBagField
 /// </summary>
 /// <typeparam name="TStructure">The type of the <see cref="DataStructure{T}"/> that contains the properties to be read/written.</typeparam>
 /// <typeparam name="TPropertyKey">The type of key used to identify properties when written to a binary format.</typeparam>
-public class DataStructurePropertyBagField<TStructure, TPropertyKey> : IDataStructureField<TStructure>
+public class DataStructurePropertyBagField<TStructure, TPropertyKey> : IDataStructureField<TStructure>, IDataMapperAware
 where TStructure : IDataStructure
-where TPropertyKey : IBinaryDataType
+where TPropertyKey : IBinaryField
 {
 	private readonly IPropertyKeyGenerator<TPropertyKey>                       propertyKeyGenerator;
 	private readonly Func<TPropertyKey>                                        emptyPropertyKeyFactory;
@@ -87,6 +88,14 @@ where TPropertyKey : IBinaryDataType
 	}
 
 	public string FriendlyDescription => $"<property bag: {this.innerFields.Count} properties>";
+
+	protected DataMapper? DataMapper { get; set; }
+
+	DataMapper? IDataMapperAware.DataMapper
+	{
+		get => DataMapper;
+		set => DataMapper = value;
+	}
 
 	protected IEnumerable<IDataStructureField<TStructure>> Fields => this.innerFields.Values;
 
@@ -132,22 +141,35 @@ where TPropertyKey : IBinaryDataType
 	{
 		var fieldsToWrite = this.innerFields.Where(f => f.Value.HasData(structure)).ToList();
 
-		writer.Write(fieldsToWrite.Count);
-
-		foreach (var (propertyName, field) in fieldsToWrite)
+		try
 		{
-			var propertyKey = this.propertyKeyGenerator.GenerateKey(propertyName);
+			DataMapper.PushRange($"property bag: {fieldsToWrite.Count} fields", writer);
+			writer.Write(fieldsToWrite.Count);
 
-			propertyKey.Write(writer);
+			foreach (var (propertyName, field) in fieldsToWrite)
+			{
+				var propertyKey = this.propertyKeyGenerator.GenerateKey(propertyName);
 
-			try
-			{
-				field.Write(structure, writer);
+				propertyKey.Write(writer);
+
+				try
+				{
+					DataMapper.PushRange($"property: {propertyName}", writer);
+					field.WriteWithDataMapper(structure, writer, DataMapper);
+				}
+				catch (Exception ex)
+				{
+					throw new IOException($"An exception occurred while writing property \"{propertyName}\" ({field.FriendlyDescription}) of {GetType().Name}", ex);
+				}
+				finally
+				{
+					DataMapper.PopRange(writer);
+				}
 			}
-			catch (Exception ex)
-			{
-				throw new IOException($"An exception occurred while writing property \"{propertyName}\" ({field.FriendlyDescription}) of {GetType().Name}", ex);
-			}
+		}
+		finally
+		{
+			DataMapper.PopRange(writer);
 		}
 	}
 
@@ -181,22 +203,35 @@ where TPropertyKey : IBinaryDataType
 	{
 		var fieldsToWrite = this.innerFields.Where(f => f.Value.HasData(structure)).ToList();
 
-		await writer.WriteAsync(fieldsToWrite.Count, cancellationToken).ConfigureAwait(false);
-
-		foreach (var (propertyName, field) in fieldsToWrite)
+		try
 		{
-			var propertyKey = this.propertyKeyGenerator.GenerateKey(propertyName);
+			await DataMapper.PushRangeAsync($"property bag: {fieldsToWrite.Count} fields", writer, cancellationToken).ConfigureAwait(false);
+			await writer.WriteAsync(fieldsToWrite.Count, cancellationToken).ConfigureAwait(false);
 
-			await propertyKey.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+			foreach (var (propertyName, field) in fieldsToWrite)
+			{
+				var propertyKey = this.propertyKeyGenerator.GenerateKey(propertyName);
 
-			try
-			{
-				await field.WriteAsync(structure, writer, cancellationToken).ConfigureAwait(false);
+				await propertyKey.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+
+				try
+				{
+					await DataMapper.PushRangeAsync($"property: {propertyName}", writer, cancellationToken).ConfigureAwait(false);
+					await field.WriteWithDataMapperAsync(structure, writer, DataMapper, cancellationToken).ConfigureAwait(false);
+				}
+				catch (Exception ex)
+				{
+					throw new IOException($"An exception occurred while writing property \"{propertyName}\" ({field.FriendlyDescription}) of {GetType().Name}", ex);
+				}
+				finally
+				{
+					await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
+				}
 			}
-			catch (Exception ex)
-			{
-				throw new IOException($"An exception occurred while writing property \"{propertyName}\" ({field.FriendlyDescription}) of {GetType().Name}", ex);
-			}
+		}
+		finally
+		{
+			await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
 		}
 	}
 }

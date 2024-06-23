@@ -1,6 +1,7 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Core.Framework.Structures.Fields;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -8,7 +9,7 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Core.Framework.Structures;
 
 [PublicAPI]
-public abstract class DataStructure<T> : IDataStructure, IBinaryDataType<T>
+public abstract class DataStructure<T> : IDataStructure, IBinaryField<T>, IDataMapperAware
 where T : DataStructure<T>
 {
 	private readonly Lazy<List<IDataStructureField<T>>> fieldsLazy;
@@ -18,11 +19,13 @@ where T : DataStructure<T>
 		this.fieldsLazy = new Lazy<List<IDataStructureField<T>>>(BuildFields);
 	}
 
+	public uint Size => (uint) Fields.Sum(f => f.GetSize((T) this));
+
+	public DataMapper? DataMapper { get; set; }
+
 	protected IEnumerable<IDataStructureField<T>> Fields => this.fieldsLazy.Value;
 
 	protected abstract void Describe(DataStructureBuilder<T> builder);
-
-	public uint Size => (uint) Fields.Sum(f => f.GetSize((T) this));
 
 	#region I/O
 
@@ -43,17 +46,26 @@ where T : DataStructure<T>
 
 	public void Write(BinaryWriter writer)
 	{
+		DataMapper.PushRange($"Structure({this})", writer);
+
 		foreach (var (i, field) in Fields.Pairs())
 		{
 			try
 			{
-				field.Write((T) this, writer);
+				DataMapper.PushRange($"field: {field.FriendlyDescription}", writer);
+				field.WriteWithDataMapper((T) this, writer, DataMapper);
 			}
 			catch (Exception ex)
 			{
 				throw new IOException($"An exception occurred while writing field {i} ({field.FriendlyDescription}) of {GetType().Name}", ex);
 			}
+			finally
+			{
+				DataMapper.PopRange(writer);
+			}
 		}
+
+		DataMapper.PopRange(writer);
 	}
 
 	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
@@ -73,17 +85,26 @@ where T : DataStructure<T>
 
 	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
 	{
+		await DataMapper.PushRangeAsync($"Structure({this})", writer, cancellationToken).ConfigureAwait(false);
+
 		foreach (var (i, field) in Fields.Pairs())
 		{
 			try
 			{
-				await field.WriteAsync((T) this, writer, cancellationToken).ConfigureAwait(false);
+				await DataMapper.PushRangeAsync($"field: {field.FriendlyDescription}", writer, cancellationToken).ConfigureAwait(false);
+				await field.WriteWithDataMapperAsync((T) this, writer, DataMapper, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
 				throw new IOException($"An exception occurred while writing field {i} ({field.FriendlyDescription}) of {GetType().Name}", ex);
 			}
+			finally
+			{
+				await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
+			}
 		}
+
+		await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
 	}
 
 	#endregion
@@ -97,12 +118,12 @@ where T : DataStructure<T>
 		return builder.Build();
 	}
 
-	#region IBinaryDataType<T> Explicit Implementation
+	#region IBinaryValue<T> Explicit Implementation
 
-	T IBinaryDataType<T>.Value
+	T IBinaryField<T>.Value
 	{
 		get => (T) this;
-		set => throw new InvalidOperationException($"DataStructure types consumed as {nameof(IBinaryDataType<T>)} cannot be assigned a value.");
+		set => throw new InvalidOperationException($"DataStructures consumed as {nameof(IBinaryField<T>)} cannot be assigned a value.");
 	}
 
 	#endregion

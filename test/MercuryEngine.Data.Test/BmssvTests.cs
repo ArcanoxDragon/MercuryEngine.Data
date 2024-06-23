@@ -3,22 +3,43 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Test.Extensions;
 using MercuryEngine.Data.Test.Utility;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
 
 namespace MercuryEngine.Data.Test;
 
 [TestFixture]
 public partial class BmssvTests
 {
-	private const string TestFreshProfile         = "Fresh";
-	private const string TestHundoProfile         = "Hundo";
-	private const string TestRandoWorkingProfile  = "RandoWorking";
-	private const string TestRandoBrokenProfile   = "RandoBroken";
+	private const string TestFreshProfile        = "Fresh";
+	private const string TestHundoProfile        = "Hundo";
+	private const string TestRandoWorkingProfile = "RandoWorking";
+	private const string TestRandoBrokenProfile  = "RandoBroken";
+
+	private static readonly JsonSerializerOptions JsonOptions = new() {
+		WriteIndented = true,
+		ReferenceHandler = ReferenceHandler.IgnoreCycles,
+		Converters = {
+			new JsonStringEnumConverter(),
+			new BinaryNumberJsonConverter<BooleanField, bool>(),
+			new BinaryNumberJsonConverter<Int16Field, short>(),
+			new BinaryNumberJsonConverter<UInt16Field, ushort>(),
+			new BinaryNumberJsonConverter<Int32Field, int>(),
+			new BinaryNumberJsonConverter<UInt32Field, uint>(),
+			new BinaryNumberJsonConverter<Int64Field, long>(),
+			new BinaryNumberJsonConverter<UInt64Field, ulong>(),
+			new BinaryNumberJsonConverter<FloatField, float>(),
+			new BinaryNumberJsonConverter<DoubleField, double>(),
+			new BinaryNumberJsonConverter<DecimalField, decimal>(),
+			new BinaryTerminatedStringJsonConverter(),
+			new DreadTypePrefixedFieldJsonConverter(),
+		},
+	};
 
 	private static IEnumerable<string> GetTestFiles()
 	{
@@ -86,7 +107,10 @@ public partial class BmssvTests
 
 		fileStream.Seek(0, SeekOrigin.Begin);
 
-		var bmssv = new Bmssv();
+		var dataMapper = new DataMapper();
+		var bmssv = new Bmssv {
+			DataMapper = dataMapper,
+		};
 
 		bmssv.Read(fileStream);
 
@@ -106,29 +130,30 @@ public partial class BmssvTests
 		Assert.That(newBuffer.Length, Is.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
 
 		for (var i = 0; i < newBuffer.Length; i++)
-			Assert.That(newBuffer[i], Is.EqualTo(originalBuffer[i]), $"Data mismatch at offset {i}");
+		{
+			try
+			{
+				Assert.That(newBuffer[i], Is.EqualTo(originalBuffer[i]), $"Data mismatch at offset {i}");
+			}
+			catch (AssertionException)
+			{
+				var failureRangePath = dataMapper.GetContainingRanges((ulong) i);
+
+				TestContext.Error.WriteLine("The pending data assertion failed at the following range in the written data:");
+				TestContext.Error.WriteLine(failureRangePath.FormatRangePath());
+
+				throw;
+			}
+		}
 	}
 
 	private static void DumpBmssvFile(Bmssv bmssv, string bmssvFilePath)
 	{
-		var serializer = new JsonSerializer {
-			Formatting = Formatting.Indented,
-			ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-			Converters = {
-				new StringEnumConverter(),
-				new TerminatedStringConverter(),
-			},
-		};
-		var jsonObject = JObject.FromObject(bmssv, serializer);
+		var jsonObject = JsonSerializer.SerializeToNode(bmssv, JsonOptions)!.AsObject();
 
 		jsonObject.Sort();
 
-		using var textWriter = new StringWriter();
-		using var jsonWriter = new JsonTextWriter(textWriter);
-
-		serializer.Serialize(jsonWriter, jsonObject);
-
-		var jsonDump = textWriter.ToString();
+		var jsonDump = jsonObject.ToJsonString(JsonOptions);
 
 		TestContext.Out.WriteLine("JSON dump of current parsed state:");
 		TestContext.Out.WriteLine(jsonDump);

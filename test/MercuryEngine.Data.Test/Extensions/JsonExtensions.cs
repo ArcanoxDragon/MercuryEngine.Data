@@ -1,26 +1,26 @@
 ﻿using System;
 using System.Linq;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace MercuryEngine.Data.Test.Extensions;
 
 internal static class JsonExtensions
 {
-	public static void Sort(this JObject obj)
+	public static void Sort(this JsonObject obj)
 	{
-		var properties = obj.Properties().ToList();
+		var properties = obj.ToList();
 
-		foreach (var property in properties)
-			property.Remove();
+		foreach (var (propertyName, _) in properties)
+			obj.Remove(propertyName);
 
-		properties.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
+		properties.Sort((a, b) => string.Compare(a.Key, b.Key, StringComparison.Ordinal));
 
-		foreach (var property in properties)
+		foreach (var (propertyName, propertyValue) in properties)
 		{
-			obj.Add(property);
-
-			if (property.Value is JObject childObject)
+			if (propertyValue is JsonObject childObject)
 				childObject.Sort();
+
+			obj.Add(propertyName, propertyValue);
 		}
 	}
 }

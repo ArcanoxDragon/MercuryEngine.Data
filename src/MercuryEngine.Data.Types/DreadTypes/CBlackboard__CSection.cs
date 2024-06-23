@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using MercuryEngine.Data.Core.Framework.DataTypes;
+using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Types.Attributes;
-using MercuryEngine.Data.Types.DataTypes;
+using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.DreadTypes;
 
@@ -22,12 +22,12 @@ public partial class CBlackboard__CSection
 		{ DreadPrimitiveKind.String, "base::global::TRntString256" },
 	};
 
-	public Dictionary<string, TypedDreadDataType> Props { get; private set; } = [];
+	public Dictionary<string, DreadTypePrefixedField> Props { get; private set; } = [];
 
 	[StructProperty("dctProps")]
-	private Dictionary<TerminatedStringDataType, TypedDreadDataType> RawProps
+	private Dictionary<TerminatedStringField, DreadTypePrefixedField> RawProps
 	{
-		get => Props.ToDictionary(pair => new TerminatedStringDataType(pair.Key), pair => pair.Value);
+		get => Props.ToDictionary(pair => new TerminatedStringField(pair.Key), pair => pair.Value);
 		set => Props = value.ToDictionary(pair => pair.Key.Value, pair => pair.Value);
 	}
 
@@ -55,7 +55,7 @@ public partial class CBlackboard__CSection
 		if (!Props.TryGetValue(property, out var propertyData))
 			return false;
 
-		if (propertyData.InnerData is not IBinaryDataType<T> numericData)
+		if (propertyData.InnerData is not IBinaryField<T> numericData)
 			return false;
 
 		value = numericData.Value;
@@ -100,14 +100,12 @@ public partial class CBlackboard__CSection
 		if (primitiveType is null)
 			throw new ArgumentOutOfRangeException(nameof(primitiveKind), $"Unsupported primitive kind \"{primitiveKind}\"");
 
-		var primitiveValue = new TypedDreadValue(primitiveType);
+		if (DreadTypeRegistry.GetFieldForType(primitiveType) is not (ITypedDreadField and IBinaryField<TValue> typedField))
+			throw new NotSupportedException($"Primitive type \"{primitiveType.TypeName}\" resulted in a field that was not {nameof(ITypedDreadField)}");
 
-		if (primitiveValue.Data is not IBinaryDataType<TValue> primitiveData)
-			throw new InvalidOperationException($"Primitive kind \"{primitiveKind}\" is associated with type \"{primitiveType.TypeName}\", which does not support values of type \"{typeof(TValue).Name}\"");
+		typedField.Value = value;
 
-		primitiveData.Value = value;
-
-		Props[property] = new TypedDreadDataType(primitiveValue);
+		Props[property] = new DreadTypePrefixedField((ITypedDreadField) typedField);
 	}
 
 	#endregion
