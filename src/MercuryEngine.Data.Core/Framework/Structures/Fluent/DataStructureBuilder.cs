@@ -28,6 +28,12 @@ where T : IDataStructure
 
 	internal List<DataStructureField> Build() => Fields;
 
+	public DataStructureBuilder<TOther> For<TOther>()
+	where TOther : T
+		=> new((TOther) BuildingStructure) {
+			Fields = Fields, // Build to same field collection
+		};
+
 	#region Constant Fields
 
 	public DataStructureBuilder<T> Constant(string text, string? description = null, bool assertValueOnRead = true)
