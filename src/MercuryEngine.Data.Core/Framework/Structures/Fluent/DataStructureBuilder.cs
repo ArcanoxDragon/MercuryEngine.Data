@@ -12,19 +12,21 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fluent;
 /// </summary>
 /// <typeparam name="T">The type of structure this <see cref="DataStructureBuilder{T}"/> can build.</typeparam>
 [PublicAPI]
-public abstract class DataStructureBuilder<T>
-where T : DataStructure<T>, IDescribeDataStructure<T>
+public sealed class DataStructureBuilder<T>
+where T : IDataStructure
 {
 	private static readonly NullabilityInfoContext NullabilityInfoContext = new();
 
-	private protected DataStructureBuilder(T structure)
+	internal DataStructureBuilder(T structure)
 	{
 		BuildingStructure = structure;
 	}
 
-	protected T BuildingStructure { get; }
+	private T BuildingStructure { get; }
 
-	protected List<DataStructureField> Fields { get; } = [];
+	private List<DataStructureField> Fields { get; init; } = [];
+
+	internal List<DataStructureField> Build() => Fields;
 
 	#region Constant Fields
 

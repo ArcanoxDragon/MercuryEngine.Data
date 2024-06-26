@@ -1,7 +1,6 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.Fields;
-using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Types.DreadTypes;
@@ -11,7 +10,7 @@ using MercuryEngine.Data.Types.Fields;
 namespace MercuryEngine.Data.Formats;
 
 [PublicAPI]
-public class Bmssv : BinaryFormat<Bmssv>, IDescribeDataStructure<Bmssv>
+public class Bmssv : BinaryFormat<Bmssv>
 {
 	private readonly DictionaryAdapter<TerminatedStringField, DreadTypePrefixedField, string, CBlackboard__CSection> sectionsAdapter;
 
@@ -40,7 +39,7 @@ public class Bmssv : BinaryFormat<Bmssv>, IDescribeDataStructure<Bmssv>
 
 	private Dictionary<TerminatedStringField, DreadTypePrefixedField> RawSections { get; set; } = [];
 
-	public static void Describe(DataStructureBuilder<Bmssv> builder)
+	protected override void Describe(DataStructureBuilder<Bmssv> builder)
 		// TODO: Support CBlackboard too
 		=> builder.CrcConstant("CGameBlackboard")
 			.Property(m => m.Unknown1)

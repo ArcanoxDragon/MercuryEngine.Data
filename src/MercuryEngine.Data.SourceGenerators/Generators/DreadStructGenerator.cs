@@ -22,7 +22,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		var preexistingType = generationContext.PreexistingTypes.SingleOrDefault(t => t.Name == typeClassName);
 		var fields = BuildStructFields(dreadType, preexistingType, executionContext, generationContext);
 
-		yield return $"public partial class {typeClassName} : DataStructure<{typeClassName}>, IDescribeDataStructure<{typeClassName}>, ITypedDreadField";
+		yield return $"public partial class {typeClassName} : DataStructure<{typeClassName}>, ITypedDreadField";
 		yield return "{";
 
 		// Emit ITypedDreadField implementation
@@ -45,7 +45,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		}
 
 		// Emit data structure description method
-		yield return $"\tpublic static void Describe(DataStructureBuilder<{typeClassName}> builder)";
+		yield return $"\tprotected override void Describe(DataStructureBuilder<{typeClassName}> builder)";
 		yield return "\t{";
 		yield return "\t\tbuilder.MsePropertyBag(fields => {";
 

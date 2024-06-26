@@ -9,7 +9,7 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 [PublicAPI]
 public sealed class PropertyBagFieldBuilder<T>
-where T : DataStructure<T>, IDescribeDataStructure<T>
+where T : IDataStructure
 {
 	private static readonly NullabilityInfoContext NullabilityInfoContext = new();
 

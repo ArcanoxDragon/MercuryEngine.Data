@@ -11,14 +11,14 @@ namespace MercuryEngine.Data.Types.Extensions;
 public static class DataStructureBuilderExtensions
 {
 	public static DataStructureBuilder<T> CrcConstant<T>(this DataStructureBuilder<T> builder, string literalText, bool assertValueOnRead = true)
-	where T : DataStructure<T>, IDescribeDataStructure<T>
+	where T : DataStructure<T>
 		=> builder.CrcConstant(literalText, $"<CRC: \"{literalText}\">", assertValueOnRead);
 
 	public static DataStructureBuilder<T> CrcConstant<T>(this DataStructureBuilder<T> builder, string literalText, string description, bool assertValueOnRead = true)
-	where T : DataStructure<T>, IDescribeDataStructure<T>
+	where T : DataStructure<T>
 		=> builder.Constant(literalText.GetCrc64(), description, assertValueOnRead);
 
 	public static DataStructureBuilder<T> MsePropertyBag<T>(this DataStructureBuilder<T> builder, Action<PropertyBagFieldBuilder<T>> configure)
-	where T : DataStructure<T>, IDescribeDataStructure<T>
+	where T : DataStructure<T>
 		=> builder.PropertyBag(CrcPropertyKeyGenerator.Instance, configure, StrId.EqualityComparer);
 }

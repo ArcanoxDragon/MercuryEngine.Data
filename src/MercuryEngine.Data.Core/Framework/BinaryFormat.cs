@@ -7,7 +7,7 @@ namespace MercuryEngine.Data.Core.Framework;
 
 [PublicAPI]
 public abstract class BinaryFormat<T> : DataStructure<T>
-where T : BinaryFormat<T>, IDescribeDataStructure<T>, new()
+where T : BinaryFormat<T>, new()
 {
 	#region Static Factory
 

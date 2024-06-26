@@ -10,15 +10,13 @@ namespace MercuryEngine.Data.Core.Framework.Structures;
 
 [PublicAPI]
 public abstract class DataStructure<T> : IDataStructure, IBinaryField<T>, IDataMapperAware
-where T : DataStructure<T>, IDescribeDataStructure<T>
+where T : DataStructure<T>
 {
+	private readonly Lazy<List<DataStructureField>> fieldsLazy;
+
 	protected DataStructure()
 	{
-		var builder = new Builder((T) this);
-
-		T.Describe(builder);
-
-		Fields = builder.Build();
+		this.fieldsLazy = new Lazy<List<DataStructureField>>(BuildFieldList);
 	}
 
 	[JsonIgnore]
@@ -27,13 +25,28 @@ where T : DataStructure<T>, IDescribeDataStructure<T>
 	[JsonIgnore]
 	public DataMapper? DataMapper { get; set; }
 
-	protected IEnumerable<DataStructureField> Fields { get; }
+	protected IEnumerable<DataStructureField> Fields => this.fieldsLazy.Value;
 
 	public void Reset()
 	{
 		foreach (var field in Fields)
 			field.Reset();
 	}
+
+	#region Structure Building
+
+	protected abstract void Describe(DataStructureBuilder<T> builder);
+
+	private List<DataStructureField> BuildFieldList()
+	{
+		var builder = new DataStructureBuilder<T>((T) this);
+
+		Describe(builder);
+
+		return builder.Build();
+	}
+
+	#endregion
 
 	#region I/O
 
@@ -123,15 +136,6 @@ where T : DataStructure<T>, IDescribeDataStructure<T>
 	{
 		get => (T) this;
 		set => throw new InvalidOperationException($"DataStructures consumed as {nameof(IBinaryField<T>)} cannot be assigned a value.");
-	}
-
-	#endregion
-
-	#region Builder Implementation
-
-	private sealed class Builder(T structure) : DataStructureBuilder<T>(structure)
-	{
-		public List<DataStructureField> Build() => Fields;
 	}
 
 	#endregion
