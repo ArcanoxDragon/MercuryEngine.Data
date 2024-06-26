@@ -24,8 +24,8 @@ public class DreadDictionaryFieldFactory : BaseDreadFieldFactory<DreadDictionary
 			throw new InvalidOperationException($"Dictionary type \"{typeName}\" has unknown value type \"{valueTypeName}\"");
 
 		return new DictionaryField<IBinaryField, IBinaryField>(
-			() => DreadTypeRegistry.GetFieldForType(keyType),
-			() => DreadTypeRegistry.GetFieldForType(valueType)
+			() => DreadTypeRegistry.CreateFieldForType(keyType),
+			() => DreadTypeRegistry.CreateFieldForType(valueType)
 		);
 	}
 }

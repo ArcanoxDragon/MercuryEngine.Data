@@ -110,12 +110,14 @@ public partial class CBlackboard__CSection
 		if (primitiveType is null)
 			throw new ArgumentOutOfRangeException(nameof(primitiveKind), $"Unsupported primitive kind \"{primitiveKind}\"");
 
-		if (DreadTypeRegistry.GetFieldForType(primitiveType) is not (ITypedDreadField and IBinaryField<TValue> typedField))
-			throw new NotSupportedException($"Primitive type \"{primitiveType.TypeName}\" resulted in a field that was not {nameof(ITypedDreadField)}");
+		var typedField = new TypedFieldWrapper(primitiveType);
 
-		typedField.Value = value;
+		if (typedField.WrappedField is not IBinaryField<TValue> primitiveField)
+			throw new InvalidOperationException($"Primitive kind \"{primitiveKind}\" is associated with type \"{primitiveType.TypeName}\", which does not support values of type \"{typeof(TValue).Name}\"");
 
-		Props[property] = new DreadTypePrefixedField((ITypedDreadField) typedField);
+		primitiveField.Value = value;
+
+		Props[property] = new DreadTypePrefixedField(typedField);
 	}
 
 	#endregion

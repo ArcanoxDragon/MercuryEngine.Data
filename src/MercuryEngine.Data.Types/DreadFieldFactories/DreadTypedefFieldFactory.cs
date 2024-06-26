@@ -18,6 +18,6 @@ public class DreadTypedefFieldFactory : BaseDreadFieldFactory<DreadTypedefType, 
 		if (!DreadTypeRegistry.TryFindType(aliasTypeName, out var aliasedType))
 			throw new InvalidOperationException($"Typedef type \"{typeName}\" refers to unknown type \"{aliasTypeName}\"");
 
-		return DreadTypeRegistry.GetFieldForType(aliasedType);
+		return DreadTypeRegistry.CreateFieldForType(aliasedType);
 	}
 }

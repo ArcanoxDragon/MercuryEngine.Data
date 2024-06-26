@@ -64,7 +64,7 @@ public static partial class DreadTypeRegistry
 	public static ITypedDreadField GetTypedField(ulong typeId)
 	{
 		var type = FindType(typeId);
-		var field = GetFieldForType(type);
+		var field = CreateFieldForType(type);
 
 		if (field is not ITypedDreadField typedField || typedField.TypeName != type.TypeName)
 			typedField = new TypedFieldWrapper(type.TypeName, field);
@@ -72,7 +72,7 @@ public static partial class DreadTypeRegistry
 		return typedField;
 	}
 
-	public static IBinaryField GetFieldForType(IDreadType dreadType)
+	public static IBinaryField CreateFieldForType(IDreadType dreadType)
 	{
 		var factory = GetFieldFactoryForType(dreadType);
 

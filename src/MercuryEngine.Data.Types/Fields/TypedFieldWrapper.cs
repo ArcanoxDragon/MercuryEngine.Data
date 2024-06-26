@@ -1,12 +1,16 @@
 ﻿using System.Text.Json.Serialization;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Mapping;
+using MercuryEngine.Data.Definitions.DreadTypes;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Types.Fields;
 
 internal class TypedFieldWrapper(string typeName, IBinaryField wrappedField) : ITypedDreadField, IDataMapperAware
 {
+	public TypedFieldWrapper(IDreadType dreadType)
+		: this(dreadType.TypeName, DreadTypeRegistry.CreateFieldForType(dreadType)) { }
+
 	public string       TypeName     { get; } = typeName;
 	public IBinaryField WrappedField { get; } = wrappedField;
 
