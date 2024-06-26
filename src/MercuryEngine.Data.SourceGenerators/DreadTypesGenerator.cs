@@ -19,7 +19,7 @@ public class DreadTypesGenerator : ISourceGenerator
 		{ typeof(DreadStructType), DreadStructGenerator.Instance },
 	};
 
-	private static readonly List<string> ExcludedTypeNames = ["char", "double", "long"];
+	private static readonly List<string> ExcludedTypeNames = ["char", "double", "long", "realloc"];
 
 	public void Initialize(GeneratorInitializationContext context)
 	{

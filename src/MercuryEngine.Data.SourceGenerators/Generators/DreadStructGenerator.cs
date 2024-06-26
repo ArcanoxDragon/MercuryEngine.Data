@@ -11,7 +11,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 {
 	// Many fields have a prefix indicating the type; we want to strip that off
 	private static readonly Regex        FieldNameRegex       = new(@"(?:[abcefiopstuv]|v\d|hash|vect|vo|wp|dct|str|arr|dic|map|lst)?([a-zA-Z][a-zA-Z\d_]*)", RegexOptions.Compiled);
-	private static readonly List<string> ForbiddenMemberNames = ["Write", "Size"];
+	private static readonly List<string> ForbiddenMemberNames = ["Write", "Size", "Reset"];
 
 	public static DreadStructGenerator Instance { get; } = new();
 
@@ -215,14 +215,11 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 				_ => throw new InvalidOperationException($"Unsupported primitive kind \"{primitive.PrimitiveKind}\""),
 			},
 
-			DreadEnumType or DreadFlagsetType
+			DreadEnumType or DreadFlagsetType or DreadStructType
 				=> $"{TypeNameUtility.SanitizeTypeName(dreadType.TypeName)}?",
 
-			DreadStructType
-				=> TypeNameUtility.SanitizeTypeName(dreadType.TypeName),
-
 			DreadVectorType vectorType
-				=> $"List<{MapNestedDataTypeName(vectorType.ValueType!, context)}>",
+				=> $"List<{MapNestedDataTypeName(vectorType.ValueType!, context)}>?",
 
 			DreadDictionaryType dictionaryType
 				=> $"Dictionary<{MapNestedDataTypeName(dictionaryType.KeyType!, context)}, {MapNestedDataTypeName(dictionaryType.ValueType!, context)}>?",
