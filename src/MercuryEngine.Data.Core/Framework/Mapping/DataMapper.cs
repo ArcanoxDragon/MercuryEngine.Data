@@ -1,5 +1,9 @@
-﻿namespace MercuryEngine.Data.Core.Framework.Mapping;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
+namespace MercuryEngine.Data.Core.Framework.Mapping;
+
+[JsonConverter(typeof(JsonConverter))]
 public class DataMapper
 {
 	private readonly DataRange        rootRange  = new("Root", 0);
@@ -51,5 +55,14 @@ public class DataMapper
 		foreach (var innerRange in parentRange.InnerRanges)
 		foreach (var containingRange in FindContainingRanges(innerRange, location))
 			yield return containingRange;
+	}
+
+	private sealed class JsonConverter : JsonConverter<DataMapper>
+	{
+		public override DataMapper Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+			=> throw new NotSupportedException("Reading is not supported");
+
+		public override void Write(Utf8JsonWriter writer, DataMapper value, JsonSerializerOptions options)
+			=> JsonSerializer.Serialize(writer, value.rootRange, options);
 	}
 }

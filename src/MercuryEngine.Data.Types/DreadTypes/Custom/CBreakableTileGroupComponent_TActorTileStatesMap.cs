@@ -6,31 +6,33 @@ using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.DreadTypes.Custom;
 
-public class CBreakableTileGroupComponent_TActorTileStatesMap : DataStructure<CBreakableTileGroupComponent_TActorTileStatesMap>, ITypedDreadField
+public class CBreakableTileGroupComponent_TActorTileStatesMap : DataStructure<CBreakableTileGroupComponent_TActorTileStatesMap>,
+																IDescribeDataStructure<CBreakableTileGroupComponent_TActorTileStatesMap>,
+																ITypedDreadField
 {
 	public string TypeName => "CBreakableTileGroupComponent::TActorTileStatesMap";
 
 	public Dictionary<TerminatedStringField, Entry> Entries { get; } = [];
 
-	protected override void Describe(DataStructureBuilder<CBreakableTileGroupComponent_TActorTileStatesMap> builder)
+	public static void Describe(DataStructureBuilder<CBreakableTileGroupComponent_TActorTileStatesMap> builder)
 		=> builder.Dictionary(m => m.Entries);
 
-	public sealed class Entry : DataStructure<Entry>
+	public sealed class Entry : DataStructure<Entry>, IDescribeDataStructure<Entry>
 	{
 		public List<TileState> States { get; } = [];
 
-		protected override void Describe(DataStructureBuilder<Entry> builder)
+		public static void Describe(DataStructureBuilder<Entry> builder)
 			=> builder.Array(m => m.States);
 	}
 
-	public sealed class TileState : DataStructure<TileState>
+	public sealed class TileState : DataStructure<TileState>, IDescribeDataStructure<TileState>
 	{
 		public float              X        { get; set; }
 		public float              Y        { get; set; }
 		public EBreakableTileType TileType { get; set; }
 		public uint               State    { get; set; }
 
-		protected override void Describe(DataStructureBuilder<TileState> builder)
+		public static void Describe(DataStructureBuilder<TileState> builder)
 			=> builder.MsePropertyBag(fields => {
 				fields.Property("fX", m => m.X)
 					.Property("fY", m => m.Y)

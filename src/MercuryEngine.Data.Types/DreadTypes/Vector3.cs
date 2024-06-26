@@ -1,18 +1,16 @@
 ﻿using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
-namespace MercuryEngine.Data.Types.Fields;
+namespace MercuryEngine.Data.Types.DreadTypes;
 
-public class Vector4 : DataStructure<Vector4>
+public class Vector3 : DataStructure<Vector3>, IDescribeDataStructure<Vector3>
 {
 	public float X { get; set; }
 	public float Y { get; set; }
 	public float Z { get; set; }
-	public float W { get; set; }
 
-	protected override void Describe(DataStructureBuilder<Vector4> builder)
+	public static void Describe(DataStructureBuilder<Vector3> builder)
 		=> builder.Property(m => m.X)
 			.Property(m => m.Y)
-			.Property(m => m.Z)
-			.Property(m => m.W);
+			.Property(m => m.Z);
 }

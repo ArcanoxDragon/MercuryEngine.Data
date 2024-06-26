@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Core.Utility;
@@ -18,9 +19,12 @@ where TItem : IBinaryField
 	public ArrayField(Func<TItem> itemFactory)
 		: this(itemFactory, []) { }
 
-	public override uint Size => (uint) Value.Sum(e => e.Size);
+	[JsonIgnore]
+	public override uint Size => sizeof(int) + (uint) Value.Sum(e => e.Size);
 
 	protected virtual string MappingDescription => $"Array<{typeof(TItem).Name}>";
+
+	public override void Reset() => Value.Clear();
 
 	public override void Read(BinaryReader reader)
 	{

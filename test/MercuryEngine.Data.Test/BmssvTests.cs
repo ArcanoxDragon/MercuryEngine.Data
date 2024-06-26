@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Test.Extensions;
@@ -16,34 +14,13 @@ namespace MercuryEngine.Data.Test;
 [TestFixture]
 public partial class BmssvTests
 {
-	private const string TestFreshProfile        = "Fresh";
-	private const string TestHundoProfile        = "Hundo";
-	private const string TestRandoWorkingProfile = "RandoWorking";
-	private const string TestRandoBrokenProfile  = "RandoBroken";
-
-	private static readonly JsonSerializerOptions JsonOptions = new() {
-		WriteIndented = true,
-		ReferenceHandler = ReferenceHandler.IgnoreCycles,
-		Converters = {
-			new JsonStringEnumConverter(),
-			new BinaryNumberJsonConverter<BooleanField, bool>(),
-			new BinaryNumberJsonConverter<Int16Field, short>(),
-			new BinaryNumberJsonConverter<UInt16Field, ushort>(),
-			new BinaryNumberJsonConverter<Int32Field, int>(),
-			new BinaryNumberJsonConverter<UInt32Field, uint>(),
-			new BinaryNumberJsonConverter<Int64Field, long>(),
-			new BinaryNumberJsonConverter<UInt64Field, ulong>(),
-			new BinaryNumberJsonConverter<FloatField, float>(),
-			new BinaryNumberJsonConverter<DoubleField, double>(),
-			new BinaryNumberJsonConverter<DecimalField, decimal>(),
-			new BinaryTerminatedStringJsonConverter(),
-			new DreadTypePrefixedFieldJsonConverter(),
-		},
-	};
+	private const string TestFreshProfile = "Fresh";
+	private const string TestHundoProfile = "Hundo";
+	private const string TestRandoProfile = "Rando";
 
 	private static IEnumerable<string> GetTestFiles()
 	{
-		foreach (var profileDirectory in new[] { TestFreshProfile, TestHundoProfile, TestRandoWorkingProfile, TestRandoBrokenProfile }.Select(GetTestProfilePath))
+		foreach (var profileDirectory in new[] { TestFreshProfile, TestHundoProfile, TestRandoProfile }.Select(GetTestProfilePath))
 		foreach (var file in Directory.EnumerateFiles(profileDirectory, "*.bmssv", SearchOption.AllDirectories))
 		{
 			if (Path.GetFileNameWithoutExtension(file).EndsWith("_out", StringComparison.OrdinalIgnoreCase))
@@ -55,30 +32,6 @@ public partial class BmssvTests
 
 	private static string GetTestProfilePath(string profileName)
 		=> Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", "BMSSV", profileName);
-
-	[TestCase]
-	public void FixSaveFile()
-	{
-		string saveFolder = GetTestProfilePath(TestRandoBrokenProfile);
-		string saveFile = Path.Combine(saveFolder, "common.bmssv");
-		using var fileStream = File.Open(saveFile, FileMode.Open, FileAccess.Read);
-		using var outStream = File.Open(saveFile.Replace(".bmssv", "_fixed.bmssv"), FileMode.Create, FileAccess.Write);
-		var bmssv = new Bmssv();
-
-		try
-		{
-			bmssv.Read(fileStream);
-
-			var inventory = bmssv.Sections["PLAYER_INVENTORY"];
-
-			inventory.PutValue("ITEM_WEAPON_POWER_BOMB", 1f);
-			bmssv.Write(outStream);
-		}
-		finally
-		{
-			DumpBmssvFile(bmssv, saveFile);
-		}
-	}
 
 	[TestCaseSource(nameof(GetTestFiles))]
 	public void TestLoadBmssv(string inFile)
@@ -117,6 +70,8 @@ public partial class BmssvTests
 		using var tempStream = new MemoryStream();
 
 		bmssv.Write(tempStream);
+
+		DumpDataMapper(dataMapper, filePath);
 		tempStream.Seek(0, SeekOrigin.Begin);
 
 		var newBuffer = tempStream.ToArray();
@@ -149,11 +104,11 @@ public partial class BmssvTests
 
 	private static void DumpBmssvFile(Bmssv bmssv, string bmssvFilePath)
 	{
-		var jsonObject = JsonSerializer.SerializeToNode(bmssv, JsonOptions)!.AsObject();
+		var jsonObject = JsonSerializer.SerializeToNode(bmssv, JsonUtility.JsonOptions)!.AsObject();
 
 		jsonObject.Sort();
 
-		var jsonDump = jsonObject.ToJsonString(JsonOptions);
+		var jsonDump = jsonObject.ToJsonString(JsonUtility.JsonOptions);
 
 		TestContext.Out.WriteLine("JSON dump of current parsed state:");
 		TestContext.Out.WriteLine(jsonDump);
@@ -165,5 +120,15 @@ public partial class BmssvTests
 		using var writer = new StreamWriter(outFileStream, Encoding.UTF8);
 
 		writer.Write(jsonDump);
+	}
+
+	private static void DumpDataMapper(DataMapper dataMapper, string bmssvFilePath)
+	{
+		var outFileDir = Path.GetDirectoryName(bmssvFilePath)!;
+		var outFileName = Path.GetFileNameWithoutExtension(bmssvFilePath) + ".map.json";
+		var outFilePath = Path.Combine(outFileDir, outFileName);
+		using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
+
+		JsonSerializer.Serialize(outFileStream, dataMapper, JsonUtility.JsonOptions);
 	}
 }

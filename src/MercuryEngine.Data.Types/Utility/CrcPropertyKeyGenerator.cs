@@ -8,6 +8,8 @@ public class CrcPropertyKeyGenerator : IPropertyKeyGenerator<StrId>
 {
 	public static CrcPropertyKeyGenerator Instance { get; } = new();
 
+	public StrId GetEmptyKey() => new();
+
 	public StrId GenerateKey(string propertyName)
 		=> new() { Value = propertyName.GetCrc64() };
 }

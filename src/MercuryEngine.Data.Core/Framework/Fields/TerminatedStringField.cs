@@ -36,11 +36,11 @@ public class TerminatedStringField(string initialValue) : BaseBinaryField<string
 	public int MaxLength { get; set; } = DefaultMaxLength;
 
 	/// <summary>
-	/// The encoding used when reading and writing strings. Defaults to <see cref="System.Text.Encoding.UTF8"/>.
+	/// The encoding used when reading and writing strings. Defaults to <see cref="Encoding.UTF8"/>.
 	/// </summary>
 	public Encoding Encoding { get; set; } = Encoding.UTF8;
 
-	public override uint Size => (uint) Encoding.GetByteCount(Value);
+	public override uint Size => (uint) Encoding.GetByteCount(Value) + 1;
 
 	public override void Read(BinaryReader reader)
 	{

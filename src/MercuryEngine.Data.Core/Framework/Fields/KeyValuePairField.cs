@@ -1,15 +1,17 @@
-﻿using MercuryEngine.Data.Core.Framework.Mapping;
+﻿using System.Text.Json.Serialization;
+using MercuryEngine.Data.Core.Framework.Mapping;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Fields;
 
-public class KeyValuePairField<TKey, TValue>(TKey key, TValue value) : IBinaryField, IDataMapperAware
+public class KeyValuePairField<TKey, TValue>(TKey key, TValue value) : IResettableField, IDataMapperAware
 where TKey : IBinaryField
 where TValue : IBinaryField
 {
 	public TKey   Key   { get; } = key;
 	public TValue Value { get; } = value;
 
+	[JsonIgnore]
 	public uint Size => Key.Size + Value.Size;
 
 	protected DataMapper? DataMapper { get; set; }
@@ -18,6 +20,12 @@ where TValue : IBinaryField
 	{
 		get => DataMapper;
 		set => DataMapper = value;
+	}
+
+	public void Reset()
+	{
+		( Key as IResettableField )?.Reset();
+		( Value as IResettableField )?.Reset();
 	}
 
 	public void Read(BinaryReader reader)

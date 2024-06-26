@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Core.Framework.Mapping;
+﻿using System.Text.Json.Serialization;
+using MercuryEngine.Data.Core.Framework.Mapping;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Fields;
@@ -9,10 +10,13 @@ namespace MercuryEngine.Data.Core.Framework.Fields;
 public abstract class BaseBinaryField<T>(T initialValue) : IBinaryField<T>, IEquatable<BaseBinaryField<T>>, IDataMapperAware
 where T : notnull
 {
+	private readonly T initialValue = initialValue;
+
 	public static IEqualityComparer<IBinaryField<T>> EqualityComparer { get; } = new EqualityComparerImpl();
 
 	public virtual T Value { get; set; } = initialValue;
 
+	[JsonIgnore]
 	public abstract uint Size { get; }
 
 	protected DataMapper? DataMapper { get; set; }
@@ -22,6 +26,8 @@ where T : notnull
 		get => DataMapper;
 		set => DataMapper = value;
 	}
+
+	public virtual void Reset() => Value = this.initialValue;
 
 	public abstract void Read(BinaryReader reader);
 	public abstract void Write(BinaryWriter writer);

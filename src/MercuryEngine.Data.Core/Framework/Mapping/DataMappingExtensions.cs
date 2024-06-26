@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures;
-using MercuryEngine.Data.Core.Framework.Structures.Fields;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Mapping;
@@ -50,22 +49,24 @@ public static class DataMappingExtensions
 		return field.WriteAsync(writer, cancellationToken);
 	}
 
-	public static void WriteWithDataMapper<T>(this IDataStructureField<T> field, T structure, BinaryWriter writer, DataMapper? dataMapper)
-	where T : IDataStructure
+	public static void WriteWithDataMapper(this DataStructureField field, BinaryWriter writer, DataMapper? dataMapper)
 	{
-		if (field is IDataMapperAware dataMapperAware)
-			dataMapperAware.DataMapper = dataMapper;
+		if (field.Handler.Field is IDataMapperAware dataMapperAwareField)
+			dataMapperAwareField.DataMapper = dataMapper;
+		if (field.Handler is IDataMapperAware dataMapperAwareHandler)
+			dataMapperAwareHandler.DataMapper = dataMapper;
 
-		field.Write(structure, writer);
+		field.Write(writer);
 	}
 
-	public static Task WriteWithDataMapperAsync<T>(this IDataStructureField<T> field, T structure, AsyncBinaryWriter writer, DataMapper? dataMapper, CancellationToken cancellationToken)
-	where T : IDataStructure
+	public static Task WriteWithDataMapperAsync(this DataStructureField field, AsyncBinaryWriter writer, DataMapper? dataMapper, CancellationToken cancellationToken)
 	{
-		if (field is IDataMapperAware dataMapperAware)
-			dataMapperAware.DataMapper = dataMapper;
+		if (field.Handler.Field is IDataMapperAware dataMapperAwareField)
+			dataMapperAwareField.DataMapper = dataMapper;
+		if (field.Handler is IDataMapperAware dataMapperAwareHandler)
+			dataMapperAwareHandler.DataMapper = dataMapper;
 
-		return field.WriteAsync(structure, writer, cancellationToken);
+		return field.WriteAsync(writer, cancellationToken);
 	}
 
 	public static string FormatRangePath(this IEnumerable<DataRange> rangePath)

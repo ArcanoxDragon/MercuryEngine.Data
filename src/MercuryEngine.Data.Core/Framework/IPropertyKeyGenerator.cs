@@ -6,5 +6,6 @@
 public interface IPropertyKeyGenerator<out TKey>
 where TKey : notnull
 {
+	TKey GetEmptyKey();
 	TKey GenerateKey(string propertyName);
 }

@@ -6,24 +6,26 @@ using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.DreadTypes.Custom;
 
-public class LiquidVolumesDictionary : DataStructure<LiquidVolumesDictionary>, ITypedDreadField
+public class LiquidVolumesDictionary : DataStructure<LiquidVolumesDictionary>,
+									   IDescribeDataStructure<LiquidVolumesDictionary>,
+									   ITypedDreadField
 {
 	public string TypeName => "LiquidVolumesDictionary";
 
 	public Dictionary<TerminatedStringField, Entry> Entries { get; } = [];
 
-	protected override void Describe(DataStructureBuilder<LiquidVolumesDictionary> builder)
+	public static void Describe(DataStructureBuilder<LiquidVolumesDictionary> builder)
 		=> builder.Dictionary(m => m.Entries);
 
-	public sealed class Entry : DataStructure<Entry>
+	public sealed class Entry : DataStructure<Entry>, IDescribeDataStructure<Entry>
 	{
 		public Vector2? Min { get; set; }
 		public Vector2? Max { get; set; }
 
-		protected override void Describe(DataStructureBuilder<Entry> builder)
+		public static void Describe(DataStructureBuilder<Entry> builder)
 			=> builder.MsePropertyBag(fields => {
-				fields.Structure("Min", m => m.Min)
-					.Structure("Max", m => m.Max);
+				fields.RawProperty("Min", m => m.Min)
+					.RawProperty("Max", m => m.Max);
 			});
 	}
 }

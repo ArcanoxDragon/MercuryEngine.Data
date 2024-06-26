@@ -18,11 +18,11 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 	protected override IEnumerable<string> GenerateSourceLines(DreadStructType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		var typeName = dreadType.TypeName;
-		var typeClassName = TypeNameUtility.SanitizeTypeName(typeName)!;
+		var typeClassName = TypeNameUtility.SanitizeTypeName(typeName);
 		var preexistingType = generationContext.PreexistingTypes.SingleOrDefault(t => t.Name == typeClassName);
 		var fields = BuildStructFields(dreadType, preexistingType, executionContext, generationContext);
 
-		yield return $"public partial class {typeClassName} : DataStructure<{typeClassName}>, ITypedDreadField";
+		yield return $"public partial class {typeClassName} : DataStructure<{typeClassName}>, IDescribeDataStructure<{typeClassName}>, ITypedDreadField";
 		yield return "{";
 
 		// Emit ITypedDreadField implementation
@@ -45,7 +45,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		}
 
 		// Emit data structure description method
-		yield return $"\tprotected override void Describe(DataStructureBuilder<{typeClassName}> builder)";
+		yield return $"\tpublic static void Describe(DataStructureBuilder<{typeClassName}> builder)";
 		yield return "\t{";
 		yield return "\t\tbuilder.MsePropertyBag(fields => {";
 
@@ -215,11 +215,14 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 				_ => throw new InvalidOperationException($"Unsupported primitive kind \"{primitive.PrimitiveKind}\""),
 			},
 
-			DreadEnumType or DreadFlagsetType or DreadStructType
+			DreadEnumType or DreadFlagsetType
 				=> $"{TypeNameUtility.SanitizeTypeName(dreadType.TypeName)}?",
 
+			DreadStructType
+				=> TypeNameUtility.SanitizeTypeName(dreadType.TypeName),
+
 			DreadVectorType vectorType
-				=> $"List<{MapNestedDataTypeName(vectorType.ValueType!, context)}>?",
+				=> $"List<{MapNestedDataTypeName(vectorType.ValueType!, context)}>",
 
 			DreadDictionaryType dictionaryType
 				=> $"Dictionary<{MapNestedDataTypeName(dictionaryType.KeyType!, context)}, {MapNestedDataTypeName(dictionaryType.ValueType!, context)}>?",
@@ -230,9 +233,9 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 	private string MapConfigureMethod(BaseDreadType dreadType)
 		=> dreadType switch {
 			DreadPrimitiveType primitive => primitive.PrimitiveKind switch {
-				DreadPrimitiveKind.Float_Vec2 => "Structure",
-				DreadPrimitiveKind.Float_Vec3 => "Structure",
-				DreadPrimitiveKind.Float_Vec4 => "Structure",
+				DreadPrimitiveKind.Float_Vec2 => "RawProperty",
+				DreadPrimitiveKind.Float_Vec3 => "RawProperty",
+				DreadPrimitiveKind.Float_Vec4 => "RawProperty",
 
 				_ => "Property",
 			},
@@ -242,7 +245,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 				=> "Property",
 
 			DreadEnumType or DreadFlagsetType => "DreadEnum",
-			DreadStructType                   => "Structure",
+			DreadStructType                   => "RawProperty",
 			DreadVectorType                   => "Array",
 			DreadDictionaryType               => "Dictionary",
 
@@ -272,19 +275,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			DreadDictionaryType dictionaryType
 				=> $"DictionaryField<{MapNestedDataTypeName(dictionaryType.KeyType!, context)}, {MapNestedDataTypeName(dictionaryType.ValueType!, context)}>",
 
-			_ => TypeNameUtility.SanitizeTypeName(typeName)!,
-		};
-
-	private string? GetNestedTypeFactory(string nestedTypeName, GenerationContext context, bool useDefaultConstructor)
-		=> FindType(nestedTypeName, context) switch {
-			DreadVectorType vector
-				=> $"ArrayField.Create<{MapNestedDataTypeName(vector.ValueType!, context)}>",
-
-			DreadDictionaryType dictionary
-				=> $"DictionaryField.Create<{MapNestedDataTypeName(dictionary.KeyType!, context)}, {MapNestedDataTypeName(dictionary.ValueType!, context)}>",
-
-			_ when useDefaultConstructor => $"() => new {MapNestedDataTypeName(nestedTypeName, context)}()",
-			_                            => null,
+			_ => TypeNameUtility.SanitizeTypeName(typeName),
 		};
 
 	private string MapPrimitiveTypeName(DreadPrimitiveKind primitiveKind)

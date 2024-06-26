@@ -1,7 +1,9 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Extensions;
 using MercuryEngine.Data.Types.Fields;
@@ -9,38 +11,44 @@ using MercuryEngine.Data.Types.Fields;
 namespace MercuryEngine.Data.Formats;
 
 [PublicAPI]
-public class Bmssv : BinaryFormat<Bmssv>
+public class Bmssv : BinaryFormat<Bmssv>, IDescribeDataStructure<Bmssv>
 {
+	private readonly DictionaryAdapter<TerminatedStringField, DreadTypePrefixedField, string, CBlackboard__CSection> sectionsAdapter;
+
+	public Bmssv()
+	{
+		this.sectionsAdapter = new DictionaryAdapter<TerminatedStringField, DreadTypePrefixedField, string, CBlackboard__CSection>(
+			RawSections,
+			bK => bK.Value,
+			bV => (CBlackboard__CSection) bV.InnerData!,
+			aK => new TerminatedStringField(aK),
+			aV => new DreadTypePrefixedField(aV)
+		);
+	}
+
 	public override string DisplayName => "BMSSV";
 
 	/// <summary>
 	/// A dictionary of all Blackboard sections present in the BMSSV file.
 	/// </summary>
-	public Dictionary<string, CBlackboard__CSection> Sections { get; private set; } = [];
+	public IDictionary<string, CBlackboard__CSection> Sections => this.sectionsAdapter;
 
-	private int Unknown1 { get; set; }
-	private int Unknown2 { get; set; }
-	private int Unknown3 { get; set; }
+	private short Unknown1                { get; set; }
+	private short Unknown2                { get; set; }
+	private int   RootPlaceholder         { get; set; }
+	private int   DeltaValues_Placeholder { get; set; }
 
-	/// <summary>
-	/// A proxy property over the publically exposed <see cref="Sections"/> property.
-	/// When writing data, a copy of Sections is created and the data types are converted as appropriate.
-	/// When reading data, the reverse is performed and stored in Sections.
-	/// </summary>
-	private Dictionary<TerminatedStringField, DreadTypePrefixedField> RawSections
-	{
-		get => Sections.ToDictionary(pair => new TerminatedStringField(pair.Key), pair => new DreadTypePrefixedField(pair.Value));
-		set => Sections = value.ToDictionary(pair => pair.Key.Value, pair => (CBlackboard__CSection) pair.Value.InnerData!);
-	}
+	private Dictionary<TerminatedStringField, DreadTypePrefixedField> RawSections { get; set; } = [];
 
-	protected override void Describe(DataStructureBuilder<Bmssv> builder)
+	public static void Describe(DataStructureBuilder<Bmssv> builder)
 		// TODO: Support CBlackboard too
-		=> builder.CrcLiteral("CGameBlackboard")
+		=> builder.CrcConstant("CGameBlackboard")
 			.Property(m => m.Unknown1)
-			.CrcLiteral("Root")
 			.Property(m => m.Unknown2)
-			.CrcLiteral("hashSections")
+			.CrcConstant("Root")
+			.Property(m => m.RootPlaceholder)
+			.CrcConstant("hashSections")
 			.Dictionary(m => m.RawSections)
-			.CrcLiteral("dctDeltaValues")
-			.Property(m => m.Unknown3);
+			.CrcConstant("dctDeltaValues")
+			.Property(m => m.DeltaValues_Placeholder);
 }

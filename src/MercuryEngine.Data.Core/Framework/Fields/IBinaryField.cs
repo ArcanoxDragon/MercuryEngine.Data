@@ -40,7 +40,7 @@ public interface IBinaryField
 /// <summary>
 /// Represents a <see cref="IBinaryField"/> that will load or store a value of type <typeparamref name="T"/> in a binary format.
 /// </summary>
-public interface IBinaryField<T> : IBinaryField
+public interface IBinaryField<T> : IResettableField
 where T : notnull
 {
 	/// <summary>

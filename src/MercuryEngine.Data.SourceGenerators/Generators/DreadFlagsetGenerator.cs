@@ -12,7 +12,7 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 	protected override IEnumerable<string> GenerateSourceLines(DreadFlagsetType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		var typeName = dreadType.TypeName;
-		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName)!;
+		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName);
 		var enumTypeName = dreadType.Enum;
 
 		if (enumTypeName is null)

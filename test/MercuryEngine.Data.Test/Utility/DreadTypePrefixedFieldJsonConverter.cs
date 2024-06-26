@@ -10,18 +10,7 @@ internal class DreadTypePrefixedFieldJsonConverter : JsonConverter<DreadTypePref
 	public override bool HandleNull => true;
 
 	public override DreadTypePrefixedField Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-	{
-		throw new NotSupportedException();
-		/*if (reader.TokenType == JsonTokenType.Null)
-			return new DreadTypePrefixedField();
-
-		var value = JsonSerializer.Deserialize(ref reader, typeof(DataWithDreadType), options);
-
-		if (value is not DataWithDreadType data)
-			return new DreadTypePrefixedField();
-
-		return new DreadTypePrefixedField(data);*/
-	}
+		=> throw new NotSupportedException();
 
 	public override void Write(Utf8JsonWriter writer, DreadTypePrefixedField value, JsonSerializerOptions options)
 	{

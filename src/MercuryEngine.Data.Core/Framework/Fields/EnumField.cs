@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 using Task = System.Threading.Tasks.Task;
@@ -23,6 +24,7 @@ where T : struct, Enum
 		this.writeFunction = CreateWriteFunction();
 	}
 
+	[JsonIgnore]
 	public override uint Size => (uint) Unsafe.SizeOf<T>();
 
 	public override void Read(BinaryReader reader)

@@ -5,12 +5,14 @@ using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.DreadTypes.Custom;
 
-public class minimapGrid_TMinimapVisMap : DataStructure<minimapGrid_TMinimapVisMap>, ITypedDreadField
+public class minimapGrid_TMinimapVisMap : DataStructure<minimapGrid_TMinimapVisMap>,
+										  IDescribeDataStructure<minimapGrid_TMinimapVisMap>,
+										  ITypedDreadField
 {
 	public string TypeName => "minimapGrid::TMinimapVisMap";
 
 	public Dictionary<Int32Field, TerminatedStringField> Entries { get; } = [];
 
-	protected override void Describe(DataStructureBuilder<minimapGrid_TMinimapVisMap> builder)
+	public static void Describe(DataStructureBuilder<minimapGrid_TMinimapVisMap> builder)
 		=> builder.Dictionary(m => m.Entries);
 }

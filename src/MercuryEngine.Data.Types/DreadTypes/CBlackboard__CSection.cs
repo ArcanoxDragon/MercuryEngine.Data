@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Types.Attributes;
 using MercuryEngine.Data.Types.Fields;
@@ -22,14 +23,23 @@ public partial class CBlackboard__CSection
 		{ DreadPrimitiveKind.String, "base::global::TRntString256" },
 	};
 
-	public Dictionary<string, DreadTypePrefixedField> Props { get; private set; } = [];
+	private readonly DictionaryAdapter<TerminatedStringField, DreadTypePrefixedField, string, DreadTypePrefixedField> sectionsAdapter;
+
+	public CBlackboard__CSection()
+	{
+		this.sectionsAdapter = new DictionaryAdapter<TerminatedStringField, DreadTypePrefixedField, string, DreadTypePrefixedField>(
+			RawProps,
+			bK => bK.Value,
+			bV => bV,
+			aK => new TerminatedStringField(aK),
+			aV => aV
+		);
+	}
+
+	public IDictionary<string, DreadTypePrefixedField> Props => this.sectionsAdapter;
 
 	[StructProperty("dctProps")]
-	private Dictionary<TerminatedStringField, DreadTypePrefixedField> RawProps
-	{
-		get => Props.ToDictionary(pair => new TerminatedStringField(pair.Key), pair => pair.Value);
-		set => Props = value.ToDictionary(pair => pair.Key.Value, pair => pair.Value);
-	}
+	private Dictionary<TerminatedStringField, DreadTypePrefixedField> RawProps { get; set; } = [];
 
 	#region Property Getters
 

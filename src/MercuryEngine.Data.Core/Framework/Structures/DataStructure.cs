@@ -1,8 +1,8 @@
-﻿using JetBrains.Annotations;
+﻿using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Mapping;
-using MercuryEngine.Data.Core.Framework.Structures.Fields;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -10,22 +10,30 @@ namespace MercuryEngine.Data.Core.Framework.Structures;
 
 [PublicAPI]
 public abstract class DataStructure<T> : IDataStructure, IBinaryField<T>, IDataMapperAware
-where T : DataStructure<T>
+where T : DataStructure<T>, IDescribeDataStructure<T>
 {
-	private readonly Lazy<List<IDataStructureField<T>>> fieldsLazy;
-
 	protected DataStructure()
 	{
-		this.fieldsLazy = new Lazy<List<IDataStructureField<T>>>(BuildFields);
+		var builder = new Builder((T) this);
+
+		T.Describe(builder);
+
+		Fields = builder.Build();
 	}
 
-	public uint Size => (uint) Fields.Sum(f => f.GetSize((T) this));
+	[JsonIgnore]
+	public uint Size => (uint) Fields.Sum(f => f.Size);
 
+	[JsonIgnore]
 	public DataMapper? DataMapper { get; set; }
 
-	protected IEnumerable<IDataStructureField<T>> Fields => this.fieldsLazy.Value;
+	protected IEnumerable<DataStructureField> Fields { get; }
 
-	protected abstract void Describe(DataStructureBuilder<T> builder);
+	public void Reset()
+	{
+		foreach (var field in Fields)
+			field.Reset();
+	}
 
 	#region I/O
 
@@ -35,11 +43,11 @@ where T : DataStructure<T>
 		{
 			try
 			{
-				field.Read((T) this, reader);
+				field.Read(reader);
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while reading field {i} ({field.FriendlyDescription}) of {GetType().Name} (position: {reader.BaseStream.Position})", ex);
+				throw new IOException($"An exception occurred while reading field {i} ({field.Description}) of {GetType().Name} (position: {reader.BaseStream.Position})", ex);
 			}
 		}
 	}
@@ -52,12 +60,12 @@ where T : DataStructure<T>
 		{
 			try
 			{
-				DataMapper.PushRange($"field: {field.FriendlyDescription}", writer);
-				field.WriteWithDataMapper((T) this, writer, DataMapper);
+				DataMapper.PushRange($"field: {field.Description}", writer);
+				field.WriteWithDataMapper(writer, DataMapper);
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while writing field {i} ({field.FriendlyDescription}) of {GetType().Name}", ex);
+				throw new IOException($"An exception occurred while writing field {i} ({field.Description}) of {GetType().Name}", ex);
 			}
 			finally
 			{
@@ -74,11 +82,11 @@ where T : DataStructure<T>
 		{
 			try
 			{
-				await field.ReadAsync((T) this, reader, cancellationToken).ConfigureAwait(false);
+				await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while reading field {i} ({field.FriendlyDescription}) of {GetType().Name} (position: {reader.BaseStream.Position})", ex);
+				throw new IOException($"An exception occurred while reading field {i} ({field.Description}) of {GetType().Name} (position: {reader.BaseStream.Position})", ex);
 			}
 		}
 	}
@@ -91,12 +99,12 @@ where T : DataStructure<T>
 		{
 			try
 			{
-				await DataMapper.PushRangeAsync($"field: {field.FriendlyDescription}", writer, cancellationToken).ConfigureAwait(false);
-				await field.WriteWithDataMapperAsync((T) this, writer, DataMapper, cancellationToken).ConfigureAwait(false);
+				await DataMapper.PushRangeAsync($"field: {field.Description}", writer, cancellationToken).ConfigureAwait(false);
+				await field.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while writing field {i} ({field.FriendlyDescription}) of {GetType().Name}", ex);
+				throw new IOException($"An exception occurred while writing field {i} ({field.Description}) of {GetType().Name}", ex);
 			}
 			finally
 			{
@@ -108,15 +116,6 @@ where T : DataStructure<T>
 	}
 
 	#endregion
-
-	private List<IDataStructureField<T>> BuildFields()
-	{
-		var builder = new Builder();
-
-		Describe(builder);
-
-		return builder.Build();
-	}
 
 	#region IBinaryValue<T> Explicit Implementation
 
@@ -130,9 +129,9 @@ where T : DataStructure<T>
 
 	#region Builder Implementation
 
-	private sealed class Builder : DataStructureBuilder<T>
+	private sealed class Builder(T structure) : DataStructureBuilder<T>(structure)
 	{
-		public List<IDataStructureField<T>> Build() => Fields;
+		public List<DataStructureField> Build() => Fields;
 	}
 
 	#endregion

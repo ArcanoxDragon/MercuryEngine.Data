@@ -12,7 +12,7 @@ public class DreadEnumGenerator : BaseDreadGenerator<DreadEnumType>
 	protected override IEnumerable<string> GenerateSourceLines(DreadEnumType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		var typeName = dreadType.TypeName;
-		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName)!;
+		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName);
 
 		yield return $"[DreadEnum(\"{typeName}\")]";
 		yield return $"public enum {typeEnumName} : uint";

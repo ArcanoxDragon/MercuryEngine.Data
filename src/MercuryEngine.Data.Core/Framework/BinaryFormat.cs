@@ -7,9 +7,11 @@ namespace MercuryEngine.Data.Core.Framework;
 
 [PublicAPI]
 public abstract class BinaryFormat<T> : DataStructure<T>
-where T : BinaryFormat<T>, new()
+where T : BinaryFormat<T>, IDescribeDataStructure<T>, new()
 {
 	#region Static Factory
+
+	// TODO: Static extensions in C# 13
 
 	/// <summary>
 	/// Returns a new instance of <typeparamref name="T"/> that has been loaded from the provided <paramref name="stream"/>.

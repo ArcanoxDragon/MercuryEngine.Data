@@ -1,5 +1,6 @@
 ﻿using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Definitions.DreadTypes;
+using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.DreadFieldFactories;

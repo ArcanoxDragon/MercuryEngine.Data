@@ -14,10 +14,24 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 
 	public DreadTypePrefixedField(ITypedDreadField initialValue)
 	{
-		InnerData = initialValue;
+		TypedField = initialValue;
 	}
 
-	public ITypedDreadField? InnerData { get; set; }
+	public IBinaryField? InnerData
+	{
+		get => TypedField switch {
+			TypedFieldWrapper wrapper => wrapper.WrappedField,
+			_                         => TypedField,
+		};
+		set => TypedField = value switch {
+			ITypedDreadField typedField => typedField,
+			null                        => null,
+
+			_ => throw new NotSupportedException($"Only {nameof(ITypedDreadField)} instances may be assigned to {nameof(InnerData)}"),
+		};
+	}
+
+	internal ITypedDreadField? TypedField { get; set; }
 
 	private DataMapper? DataMapper { get; set; }
 
@@ -27,8 +41,8 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 		set => DataMapper = value;
 	}
 
-	public ulong InnerTypeId => InnerData?.TypeId ?? 0L;
-	public uint  Size        => InnerData?.Size ?? 0;
+	public ulong InnerTypeId => TypedField?.TypeId ?? 0L;
+	public uint  Size        => TypedField?.Size ?? 0;
 
 	public void Read(BinaryReader reader)
 	{
@@ -37,19 +51,19 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 		if (typeId is NullTypeId)
 		{
 			// Read NULL; clear out inner value and return
-			InnerData = null;
+			TypedField = null;
 			return;
 		}
 
-		InnerData = DreadTypeRegistry.GetTypedField(typeId);
-		InnerData.Read(reader);
+		TypedField = DreadTypeRegistry.GetTypedField(typeId);
+		TypedField.Read(reader);
 	}
 
 	public void Write(BinaryWriter writer)
 	{
 		try
 		{
-			if (InnerData is null)
+			if (TypedField is null)
 			{
 				DataMapper.PushRange("type-prefixed: NULL", writer);
 
@@ -58,9 +72,9 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 				return;
 			}
 
-			DataMapper.PushRange($"type-prefixed: {InnerData.TypeName}", writer);
-			writer.Write(InnerData.TypeId);
-			InnerData.WriteWithDataMapper(writer, DataMapper);
+			DataMapper.PushRange($"type-prefixed: {TypedField.TypeName}", writer);
+			writer.Write(TypedField.TypeId);
+			TypedField.WriteWithDataMapper(writer, DataMapper);
 		}
 		finally
 		{
@@ -75,19 +89,19 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 		if (typeId is NullTypeId)
 		{
 			// Read NULL; clear out inner value and return
-			InnerData = null;
+			TypedField = null;
 			return;
 		}
 
-		InnerData = DreadTypeRegistry.GetTypedField(typeId);
-		await InnerData.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+		TypedField = DreadTypeRegistry.GetTypedField(typeId);
+		await TypedField.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 	}
 
 	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
 	{
 		try
 		{
-			if (InnerData is null)
+			if (TypedField is null)
 			{
 				await DataMapper.PushRangeAsync("type-prefixed: NULL", writer, cancellationToken).ConfigureAwait(false);
 
@@ -96,9 +110,9 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 				return;
 			}
 
-			await DataMapper.PushRangeAsync($"type-prefixed: {InnerData.TypeName}", writer, cancellationToken).ConfigureAwait(false);
-			await writer.WriteAsync(InnerData.TypeId, cancellationToken).ConfigureAwait(false);
-			await InnerData.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
+			await DataMapper.PushRangeAsync($"type-prefixed: {TypedField.TypeName}", writer, cancellationToken).ConfigureAwait(false);
+			await writer.WriteAsync(TypedField.TypeId, cancellationToken).ConfigureAwait(false);
+			await TypedField.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
 		}
 		finally
 		{

@@ -1,10 +1,10 @@
-﻿using JetBrains.Annotations;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace MercuryEngine.Data.SourceGenerators.Utility;
 
 internal static class TypeNameUtility
 {
-	[ContractAnnotation("notnull => notnull")]
+	[return: NotNullIfNotNull(nameof(typeName))]
 	public static string? SanitizeTypeName(string? typeName)
 		=> typeName?.Replace("::", "__").Replace("<", "_").Replace(",", "_").Replace(">", "");
 

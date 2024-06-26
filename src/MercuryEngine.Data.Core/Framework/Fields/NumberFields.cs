@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Fields;
@@ -6,6 +7,7 @@ namespace MercuryEngine.Data.Core.Framework.Fields;
 public abstract class NumberField<T>(T value) : BaseBinaryField<T>(value)
 where T : unmanaged
 {
+	[JsonIgnore]
 	public override uint Size => (uint) Unsafe.SizeOf<T>();
 }
 
