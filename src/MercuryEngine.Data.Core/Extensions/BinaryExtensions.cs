@@ -24,7 +24,7 @@ public static class BinaryExtensions
 		foreach (var b in data)
 		{
 			if (!first)
-				builder.Append(" ");
+				builder.Append(' ');
 
 			builder.Append(b.ToString("x2"));
 			first = false;

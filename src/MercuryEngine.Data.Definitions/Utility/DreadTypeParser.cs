@@ -1,8 +1,11 @@
 ﻿using System.Text;
 using System.Text.Json;
 using MercuryEngine.Data.Definitions.DreadTypes;
-using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.Definitions.Json;
+
+#if !NET8_0_OR_GREATER
+using MercuryEngine.Data.Definitions.Extensions;
+#endif
 
 namespace MercuryEngine.Data.Definitions.Utility;
 

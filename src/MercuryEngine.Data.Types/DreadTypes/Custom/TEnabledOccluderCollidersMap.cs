@@ -1,5 +1,4 @@
-﻿using MercuryEngine.Data.Core.Framework.Fields;
-using MercuryEngine.Data.Core.Framework.Structures;
+﻿using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.Fields;
 
@@ -16,8 +15,8 @@ public class TEnabledOccluderCollidersMap : DataStructure<TEnabledOccluderCollid
 
 	public sealed class Entry : DataStructure<Entry>
 	{
-		public string            Key        { get; set; } = string.Empty;
-		public List<UInt64Field> EnabledIds { get; }      = [];
+		public string      Key        { get; set; } = string.Empty;
+		public List<StrId> EnabledIds { get; }      = [];
 
 		protected override void Describe(DataStructureBuilder<Entry> builder)
 			=> builder.Property(m => m.Key)

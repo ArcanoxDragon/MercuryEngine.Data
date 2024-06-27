@@ -25,6 +25,7 @@ internal static class JsonUtility
 			new NumberFieldJsonConverter<FloatField, float>(),
 			new NumberFieldJsonConverter<DoubleField, double>(),
 			new NumberFieldJsonConverter<DecimalField, decimal>(),
+			new StrIdJsonConverter(),
 			new TerminatedStringFieldJsonConverter(),
 			new DreadTypePrefixedFieldJsonConverter(),
 		},
