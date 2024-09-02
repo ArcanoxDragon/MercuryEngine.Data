@@ -18,14 +18,14 @@ public class DreadDictionaryFieldFactory : BaseDreadFieldFactory<DreadDictionary
 		if (valueTypeName is null)
 			throw new InvalidOperationException($"Dictionary type \"{typeName}\" is missing a value type");
 
-		if (!DreadTypeRegistry.TryFindType(keyTypeName, out var keyType))
+		if (!DreadTypeLibrary.TryFindType(keyTypeName, out var keyType))
 			throw new InvalidOperationException($"Dictionary type \"{typeName}\" has unknown key type \"{keyTypeName}\"");
-		if (!DreadTypeRegistry.TryFindType(valueTypeName, out var valueType))
+		if (!DreadTypeLibrary.TryFindType(valueTypeName, out var valueType))
 			throw new InvalidOperationException($"Dictionary type \"{typeName}\" has unknown value type \"{valueTypeName}\"");
 
 		return new DictionaryField<IBinaryField, IBinaryField>(
-			() => DreadTypeRegistry.CreateFieldForType(keyType),
-			() => DreadTypeRegistry.CreateFieldForType(valueType)
+			() => DreadTypeLibrary.CreateFieldForType(keyType),
+			() => DreadTypeLibrary.CreateFieldForType(valueType)
 		);
 	}
 }

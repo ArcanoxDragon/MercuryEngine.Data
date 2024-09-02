@@ -100,7 +100,7 @@ public class DreadTypesGenerator : ISourceGenerator
 		var sourceLines = string.Join("\n", GenerateRegistryPartialSourceLines(generationContext));
 		var sourceText = SourceText.From(sourceLines, Encoding.UTF8);
 
-		executionContext.AddSource("DreadTypeRegistry.g.cs", sourceText);
+		executionContext.AddSource("DreadTypeLibrary.g.cs", sourceText);
 	}
 
 	private IEnumerable<string> GenerateRegistryPartialSourceLines(GenerationContext context)
@@ -112,9 +112,9 @@ public class DreadTypesGenerator : ISourceGenerator
 
 		yield return $"using {Constants.DreadTypesNamespace};";
 
-		yield return $"namespace {Constants.DreadTypeRegistryNamespace};";
+		yield return $"namespace {Constants.DreadTypeLibraryNamespace};";
 
-		yield return $"public static partial class {Constants.DreadTypeRegistryClassName}";
+		yield return $"public static partial class {Constants.DreadTypeLibraryClassName}";
 		yield return "{";
 
 		yield return "\tstatic partial void RegisterGeneratedTypes()";

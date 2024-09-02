@@ -92,7 +92,7 @@ public partial class CBlackboard__CSection
 		// See if the property already exists in the blackboard with a type implementing the same primitive kind as is being stored
 		if (Props.TryGetValue(property, out var existingValue))
 		{
-			var candidateType = DreadTypeRegistry.FindType(existingValue.InnerTypeId);
+			var candidateType = DreadTypeLibrary.FindType(existingValue.InnerTypeId);
 
 			if (candidateType is DreadPrimitiveType primitive && primitive.PrimitiveKind == primitiveKind)
 				primitiveType = candidateType;
@@ -102,9 +102,9 @@ public partial class CBlackboard__CSection
 		if (primitiveType == null)
 		{
 			if (BlackboardPrimitiveTypes.TryGetValue(primitiveKind, out string? typeName))
-				primitiveType = DreadTypeRegistry.FindType(typeName);
+				primitiveType = DreadTypeLibrary.FindType(typeName);
 			else
-				primitiveType = DreadTypeRegistry.FindType(type => type is DreadPrimitiveType primitive && primitive.PrimitiveKind == primitiveKind);
+				primitiveType = DreadTypeLibrary.FindType(type => type is DreadPrimitiveType primitive && primitive.PrimitiveKind == primitiveKind);
 		}
 
 		if (primitiveType is null)

@@ -7,8 +7,8 @@ internal static class Constants
 	public const string AttributesNamespace              = "MercuryEngine.Data.Types.Attributes";
 	public const string StructPropertyAttributeClassName = $"{AttributesNamespace}.StructPropertyAttribute";
 	public const string DreadTypesNamespace              = "MercuryEngine.Data.Types.DreadTypes";
-	public const string DreadTypeRegistryNamespace       = "MercuryEngine.Data.Types";
-	public const string DreadTypeRegistryClassName       = "DreadTypeRegistry";
+	public const string DreadTypeLibraryNamespace        = "MercuryEngine.Data.Types";
+	public const string DreadTypeLibraryClassName        = "DreadTypeLibrary";
 
 	public static class Diagnostics
 	{

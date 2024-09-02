@@ -10,18 +10,20 @@ using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types;
 
-public static partial class DreadTypeRegistry
+public static partial class DreadTypeLibrary
 {
-	private static readonly Dictionary<Type, IDreadFieldFactory> FactoryMap = [];
-	private static readonly Dictionary<ulong, string>            TypeIdMap  = [];
-	private static readonly Dictionary<string, BaseDreadType>    DreadTypeDefinitions;
+	private static readonly Dictionary<Type, IDreadFieldFactory> FactoryMap           = [];
+	private static readonly Dictionary<ulong, BaseDreadType>     DreadTypeDefinitions = [];
 
-	static DreadTypeRegistry()
+	static DreadTypeLibrary()
 	{
-		DreadTypeDefinitions = DreadTypeParser.ParseDreadTypes();
+		var typesByName = DreadTypeParser.ParseDreadTypes();
 
-		foreach (var typeName in DreadTypeDefinitions.Keys)
-			TypeIdMap[typeName.GetCrc64()] = typeName;
+		foreach (var (typeName, type) in typesByName)
+		{
+			KnownStrings.Record(typeName);
+			DreadTypeDefinitions[typeName.GetCrc64()] = type;
+		}
 
 		RegisterFactory<DreadConcreteType>(DreadConcreteFieldFactory.Instance);
 		RegisterFactory<DreadDictionaryType>(DreadDictionaryFieldFactory.Instance);
@@ -60,6 +62,9 @@ public static partial class DreadTypeRegistry
 	#endregion
 
 	#region Factory Access
+
+	public static ITypedDreadField GetTypedField(string typeName)
+		=> GetTypedField(typeName.GetCrc64());
 
 	public static ITypedDreadField GetTypedField(ulong typeId)
 	{
@@ -120,8 +125,8 @@ public static partial class DreadTypeRegistry
 	public static void RegisterConcreteType<T>(string typeName, Func<T> concreteTypeFactory)
 	where T : IBinaryField
 	{
-		TypeIdMap.TryAdd(typeName.GetCrc64(), typeName);
-		DreadTypeDefinitions[typeName] = new DreadConcreteType(typeName, () => concreteTypeFactory());
+		KnownStrings.Record(typeName);
+		DreadTypeDefinitions[typeName.GetCrc64()] = new DreadConcreteType(typeName, () => concreteTypeFactory());
 	}
 
 	#endregion
@@ -129,7 +134,7 @@ public static partial class DreadTypeRegistry
 	#region Type Lookup
 
 	public static bool TryFindType(string name, [MaybeNullWhen(false)] out BaseDreadType type)
-		=> DreadTypeDefinitions.TryGetValue(name, out type);
+		=> TryFindType(name.GetCrc64(), out type);
 
 	public static BaseDreadType FindType(string name)
 		=> TryFindType(name, out var type)
@@ -137,15 +142,7 @@ public static partial class DreadTypeRegistry
 			: throw new KeyNotFoundException($"The type \"{name}\" did not refer to a known type");
 
 	public static bool TryFindType(ulong typeId, [MaybeNullWhen(false)] out BaseDreadType type)
-	{
-		if (!TypeIdMap.TryGetValue(typeId, out var typeName))
-		{
-			type = default;
-			return false;
-		}
-
-		return TryFindType(typeName, out type);
-	}
+		=> DreadTypeDefinitions.TryGetValue(typeId, out type);
 
 	public static BaseDreadType FindType(ulong typeId)
 	{
@@ -159,6 +156,25 @@ public static partial class DreadTypeRegistry
 
 	public static BaseDreadType? FindType(Func<BaseDreadType, bool> typePredicate)
 		=> DreadTypeDefinitions.Values.FirstOrDefault(typePredicate);
+
+	#endregion
+
+	#region Inheritance Querying
+
+	public static string? GetParent(string typeName)
+	{
+		var type = FindType(typeName);
+
+		return type is DreadStructType @struct ? @struct.Parent : null;
+	}
+
+	public static bool IsChildOf(string typeName, string parentName)
+	{
+		if (typeName == parentName)
+			return true;
+
+		return GetParent(typeName) is { } directParentName && IsChildOf(directParentName, parentName);
+	}
 
 	#endregion
 }

@@ -55,7 +55,7 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 			return;
 		}
 
-		TypedField = DreadTypeRegistry.GetTypedField(typeId);
+		TypedField = DreadTypeLibrary.GetTypedField(typeId);
 		TypedField.Read(reader);
 	}
 
@@ -93,7 +93,7 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 			return;
 		}
 
-		TypedField = DreadTypeRegistry.GetTypedField(typeId);
+		TypedField = DreadTypeLibrary.GetTypedField(typeId);
 		await TypedField.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 	}
 

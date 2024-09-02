@@ -15,9 +15,9 @@ public class DreadFlagsetFieldFactory : BaseDreadFieldFactory<DreadFlagsetType, 
 		if (enumTypeName is null)
 			throw new InvalidOperationException($"Flagset type \"{typeName}\" is missing an enum name");
 
-		if (!DreadTypeRegistry.TryFindType(enumTypeName, out var enumType))
+		if (!DreadTypeLibrary.TryFindType(enumTypeName, out var enumType))
 			throw new InvalidOperationException($"Flagset type \"{typeName}\" has unknown enum type \"{enumTypeName}\"");
 
-		return DreadTypeRegistry.CreateFieldForType(enumType);
+		return DreadTypeLibrary.CreateFieldForType(enumType);
 	}
 }

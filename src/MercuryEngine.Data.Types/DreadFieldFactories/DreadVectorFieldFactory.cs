@@ -15,9 +15,9 @@ public class DreadVectorFieldFactory : BaseDreadFieldFactory<DreadVectorType, Ar
 		if (valueTypeName is null)
 			throw new InvalidOperationException($"Vector type \"{typeName}\" is missing a value type");
 
-		if (!DreadTypeRegistry.TryFindType(valueTypeName, out var valueType))
+		if (!DreadTypeLibrary.TryFindType(valueTypeName, out var valueType))
 			throw new InvalidOperationException($"Vector type \"{typeName}\" has unknown value type \"{valueTypeName}\"");
 
-		return new ArrayField<IBinaryField>(() => DreadTypeRegistry.CreateFieldForType(valueType));
+		return new ArrayField<IBinaryField>(() => DreadTypeLibrary.CreateFieldForType(valueType));
 	}
 }

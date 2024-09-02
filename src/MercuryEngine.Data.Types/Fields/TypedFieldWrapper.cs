@@ -9,7 +9,7 @@ namespace MercuryEngine.Data.Types.Fields;
 internal class TypedFieldWrapper(string typeName, IBinaryField wrappedField) : ITypedDreadField, IDataMapperAware
 {
 	public TypedFieldWrapper(IDreadType dreadType)
-		: this(dreadType.TypeName, DreadTypeRegistry.CreateFieldForType(dreadType)) { }
+		: this(dreadType.TypeName, DreadTypeLibrary.CreateFieldForType(dreadType)) { }
 
 	public string       TypeName     { get; } = typeName;
 	public IBinaryField WrappedField { get; } = wrappedField;

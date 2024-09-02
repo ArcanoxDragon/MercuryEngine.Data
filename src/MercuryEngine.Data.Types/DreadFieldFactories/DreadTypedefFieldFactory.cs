@@ -15,9 +15,9 @@ public class DreadTypedefFieldFactory : BaseDreadFieldFactory<DreadTypedefType, 
 		if (aliasTypeName is null)
 			throw new InvalidOperationException($"Typedef type \"{typeName}\" is missing an alias");
 
-		if (!DreadTypeRegistry.TryFindType(aliasTypeName, out var aliasedType))
+		if (!DreadTypeLibrary.TryFindType(aliasTypeName, out var aliasedType))
 			throw new InvalidOperationException($"Typedef type \"{typeName}\" refers to unknown type \"{aliasTypeName}\"");
 
-		return DreadTypeRegistry.CreateFieldForType(aliasedType);
+		return DreadTypeLibrary.CreateFieldForType(aliasedType);
 	}
 }
