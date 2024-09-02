@@ -16,6 +16,8 @@ internal static class JsonUtility
 			new ArrayFieldJsonConverter(),
 			new DictionaryFieldJsonConverter(),
 			new NumberFieldJsonConverter<BooleanField, bool>(),
+			new NumberFieldJsonConverter<ByteField, byte>(),
+			new NumberFieldJsonConverter<CharField, char>(),
 			new NumberFieldJsonConverter<Int16Field, short>(),
 			new NumberFieldJsonConverter<UInt16Field, ushort>(),
 			new NumberFieldJsonConverter<Int32Field, int>(),

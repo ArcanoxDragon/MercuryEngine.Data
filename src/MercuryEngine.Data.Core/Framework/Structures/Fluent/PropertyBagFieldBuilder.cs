@@ -43,6 +43,18 @@ where T : IDataStructure
 	public PropertyBagFieldBuilder<T> Property(string propertyKey, Expression<Func<T, bool?>> propertyExpression)
 		=> NullableProperty(propertyKey, propertyExpression, new BooleanField());
 
+	public PropertyBagFieldBuilder<T> Property(string propertyKey, Expression<Func<T, byte>> propertyExpression)
+		=> Property(propertyKey, propertyExpression, new ByteField());
+
+	public PropertyBagFieldBuilder<T> Property(string propertyKey, Expression<Func<T, byte?>> propertyExpression)
+		=> NullableProperty(propertyKey, propertyExpression, new ByteField());
+
+	public PropertyBagFieldBuilder<T> Property(string propertyKey, Expression<Func<T, char>> propertyExpression)
+		=> Property(propertyKey, propertyExpression, new CharField());
+
+	public PropertyBagFieldBuilder<T> Property(string propertyKey, Expression<Func<T, char?>> propertyExpression)
+		=> NullableProperty(propertyKey, propertyExpression, new CharField());
+
 	public PropertyBagFieldBuilder<T> Property(string propertyKey, Expression<Func<T, short>> propertyExpression)
 		=> Property(propertyKey, propertyExpression, new Int16Field());
 

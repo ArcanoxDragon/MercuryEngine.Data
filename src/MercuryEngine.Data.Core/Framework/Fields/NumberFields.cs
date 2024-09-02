@@ -28,6 +28,40 @@ public class BooleanField(bool value) : NumberField<bool>(value)
 		=> writer.WriteAsync(Value, cancellationToken);
 }
 
+public class ByteField(byte value) : NumberField<byte>(value)
+{
+	public ByteField() : this(default) { }
+
+	public override void Read(BinaryReader reader)
+		=> Value = reader.ReadByte();
+
+	public override void Write(BinaryWriter writer)
+		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadByteAsync(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
+}
+
+public class CharField(char value) : NumberField<char>(value)
+{
+	public CharField() : this(default) { }
+
+	public override void Read(BinaryReader reader)
+		=> Value = reader.ReadChar();
+
+	public override void Write(BinaryWriter writer)
+		=> writer.Write(Value);
+
+	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> Value = await reader.ReadCharAsync(cancellationToken).ConfigureAwait(false);
+
+	public override Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		=> writer.WriteAsync(Value, cancellationToken);
+}
+
 public class Int16Field(short value) : NumberField<short>(value)
 {
 	public Int16Field() : this(default) { }

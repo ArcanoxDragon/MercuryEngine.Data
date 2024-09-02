@@ -42,6 +42,12 @@ where T : IDataStructure
 	public DataStructureBuilder<T> Constant(bool value, string? description = null, bool assertValueOnRead = true)
 		=> AddConstantField(new BooleanField(value), description, assertValueOnRead);
 
+	public DataStructureBuilder<T> Constant(byte value, string? description = null, bool assertValueOnRead = true)
+		=> AddConstantField(new ByteField(value), description, assertValueOnRead);
+
+	public DataStructureBuilder<T> Constant(char value, string? description = null, bool assertValueOnRead = true)
+		=> AddConstantField(new CharField(value), description, assertValueOnRead);
+
 	public DataStructureBuilder<T> Constant(short value, string? description = null, bool assertValueOnRead = true)
 		=> AddConstantField(new Int16Field(value), description, assertValueOnRead);
 
@@ -96,6 +102,21 @@ where T : IDataStructure
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, bool>> propertyExpression)
 		=> Property(propertyExpression, new BooleanField());
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, bool?>> propertyExpression)
+		=> NullableProperty(propertyExpression, new BooleanField());
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, byte>> propertyExpression)
+		=> Property(propertyExpression, new ByteField());
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, byte?>> propertyExpression)
+		=> NullableProperty(propertyExpression, new ByteField());
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, char>> propertyExpression)
+		=> Property(propertyExpression, new CharField());
+
+	public DataStructureBuilder<T> Property(Expression<Func<T, char?>> propertyExpression)
+		=> NullableProperty(propertyExpression, new CharField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, short>> propertyExpression)
 		=> Property(propertyExpression, new Int16Field());
