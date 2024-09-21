@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -42,7 +43,12 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 	}
 
 	public ulong InnerTypeId => TypedField?.TypeId ?? 0L;
-	public uint  Size        => TypedField?.Size ?? 0;
+
+	[JsonIgnore]
+	public uint Size => TypedField?.Size ?? 0;
+
+	[JsonIgnore]
+	public bool HasMeaningfulData => InnerData is { HasMeaningfulData: true };
 
 	public void Read(BinaryReader reader)
 	{

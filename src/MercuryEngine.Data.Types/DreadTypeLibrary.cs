@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Utility;
 using MercuryEngine.Data.Types.DreadFieldFactories;
@@ -45,7 +46,7 @@ public static partial class DreadTypeLibrary
 		RegisterConcreteType<CMinimapManager_TCustomMarkerDataMap>();
 		RegisterConcreteType<CMinimapManager_TGlobalMapIcons>();
 		RegisterConcreteType<GUI_CMissionLog_TMissionLogEntries>();
-		RegisterConcreteType("base::global::CRntVector<EMapTutoType>", BinaryArray.Create<EnumField<EMapTutoType>>);
+		RegisterConcreteType("base::global::CRntVector<EMapTutoType>", ArrayField.Create<EnumField<EMapTutoType>>);
 	}
 
 	static partial void RegisterGeneratedTypes();
@@ -114,24 +115,45 @@ public static partial class DreadTypeLibrary
 	where T : IBinaryField, new()
 		=> RegisterConcreteType(() => new T());
 
-	public static void RegisterConcreteType<T>(string typeName)
+	public static void RegisterConcreteType<T>(string typeName, string? parentTypeName = null)
 	where T : IBinaryField, new()
-		=> RegisterConcreteType(typeName, () => new T());
+		=> RegisterConcreteType(typeName, parentTypeName, () => new T());
 
 	public static void RegisterConcreteType<T>(Func<T> fieldFactory)
 	where T : IBinaryField
-		=> RegisterConcreteType(typeof(T).Name.Replace("_", "::"), fieldFactory);
+	{
+		string? parentTypeName = null;
+
+		if (typeof(T).BaseType is { } baseType)
+		{
+			var baseIsDataStructure = baseType.IsConstructedGenericType && baseType.GetGenericTypeDefinition() == typeof(DataStructure<>);
+
+			if (!baseIsDataStructure)
+				parentTypeName = DesanitizeTypeName(baseType.Name);
+		}
+
+		RegisterConcreteType(DesanitizeTypeName(typeof(T).Name), parentTypeName, fieldFactory);
+
+		static string DesanitizeTypeName(string typeName)
+			=> typeName.Replace("_", "::");
+	}
 
 	public static void RegisterConcreteType<T>(string typeName, Func<T> concreteTypeFactory)
 	where T : IBinaryField
+		=> RegisterConcreteType(typeName, null, concreteTypeFactory);
+
+	public static void RegisterConcreteType<T>(string typeName, string? parentTypeName, Func<T> concreteTypeFactory)
+	where T : IBinaryField
 	{
 		KnownStrings.Record(typeName);
-		DreadTypeDefinitions[typeName.GetCrc64()] = new DreadConcreteType(typeName, () => concreteTypeFactory());
+		DreadTypeDefinitions[typeName.GetCrc64()] = new DreadConcreteType(typeName, parentTypeName, () => concreteTypeFactory());
 	}
 
 	#endregion
 
 	#region Type Lookup
+
+	public static IReadOnlyCollection<BaseDreadType> AllTypes => DreadTypeDefinitions.Values;
 
 	public static bool TryFindType(string name, [MaybeNullWhen(false)] out BaseDreadType type)
 		=> TryFindType(name.GetCrc64(), out type);
@@ -165,7 +187,11 @@ public static partial class DreadTypeLibrary
 	{
 		var type = FindType(typeName);
 
-		return type is DreadStructType @struct ? @struct.Parent : null;
+		return type switch {
+			DreadStructType @struct    => @struct.Parent,
+			DreadConcreteType concrete => concrete.Parent,
+			_                          => null,
+		};
 	}
 
 	public static bool IsChildOf(string typeName, string parentName)

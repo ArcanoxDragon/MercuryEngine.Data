@@ -25,6 +25,17 @@ where TValue : IBinaryField
 		}
 	}
 
+	public bool HasMeaningfulData
+	{
+		get
+		{
+			if (property.GetValue(owner) is null)
+				return false;
+
+			return GetDictionaryFromProperty().Count > 0;
+		}
+	}
+
 	public IBinaryField Field => field;
 
 	public void Reset() => GetDictionaryFromProperty().Clear();

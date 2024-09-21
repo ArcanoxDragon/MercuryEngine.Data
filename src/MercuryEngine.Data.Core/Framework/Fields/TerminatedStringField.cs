@@ -7,6 +7,8 @@ namespace MercuryEngine.Data.Core.Framework.Fields;
 [PublicAPI]
 public class TerminatedStringField(string initialValue) : BaseBinaryField<string>(initialValue)
 {
+	public static readonly Encoding DefaultEncoding = new UTF8Encoding(false);
+
 	private const int BufferSize       = 2048;
 	private const int DefaultMaxLength = 1024 * 8; // 8 kB maximum by default
 
@@ -36,9 +38,9 @@ public class TerminatedStringField(string initialValue) : BaseBinaryField<string
 	public int MaxLength { get; set; } = DefaultMaxLength;
 
 	/// <summary>
-	/// The encoding used when reading and writing strings. Defaults to <see cref="Encoding.UTF8"/>.
+	/// The encoding used when reading and writing strings. Defaults to a version of <see cref="Encoding.UTF8"/> that does not write a BOM.
 	/// </summary>
-	public Encoding Encoding { get; set; } = Encoding.UTF8;
+	public Encoding Encoding { get; set; } = DefaultEncoding;
 
 	public override uint Size => (uint) Encoding.GetByteCount(Value) + 1;
 

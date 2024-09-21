@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -8,7 +9,7 @@ namespace MercuryEngine.Data.Core.Framework.Mapping;
 public static class DataMappingExtensions
 {
 	public static void PushRange(this DataMapper? dataMapper, string description, BinaryWriter writer)
-		=> dataMapper?.PushRange(description, (ulong) writer.BaseStream.Position);
+		=> dataMapper?.PushRange(description, (ulong) writer.BaseStream.GetRealPosition());
 
 	public static async Task PushRangeAsync(this DataMapper? dataMapper, string description, AsyncBinaryWriter writer, CancellationToken cancellationToken)
 	{
@@ -17,11 +18,11 @@ public static class DataMappingExtensions
 
 		Stream baseStream = await writer.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
 
-		dataMapper.PushRange(description, (ulong) baseStream.Position);
+		dataMapper.PushRange(description, (ulong) baseStream.GetRealPosition());
 	}
 
 	public static void PopRange(this DataMapper? dataMapper, BinaryWriter writer)
-		=> dataMapper?.PopRange((ulong) writer.BaseStream.Position);
+		=> dataMapper?.PopRange((ulong) writer.BaseStream.GetRealPosition());
 
 	public static async Task PopRangeAsync(this DataMapper? dataMapper, AsyncBinaryWriter writer, CancellationToken cancellationToken)
 	{
@@ -30,7 +31,7 @@ public static class DataMappingExtensions
 
 		Stream baseStream = await writer.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
 
-		dataMapper.PopRange((ulong) baseStream.Position);
+		dataMapper.PopRange((ulong) baseStream.GetRealPosition());
 	}
 
 	public static void WriteWithDataMapper(this IBinaryField field, BinaryWriter writer, DataMapper? dataMapper)

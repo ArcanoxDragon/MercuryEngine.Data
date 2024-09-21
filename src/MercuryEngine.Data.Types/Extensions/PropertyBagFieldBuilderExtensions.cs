@@ -10,12 +10,12 @@ namespace MercuryEngine.Data.Types.Extensions;
 internal static class PropertyBagFieldBuilderExtensions
 {
 	public static PropertyBagFieldBuilder<T> DreadEnum<T, TEnum>(this PropertyBagFieldBuilder<T> builder, string propertyKey, Expression<Func<T, TEnum>> propertyExpression)
-	where T : DataStructure<T>
+	where T : IDataStructure
 	where TEnum : struct, Enum
 		=> builder.Property(propertyKey, propertyExpression, new DreadEnum<TEnum>());
 
 	public static PropertyBagFieldBuilder<T> DreadEnum<T, TEnum>(this PropertyBagFieldBuilder<T> builder, string propertyKey, Expression<Func<T, TEnum?>> propertyExpression)
-	where T : DataStructure<T>
+	where T : IDataStructure
 	where TEnum : struct, Enum
 		=> builder.NullableProperty(propertyKey, propertyExpression, new DreadEnum<TEnum>());
 }

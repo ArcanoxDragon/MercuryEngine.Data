@@ -26,4 +26,5 @@ public class StrId(ulong value) : UInt64Field(value)
 	}
 
 	public static implicit operator StrId(string value) => new(value);
+	public static implicit operator StrId(ulong value) => new(value);
 }

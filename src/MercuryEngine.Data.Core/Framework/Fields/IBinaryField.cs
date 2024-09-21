@@ -17,6 +17,13 @@ public interface IBinaryField
 	uint Size { get; }
 
 	/// <summary>
+	/// Gets whether or not this field represents "meaningful" or "significant" data. For example, length-prefixed
+	/// fields may return <see langword="false"/> if the length they write is <c>0</c>, even though the field
+	/// will still write some bytes of data (the length).
+	/// </summary>
+	bool HasMeaningfulData { get; }
+
+	/// <summary>
 	/// Loads this <see cref="IBinaryField"/> from the provided <paramref name="reader"/>.
 	/// </summary>
 	void Read(BinaryReader reader);

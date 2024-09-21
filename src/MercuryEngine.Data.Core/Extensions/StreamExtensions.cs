@@ -1,4 +1,6 @@
-﻿namespace MercuryEngine.Data.Core.Extensions;
+﻿using MercuryEngine.Data.Core.Utility;
+
+namespace MercuryEngine.Data.Core.Extensions;
 
 internal static class StreamExtensions
 {
@@ -23,4 +25,10 @@ internal static class StreamExtensions
 
 		return buffer;
 	}
+
+	public static long GetRealPosition(this Stream stream)
+		=> stream switch {
+			SlicedStream slicedStream => slicedStream.BaseStream.GetRealPosition(),
+			_                         => stream.Position,
+		};
 }

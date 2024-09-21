@@ -10,7 +10,8 @@ public sealed class DataStructureField(IFieldHandler handler, string description
 	public IFieldHandler Handler     { get; } = handler;
 	public string        Description { get; } = description;
 
-	public uint Size => Handler.Size;
+	public uint Size              => Handler.Size;
+	public bool HasMeaningfulData => Handler.HasMeaningfulData;
 
 	public void Reset() => Handler.Reset();
 	public void Read(BinaryReader reader) => Handler.HandleRead(reader);

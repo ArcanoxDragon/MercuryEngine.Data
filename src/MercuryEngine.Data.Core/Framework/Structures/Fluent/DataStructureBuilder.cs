@@ -36,8 +36,11 @@ where T : IDataStructure
 
 	#region Constant Fields
 
-	public DataStructureBuilder<T> Constant(string text, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new TerminatedStringField(text), description, assertValueOnRead);
+	public DataStructureBuilder<T> Constant(string text, string? description = null, bool assertValueOnRead = true, bool terminated = true)
+	{
+		BaseBinaryField<string> field = terminated ? new TerminatedStringField(text) : new FixedLengthStringField(text);
+		return AddConstantField(field, description, assertValueOnRead);
+	}
 
 	public DataStructureBuilder<T> Constant(bool value, string? description = null, bool assertValueOnRead = true)
 		=> AddConstantField(new BooleanField(value), description, assertValueOnRead);
@@ -209,7 +212,7 @@ where T : IDataStructure
 
 	#endregion
 
-	#region Direct Properties
+	#region Raw Properties
 
 	public DataStructureBuilder<T> RawProperty<TField>(Expression<Func<T, TField>> propertyExpression)
 	where TField : class, IBinaryField
@@ -217,6 +220,15 @@ where T : IDataStructure
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var adapter = new DirectPropertyFieldHandler(BuildingStructure, property);
 		var description = $"{property.Name}: {typeof(TField).Name}";
+		return AddField(new DataStructureField(adapter, description));
+	}
+
+	public DataStructureBuilder<T> RawField(IBinaryField field)
+		=> RawField(field, $"<inline {field.GetType().Name}>");
+
+	public DataStructureBuilder<T> RawField(IBinaryField field, string description)
+	{
+		var adapter = new InlineFieldHandler(field);
 		return AddField(new DataStructureField(adapter, description));
 	}
 
@@ -274,7 +286,9 @@ where T : IDataStructure
 
 		configure(builder);
 
-		var handler = new PropertyBagFieldHandler<TPropertyKey>(builder.Fields, propertyKeyGenerator, keyEqualityComparer);
+		var handler = new PropertyBagFieldHandler<TPropertyKey>(builder.Fields, builder.FieldOrder, propertyKeyGenerator, keyEqualityComparer) {
+			WriteEmptyFields = builder.ShouldWriteEmptyFields,
+		};
 		var description = $"<property bag: {builder.Fields.Count} properties>";
 
 		return AddField(new DataStructureField(handler, description));

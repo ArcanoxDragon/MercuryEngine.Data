@@ -19,6 +19,9 @@ where T : notnull
 	[JsonIgnore]
 	public abstract uint Size { get; }
 
+	[JsonIgnore]
+	public bool HasMeaningfulData => true;
+
 	protected DataMapper? DataMapper { get; set; }
 
 	DataMapper? IDataMapperAware.DataMapper

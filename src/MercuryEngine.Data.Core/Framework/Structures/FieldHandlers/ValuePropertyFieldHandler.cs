@@ -11,7 +11,8 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 public class ValuePropertyFieldHandler<T>(IBinaryField<T> field, object owner, PropertyInfo property, bool nullable = false) : IFieldHandler
 where T : notnull
 {
-	public uint Size => PrepareForWrite() ? field.Size : 0;
+	public uint Size              => PrepareForWrite() ? field.Size : 0;
+	public bool HasMeaningfulData => PrepareForWrite() && field.HasMeaningfulData;
 
 	public IBinaryField Field => field;
 

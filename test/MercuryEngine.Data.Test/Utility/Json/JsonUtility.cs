@@ -1,9 +1,9 @@
-﻿using MercuryEngine.Data.Core.Framework.Fields;
-using System.Text.Encodings.Web;
-using System.Text.Json.Serialization;
+﻿using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using MercuryEngine.Data.Core.Framework.Fields;
 
-namespace MercuryEngine.Data.Test.Utility;
+namespace MercuryEngine.Data.Test.Utility.Json;
 
 internal static class JsonUtility
 {
@@ -30,6 +30,7 @@ internal static class JsonUtility
 			new StrIdJsonConverter(),
 			new TerminatedStringFieldJsonConverter(),
 			new DreadTypePrefixedFieldJsonConverter(),
+			new DreadTypedFieldJsonConverter(),
 		},
 	};
 }

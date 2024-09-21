@@ -120,8 +120,13 @@ public class DreadTypesGenerator : ISourceGenerator
 		yield return "\tstatic partial void RegisterGeneratedTypes()";
 		yield return "\t{";
 
-		foreach (var (csharpTypeName, dreadTypeName) in context.GeneratedTypes)
-			yield return $"\t\tRegisterConcreteType<{csharpTypeName}>(\"{dreadTypeName}\");";
+		foreach (var (csharpTypeName, dreadTypeName, parentTypeName) in context.GeneratedTypes)
+		{
+			if (parentTypeName != null)
+				yield return $"\t\tRegisterConcreteType<{csharpTypeName}>(\"{dreadTypeName}\", \"{parentTypeName}\");";
+			else
+				yield return $"\t\tRegisterConcreteType<{csharpTypeName}>(\"{dreadTypeName}\");";
+		}
 
 		yield return "\t}";
 

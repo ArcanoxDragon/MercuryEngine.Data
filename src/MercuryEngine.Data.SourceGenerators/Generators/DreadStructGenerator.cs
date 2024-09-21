@@ -18,15 +18,34 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 	protected override IEnumerable<string> GenerateSourceLines(DreadStructType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		var typeName = dreadType.TypeName;
+		var parentTypeName = dreadType.Parent;
+		var rootTypeName = GetRootTypeName(dreadType, generationContext);
+
 		var typeClassName = TypeNameUtility.SanitizeTypeName(typeName);
+		var parentClassName = default(string);
+		var rootClassName = TypeNameUtility.SanitizeTypeName(rootTypeName);
+
 		var preexistingType = generationContext.PreexistingTypes.SingleOrDefault(t => t.Name == typeClassName);
 		var fields = BuildStructFields(dreadType, preexistingType, executionContext, generationContext);
 
-		yield return $"public partial class {typeClassName} : DataStructure<{typeClassName}>, ITypedDreadField";
-		yield return "{";
+		if (parentTypeName != null)
+		{
+			parentClassName = TypeNameUtility.SanitizeTypeName(parentTypeName);
 
-		// Emit ITypedDreadField implementation
-		yield return $"\tpublic string TypeName => \"{typeName}\";";
+			yield return $"public partial class {typeClassName} : {parentClassName}";
+			yield return "{";
+
+			// Emit ITypedDreadField implementation
+			yield return $"\tpublic override string TypeName => \"{typeName}\";";
+		}
+		else
+		{
+			yield return $"public partial class {typeClassName} : DataStructure<{typeClassName}>, ITypedDreadField";
+			yield return "{";
+
+			// Emit ITypedDreadField implementation
+			yield return $"\tpublic virtual string TypeName => \"{typeName}\";";
+		}
 
 		// Emit property declarations
 		foreach (var field in fields)
@@ -45,37 +64,53 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		}
 
 		// Emit data structure description method
-		yield return $"\tprotected override void Describe(DataStructureBuilder<{typeClassName}> builder)";
-		yield return "\t{";
-		yield return "\t\tbuilder.MsePropertyBag(fields => {";
+		if (parentClassName is null)
+		{
+			yield return "";
+			yield return $"\tprotected override void Describe(DataStructureBuilder<{rootClassName}> builder)";
+			yield return "\t\t=> builder.MsePropertyBag(DescribeFields);";
+		}
 
-		foreach (var field in fields)
-			yield return $"\t\t\t{field.GenerateConfigure()}";
+		// Emit field configuration method(s)
+		if (parentClassName is null)
+		{
+			yield return "";
+			yield return $"\tprotected virtual void DescribeFields(PropertyBagFieldBuilder<{rootClassName}> fields)";
+			yield return "\t{";
 
-		yield return "\t\t});";
-		yield return "\t}";
+			foreach (var field in fields)
+				yield return $"\t\t\t{field.GenerateConfigure()}";
+
+			yield return "\t}";
+		}
+		else if (fields.Count > 0)
+		{
+			yield return "";
+			yield return $"\tprotected override void DescribeFields(PropertyBagFieldBuilder<{rootClassName}> fields)";
+			yield return "\t{";
+			yield return "\t\tbase.DescribeFields(fields);";
+			yield return $"\t\tDescribeFields(fields.For<{typeClassName}>());";
+			yield return "\t}";
+
+			yield return "";
+			yield return $"\tprivate void DescribeFields(PropertyBagFieldBuilder<{typeClassName}> fields)";
+			yield return "\t{";
+
+			foreach (var field in fields)
+				yield return $"\t\t\t{field.GenerateConfigure()}";
+
+			yield return "\t}";
+		}
+
 		yield return "}";
 
-		generationContext.GeneratedTypes.Add(new GeneratedType(typeClassName, typeName));
+		generationContext.GeneratedTypes.Add(new GeneratedType(typeClassName, typeName, parentTypeName));
 	}
 
 	private List<IStructField> BuildStructFields(DreadStructType dreadType, PreexistingType? preexistingType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
 	{
 		var typeName = dreadType.TypeName;
-		var parentTypeName = dreadType.Parent;
 		var fields = new List<IStructField>();
-
-		// Add parent fields if necessary
-		if (parentTypeName != null)
-		{
-			if (!generationContext.KnownTypes.TryGetValue(parentTypeName, out var parentBaseType))
-				throw new InvalidOperationException($"Struct type \"{typeName}\" has unknown parent type \"{parentTypeName}\"");
-
-			if (parentBaseType is not DreadStructType parentType)
-				throw new InvalidOperationException($"Struct type \"{typeName}\" referred to parent type \"{parentTypeName}\", which is not a struct type");
-
-			fields.AddRange(BuildStructFields(parentType, preexistingType, executionContext, generationContext));
-		}
 
 		// Add our own fields
 		foreach (var (fieldName, fieldTypeName) in dreadType.Fields)
@@ -83,11 +118,10 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			if (!generationContext.KnownTypes.TryGetValue(fieldTypeName, out var fieldType))
 				throw new InvalidOperationException($"Field \"{fieldName}\" on struct type \"{typeName}\" has unknown type \"{fieldTypeName}\"");
 
-			// Normalize typedefs and pointers to their underlying types
-			while (fieldType is DreadPointerType or DreadTypedefType)
+			// Normalize typedefs to their underlying type
+			while (fieldType is DreadTypedefType)
 			{
 				fieldType = fieldType switch {
-					DreadPointerType pointerType => FindType(pointerType.Target!, generationContext),
 					DreadTypedefType typedefType => FindType(typedefType.Alias!, generationContext),
 
 					_ => throw new InvalidOperationException(),
@@ -98,7 +132,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			{
 				var propertyName = GeneratePropertyName(fieldName);
 				var propertyType = MapPropertyTypeName(fieldType, generationContext);
-				var configureMethod = MapConfigureMethod(fieldType);
+				var configureMethod = MapConfigureMethod(fieldType, generationContext);
 				var preexistingProperty = FindMatchingProperty(preexistingType, fieldName);
 
 				if (preexistingProperty != null)
@@ -207,13 +241,24 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 				DreadPrimitiveKind.UInt64     => "ulong?",
 				DreadPrimitiveKind.Float      => "float?",
 				DreadPrimitiveKind.String     => "string?",
-				DreadPrimitiveKind.Property   => "string?",
+				DreadPrimitiveKind.Property   => "StrId?",
 				DreadPrimitiveKind.Float_Vec2 => "Vector2?",
 				DreadPrimitiveKind.Float_Vec3 => "Vector3?",
 				DreadPrimitiveKind.Float_Vec4 => "Vector4?",
 
 				_ => throw new InvalidOperationException($"Unsupported primitive kind \"{primitive.PrimitiveKind}\""),
 			},
+
+			// This is a special case to avoid a redundant type-prefixed pointer to a type-prefixed value
+			/*DreadPointerType pointerType when FindType(pointerType.Target!, context)
+					is DreadPrimitiveType { PrimitiveKind: DreadPrimitiveKind.Bytes }
+				=> MapNestedDataTypeName(pointerType.Target!, context),*/
+
+			DreadPointerType pointerType when FindType(pointerType.Target!, context) is DreadStructType
+				=> $"DreadPointer<{MapNestedDataTypeName(pointerType.Target!, context)}>?",
+
+			DreadPointerType pointerType
+				=> MapPropertyTypeName(FindType(pointerType.Target!, context), context),
 
 			DreadEnumType or DreadFlagsetType or DreadStructType
 				=> $"{TypeNameUtility.SanitizeTypeName(dreadType.TypeName)}?",
@@ -227,9 +272,10 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			_ => throw new InvalidOperationException($"Unsupported type kind \"{dreadType.Kind}\""),
 		};
 
-	private string MapConfigureMethod(BaseDreadType dreadType)
+	private string MapConfigureMethod(BaseDreadType dreadType, GenerationContext context)
 		=> dreadType switch {
 			DreadPrimitiveType primitive => primitive.PrimitiveKind switch {
+				DreadPrimitiveKind.Property   => "RawProperty",
 				DreadPrimitiveKind.Float_Vec2 => "RawProperty",
 				DreadPrimitiveKind.Float_Vec3 => "RawProperty",
 				DreadPrimitiveKind.Float_Vec4 => "RawProperty",
@@ -241,10 +287,16 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			DreadStructType { TypeName: "char" or "double" or "long" }
 				=> "Property",
 
-			DreadEnumType or DreadFlagsetType => "DreadEnum",
-			DreadStructType                   => "RawProperty",
-			DreadVectorType                   => "Array",
-			DreadDictionaryType               => "Dictionary",
+			DreadPointerType pointerType when FindType(pointerType.Target!, context) is DreadStructType
+				=> "RawProperty",
+
+			DreadPointerType pointerType
+				=> MapConfigureMethod(FindType(pointerType.Target!, context), context),
+
+			DreadEnumType or DreadFlagsetType   => "DreadEnum",
+			DreadStructType => "RawProperty",
+			DreadVectorType                     => "Array",
+			DreadDictionaryType                 => "Dictionary",
 
 			_ => throw new InvalidOperationException($"Unsupported type kind \"{dreadType.Kind}\""),
 		};
@@ -253,6 +305,14 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		=> FindType(typeName, context) switch {
 			DreadTypedefType typedefType
 				=> MapNestedDataTypeName(typedefType.Alias!, context),
+
+			// This is a special case to avoid a redundant type-prefixed pointer to a type-prefixed value
+			/* DreadPointerType pointerType when FindType(pointerType.Target!, context)
+					is DreadPrimitiveType { PrimitiveKind: DreadPrimitiveKind.Bytes }
+				=> MapNestedDataTypeName(pointerType.Target!, context), */
+
+			DreadPointerType pointerType when FindType(pointerType.Target!, context) is DreadStructType
+				=> $"DreadPointer<{MapNestedDataTypeName(pointerType.Target!, context)}>",
 
 			DreadPointerType pointerType
 				=> MapNestedDataTypeName(pointerType.Target!, context),
@@ -284,7 +344,7 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			DreadPrimitiveKind.UInt64     => "UInt64Field",
 			DreadPrimitiveKind.Float      => "FloatField",
 			DreadPrimitiveKind.String     => "TerminatedStringField",
-			DreadPrimitiveKind.Property   => "TerminatedStringField",
+			DreadPrimitiveKind.Property   => "StrId",
 			DreadPrimitiveKind.Bytes      => "DreadTypePrefixedField",
 			DreadPrimitiveKind.Float_Vec2 => "Vector2",
 			DreadPrimitiveKind.Float_Vec3 => "Vector3",
@@ -293,12 +353,29 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			_ => throw new InvalidOperationException($"Unsupported primitive kind \"{primitiveKind}\""),
 		};
 
-	private BaseDreadType FindType(string typeName, GenerationContext context)
+	private static BaseDreadType FindType(string typeName, GenerationContext context)
 	{
 		if (!context.KnownTypes.TryGetValue(typeName, out var knownType))
 			throw new InvalidOperationException($"Unknown type \"{typeName}\"");
 
 		return knownType;
+	}
+
+	private static string GetRootTypeName(DreadStructType type, GenerationContext context)
+	{
+		var currentType = type;
+
+		while (currentType.Parent is { } parentTypeName)
+		{
+			if (!context.KnownTypes.TryGetValue(parentTypeName, out var parentType))
+				throw new InvalidOperationException($"Type \"{currentType.TypeName}\" referenced unknown parent type \"{parentTypeName}\"");
+			if (parentType is not DreadStructType parentStructType)
+				throw new InvalidOperationException($"Type \"{currentType.TypeName}\" referenced non-struct parent type \"{parentTypeName}\"");
+
+			currentType = parentStructType;
+		}
+
+		return currentType.TypeName;
 	}
 
 	#region Helper Types

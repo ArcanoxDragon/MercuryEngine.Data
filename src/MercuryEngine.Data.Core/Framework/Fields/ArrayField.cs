@@ -44,7 +44,7 @@ where TItem : IBinaryField
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while reading entry {i} of an array of {typeof(TItem).Name}", ex);
+				throw new IOException(GetEntryReadExceptionMessage(i, entry), ex);
 			}
 		}
 	}
@@ -64,7 +64,7 @@ where TItem : IBinaryField
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while reading entry {i} of an array of {typeof(TItem).Name}", ex);
+				throw new IOException(GetEntryWriteExceptionMessage(i, entry), ex);
 			}
 			finally
 			{
@@ -93,7 +93,7 @@ where TItem : IBinaryField
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while reading entry {i} of an array of {typeof(TItem).Name}", ex);
+				throw new IOException(GetEntryReadExceptionMessage(i, entry), ex);
 			}
 		}
 	}
@@ -113,7 +113,7 @@ where TItem : IBinaryField
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while reading entry {i} of an array of {typeof(TItem).Name}", ex);
+				throw new IOException(GetEntryWriteExceptionMessage(i, entry), ex);
 			}
 			finally
 			{
@@ -124,11 +124,17 @@ where TItem : IBinaryField
 		await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
 	}
 
+	protected virtual string GetEntryReadExceptionMessage(int index, TItem entry)
+		=> $"An exception occurred while reading entry {index} of an array of {typeof(TItem).Name}";
+
+	protected virtual string GetEntryWriteExceptionMessage(int index, TItem entry)
+		=> $"An exception occurred while writing entry {index} of an array of {typeof(TItem).Name}";
+
 	protected virtual string GetEntryMappingDescription(int index, TItem entry) => $"[{index}]";
 }
 
 [PublicAPI]
-public static class BinaryArray
+public static class ArrayField
 {
 	public static ArrayField<TEntry> Create<TEntry>()
 	where TEntry : IBinaryField, new()

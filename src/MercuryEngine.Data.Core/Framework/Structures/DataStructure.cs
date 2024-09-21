@@ -23,6 +23,9 @@ where T : DataStructure<T>
 	public uint Size => (uint) Fields.Sum(f => f.Size);
 
 	[JsonIgnore]
+	public virtual bool HasMeaningfulData => Fields.Any(f => f.HasMeaningfulData);
+
+	[JsonIgnore]
 	public DataMapper? DataMapper { get; set; }
 
 	protected IEnumerable<DataStructureField> Fields => this.fieldsLazy.Value;
@@ -52,21 +55,28 @@ where T : DataStructure<T>
 
 	public void Read(BinaryReader reader)
 	{
+		BeforeRead();
+
 		foreach (var (i, field) in Fields.Pairs())
 		{
+			var startPosition = reader.BaseStream.GetRealPosition();
+
 			try
 			{
 				field.Read(reader);
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while reading field {i} ({field.Description}) of {GetType().Name} (position: {reader.BaseStream.Position})", ex);
+				throw new IOException($"An exception occurred while reading field {i} ({field.Description}) of {GetType().Name} (position: {startPosition})", ex);
 			}
 		}
+
+		AfterRead();
 	}
 
 	public void Write(BinaryWriter writer)
 	{
+		BeforeWrite();
 		DataMapper.PushRange($"Structure({this})", writer);
 
 		foreach (var (i, field) in Fields.Pairs())
@@ -87,25 +97,33 @@ where T : DataStructure<T>
 		}
 
 		DataMapper.PopRange(writer);
+		AfterWrite();
 	}
 
 	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
 	{
+		BeforeRead();
+
 		foreach (var (i, field) in Fields.Pairs())
 		{
+			var startPosition = reader.BaseStream.GetRealPosition();
+
 			try
 			{
 				await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
-				throw new IOException($"An exception occurred while reading field {i} ({field.Description}) of {GetType().Name} (position: {reader.BaseStream.Position})", ex);
+				throw new IOException($"An exception occurred while reading field {i} ({field.Description}) of {GetType().Name} (position: {startPosition})", ex);
 			}
 		}
+
+		AfterRead();
 	}
 
 	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
 	{
+		BeforeWrite();
 		await DataMapper.PushRangeAsync($"Structure({this})", writer, cancellationToken).ConfigureAwait(false);
 
 		foreach (var (i, field) in Fields.Pairs())
@@ -126,7 +144,18 @@ where T : DataStructure<T>
 		}
 
 		await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
+		AfterWrite();
 	}
+
+	#endregion
+
+	#region Hooks
+
+	protected virtual void BeforeRead() { }
+	protected virtual void AfterRead() { }
+
+	protected virtual void BeforeWrite() { }
+	protected virtual void AfterWrite() { }
 
 	#endregion
 

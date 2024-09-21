@@ -20,7 +20,30 @@ where T : IDataStructure
 
 	private T BuildingStructure { get; }
 
-	internal Dictionary<string, DataStructureField> Fields { get; } = [];
+	internal bool ShouldWriteEmptyFields { get; set; }
+
+	internal Dictionary<string, DataStructureField> Fields     { get; init; } = [];
+	internal List<string>                           FieldOrder { get; init; } = [];
+
+	public PropertyBagFieldBuilder<TOther> For<TOther>()
+	where TOther : T
+		=> new((TOther) BuildingStructure) {
+			Fields = Fields, // Build to same field collection
+			FieldOrder = FieldOrder,
+		};
+
+	#region Configuration
+
+	/// <summary>
+	/// Configures whether or not empty fields (such as arrays or dictionaries with no items) should still be written.
+	/// </summary>
+	public PropertyBagFieldBuilder<T> WriteEmptyFields(bool writeEmptyFields)
+	{
+		ShouldWriteEmptyFields = writeEmptyFields;
+		return this;
+	}
+
+	#endregion
 
 	#region Property Fields
 
@@ -202,6 +225,7 @@ where T : IDataStructure
 		if (!Fields.TryAdd(propertyKey, field))
 			throw new InvalidOperationException($"A property with the key \"{propertyKey}\" has already been defined");
 
+		FieldOrder.Add(propertyKey);
 		return this;
 	}
 }

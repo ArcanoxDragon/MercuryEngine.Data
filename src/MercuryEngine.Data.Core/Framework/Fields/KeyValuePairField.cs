@@ -14,7 +14,12 @@ where TValue : IBinaryField
 	[JsonIgnore]
 	public uint Size => Key.Size + Value.Size;
 
+	[JsonIgnore]
+	public bool HasMeaningfulData => Value.HasMeaningfulData;
+
 	protected DataMapper? DataMapper { get; set; }
+
+	internal bool DidReadKey { get; private set; }
 
 	DataMapper? IDataMapperAware.DataMapper
 	{
@@ -26,11 +31,14 @@ where TValue : IBinaryField
 	{
 		( Key as IResettableField )?.Reset();
 		( Value as IResettableField )?.Reset();
+		DidReadKey = false;
 	}
 
 	public void Read(BinaryReader reader)
 	{
+		DidReadKey = false;
 		Key.Read(reader);
+		DidReadKey = true;
 		Value.Read(reader);
 	}
 
@@ -42,7 +50,9 @@ where TValue : IBinaryField
 
 	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
 	{
+		DidReadKey = false;
 		await Key.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+		DidReadKey = true;
 		await Value.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 	}
 

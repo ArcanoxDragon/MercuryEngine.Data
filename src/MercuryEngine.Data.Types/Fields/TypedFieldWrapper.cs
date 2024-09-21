@@ -17,6 +17,9 @@ internal class TypedFieldWrapper(string typeName, IBinaryField wrappedField) : I
 	[JsonIgnore]
 	public uint Size => WrappedField.Size;
 
+	[JsonIgnore]
+	public bool HasMeaningfulData => WrappedField.HasMeaningfulData;
+
 	DataMapper? IDataMapperAware.DataMapper
 	{
 		get => ( WrappedField as IDataMapperAware )?.DataMapper;

@@ -23,7 +23,9 @@ public class GUI_CMissionLog_TMissionLogEntries : DataStructure<GUI_CMissionLog_
 
 		protected override void Describe(DataStructureBuilder<Entry> builder)
 			=> builder.MsePropertyBag(fields => {
-				fields.Property("eEntryType", m => m.EntryType)
+				fields
+					.WriteEmptyFields(true)
+					.Property("eEntryType", m => m.EntryType)
 					.Property("sLabelText", m => m.LabelText)
 					.Array("vCaptionsIds", m => m.CaptionsIds);
 			});

@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using MercuryEngine.Data.Core.Framework.Fields;
 
-namespace MercuryEngine.Data.Test.Utility;
+namespace MercuryEngine.Data.Test.Utility.Json;
 
 public class TerminatedStringFieldJsonConverter : JsonConverter<TerminatedStringField>
 {

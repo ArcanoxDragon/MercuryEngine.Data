@@ -9,7 +9,8 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 /// </summary>
 public class DirectPropertyFieldHandler(object owner, PropertyInfo property) : IFieldHandler
 {
-	public uint Size => Field.Size;
+	public uint Size              => Field.Size;
+	public bool HasMeaningfulData => Field.HasMeaningfulData;
 
 	public IBinaryField Field
 		=> ( property.GetValue(owner) as IBinaryField )

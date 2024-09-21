@@ -8,6 +8,7 @@ using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Test.Extensions;
 using MercuryEngine.Data.Test.Utility;
+using MercuryEngine.Data.Test.Utility.Json;
 
 namespace MercuryEngine.Data.Test;
 
@@ -54,6 +55,9 @@ public partial class BmssvTests
 	public void TestCompareBmssv(string inFile)
 	{
 		var filePath = GetTestProfilePath(inFile);
+		
+		TestContext.Progress.WriteLine("Parsing BMSSV file: {0}", filePath);
+
 		using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read);
 		using var reader = new BinaryReader(fileStream);
 		var originalBuffer = reader.ReadBytes((int) fileStream.Length);
@@ -71,13 +75,16 @@ public partial class BmssvTests
 
 		bmssv.Write(tempStream);
 
-		DumpDataMapper(dataMapper, filePath);
+		DataUtilities.DumpDataMapper(dataMapper, filePath);
 		tempStream.Seek(0, SeekOrigin.Begin);
 
 		var newBuffer = tempStream.ToArray();
 		var outFileDir = Path.GetDirectoryName(filePath)!;
 		var outFileName = Path.GetFileNameWithoutExtension(filePath) + "_out" + Path.GetExtension(filePath);
 		var outFilePath = Path.Combine(outFileDir, outFileName);
+
+		TestContext.Progress.WriteLine("Output BMSSV file: {0}", outFilePath);
+
 		using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
 
 		tempStream.CopyTo(outFileStream);
@@ -120,15 +127,5 @@ public partial class BmssvTests
 		using var writer = new StreamWriter(outFileStream, Encoding.UTF8);
 
 		writer.Write(jsonDump);
-	}
-
-	private static void DumpDataMapper(DataMapper dataMapper, string bmssvFilePath)
-	{
-		var outFileDir = Path.GetDirectoryName(bmssvFilePath)!;
-		var outFileName = Path.GetFileNameWithoutExtension(bmssvFilePath) + ".map.json";
-		var outFilePath = Path.Combine(outFileDir, outFileName);
-		using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
-
-		JsonSerializer.Serialize(outFileStream, dataMapper, JsonUtility.JsonOptions);
 	}
 }

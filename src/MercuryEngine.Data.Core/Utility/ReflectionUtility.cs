@@ -26,4 +26,17 @@ internal static class ReflectionUtility
 
 		return propertyInfo;
 	}
+
+	public static Func<TValue> CreateNonNullPropertyGetter<TValue>(object owner, PropertyInfo property)
+		=> () => {
+			var value = property.GetValue(owner);
+
+			if (value is null)
+				throw new InvalidOperationException($"Property \"{property.Name}\" on \"{owner.GetType().FullName}\" unexpectedly returned null");
+
+			if (value is not TValue typedValue)
+				throw new InvalidOperationException($"Property \"{property.Name}\" on \"{owner.GetType().FullName}\" returned \"{value.GetType().FullName}\" when \"{typeof(TValue).FullName}\" was expected");
+
+			return typedValue;
+		};
 }

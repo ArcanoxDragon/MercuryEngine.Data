@@ -9,7 +9,8 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 /// </summary>
 public class NullableDirectPropertyFieldHandler(object owner, PropertyInfo property, Func<IBinaryField> fieldFactory) : IFieldHandler
 {
-	public uint Size => Field?.Size ?? 0u;
+	public uint Size              => Field?.Size ?? 0u;
+	public bool HasMeaningfulData => Field is { HasMeaningfulData: true };
 
 	public IBinaryField? Field
 	{
