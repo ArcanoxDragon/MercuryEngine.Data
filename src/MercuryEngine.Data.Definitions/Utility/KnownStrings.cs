@@ -17,7 +17,10 @@ public static class KnownStrings
 	{
 		ParseStringsFromDataFile("DataDefinitions/property_names.json");
 		ParseStringsFromDataFile("DataDefinitions/resource_names.json");
+		ParseStringsFromDataFile("DataDefinitions/discovered_strings.json");
 	}
+
+	public static IReadOnlyList<string> NewStrings => NewDiscoveredStrings;
 
 	/// <summary>
 	/// Gets a string by its CRC64 hash.

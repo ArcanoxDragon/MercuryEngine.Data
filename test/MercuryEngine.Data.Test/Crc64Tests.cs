@@ -3,7 +3,7 @@ using MercuryEngine.Data.Core.Utility;
 
 namespace MercuryEngine.Data.Test;
 
-public class Tests
+public class Crc64Tests
 {
 	[TestCase("CGameBlackboard")]
 	[TestCase("collision_base")]

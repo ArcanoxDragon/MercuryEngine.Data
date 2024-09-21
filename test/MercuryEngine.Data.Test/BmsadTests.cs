@@ -27,7 +27,7 @@ public class BmsadTests
 		}
 	}
 
-	[TestCaseSource(nameof(GetTestFiles))]
+	[TestCaseSource(nameof(GetTestFiles)), Parallelizable]
 	public void TestLoadBmsad(string inFile)
 	{
 		TestContext.Progress.WriteLine("Loading BMSAD file: {0}", inFile);
@@ -45,7 +45,7 @@ public class BmsadTests
 		}
 	}
 
-	[TestCaseSource(nameof(GetTestFiles))]
+	[TestCaseSource(nameof(GetTestFiles)), Parallelizable]
 	public void TestCompareBmsad(string inFile)
 	{
 		TestContext.Progress.WriteLine("Parsing BMSAD file: {0}", inFile);
