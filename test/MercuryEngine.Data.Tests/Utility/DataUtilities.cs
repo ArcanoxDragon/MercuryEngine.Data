@@ -1,6 +1,5 @@
 ﻿using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Tests.Utility.Json;
-using System.IO;
 using System.Text.Json;
 
 namespace MercuryEngine.Data.Tests.Utility;
