@@ -4,11 +4,11 @@ using System.Text;
 using System.Text.Json;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Formats;
-using MercuryEngine.Data.Test.Extensions;
-using MercuryEngine.Data.Test.Utility;
-using MercuryEngine.Data.Test.Utility.Json;
+using MercuryEngine.Data.Tests.Extensions;
+using MercuryEngine.Data.Tests.Utility;
+using MercuryEngine.Data.Tests.Utility.Json;
 
-namespace MercuryEngine.Data.Test;
+namespace MercuryEngine.Data.Tests;
 
 [TestFixture]
 public class BmsadTests

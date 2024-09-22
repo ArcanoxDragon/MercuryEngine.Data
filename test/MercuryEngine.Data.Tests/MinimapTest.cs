@@ -11,7 +11,7 @@ using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.DreadTypes.Custom;
 
-namespace MercuryEngine.Data.Test;
+namespace MercuryEngine.Data.Tests;
 
 [TestFixture]
 [SupportedOSPlatform("Windows")]

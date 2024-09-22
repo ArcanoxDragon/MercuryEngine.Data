@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MercuryEngine.Data.Test;
+namespace MercuryEngine.Data.Tests;
 
 [TestFixture]
 public class Temp010Helpers

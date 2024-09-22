@@ -1,9 +1,9 @@
 ﻿using MercuryEngine.Data.Core.Framework.Mapping;
-using MercuryEngine.Data.Test.Utility.Json;
+using MercuryEngine.Data.Tests.Utility.Json;
 using System.IO;
 using System.Text.Json;
 
-namespace MercuryEngine.Data.Test.Utility;
+namespace MercuryEngine.Data.Tests.Utility;
 
 internal static class DataUtilities
 {

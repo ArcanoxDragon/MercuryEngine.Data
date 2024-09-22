@@ -1,7 +1,7 @@
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Utility;
 
-namespace MercuryEngine.Data.Test;
+namespace MercuryEngine.Data.Tests;
 
 public class Crc64Tests
 {

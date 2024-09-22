@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using MercuryEngine.Data.Types.Fields;
 
-namespace MercuryEngine.Data.Test.Utility.Json;
+namespace MercuryEngine.Data.Tests.Utility.Json;
 
 public class StrIdJsonConverter : JsonConverter<StrId>
 {

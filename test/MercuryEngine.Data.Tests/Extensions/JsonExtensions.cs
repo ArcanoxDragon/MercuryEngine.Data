@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Text.Json.Nodes;
 
-namespace MercuryEngine.Data.Test.Extensions;
+namespace MercuryEngine.Data.Tests.Extensions;
 
 internal static class JsonExtensions
 {

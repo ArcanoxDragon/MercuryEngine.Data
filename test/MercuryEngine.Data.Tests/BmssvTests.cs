@@ -6,11 +6,11 @@ using System.Text;
 using System.Text.Json;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Formats;
-using MercuryEngine.Data.Test.Extensions;
-using MercuryEngine.Data.Test.Utility;
-using MercuryEngine.Data.Test.Utility.Json;
+using MercuryEngine.Data.Tests.Extensions;
+using MercuryEngine.Data.Tests.Utility;
+using MercuryEngine.Data.Tests.Utility.Json;
 
-namespace MercuryEngine.Data.Test;
+namespace MercuryEngine.Data.Tests;
 
 [TestFixture]
 public partial class BmssvTests
@@ -55,7 +55,7 @@ public partial class BmssvTests
 	public void TestCompareBmssv(string inFile)
 	{
 		var filePath = GetTestProfilePath(inFile);
-		
+
 		TestContext.Progress.WriteLine("Parsing BMSSV file: {0}", filePath);
 
 		using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read);

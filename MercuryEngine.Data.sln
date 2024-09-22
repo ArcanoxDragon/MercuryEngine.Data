@@ -5,7 +5,7 @@ VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data", "src\MercuryEngine.Data\MercuryEngine.Data.csproj", "{95A4DDD0-FEAA-4B70-A30A-BD20813A5FDB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Test", "test\MercuryEngine.Data.Test\MercuryEngine.Data.Test.csproj", "{D0B8CB57-D7F7-4C2A-B219-F7ECA82A6312}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Tests", "test\MercuryEngine.Data.Tests\MercuryEngine.Data.Tests.csproj", "{D0B8CB57-D7F7-4C2A-B219-F7ECA82A6312}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Types", "src\MercuryEngine.Data.Types\MercuryEngine.Data.Types.csproj", "{6D618EA4-35E4-4D8B-BBB8-1FC366573732}"
 EndProject

@@ -6,7 +6,7 @@ using System.Text.Json;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Definitions.Utility;
 
-namespace MercuryEngine.Data.Test;
+namespace MercuryEngine.Data.Tests;
 
 [SetUpFixture]
 public class Global
