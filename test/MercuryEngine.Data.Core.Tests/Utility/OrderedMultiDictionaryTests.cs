@@ -17,8 +17,10 @@ public class OrderedMultiDictionaryTests
 
 		dictionary.Add("apples", 3);
 
-		Assert.That(dictionary.Keys, Is.EquivalentTo(new[] { "apples" }));
-		Assert.That(dictionary.Values, Is.EquivalentTo(new[] { 3 }));
+		Assert.Multiple(() => {
+			Assert.That(dictionary.Keys, Is.EqualTo(new[] { "apples" }));
+			Assert.That(dictionary.Values, Is.EqualTo(new[] { 3 }));
+		});
 	}
 
 	[Test]
@@ -29,11 +31,11 @@ public class OrderedMultiDictionaryTests
 		dictionary.Add("apples", 3);
 		dictionary.Add("bananas", 5);
 
-		// Key order is non-deterministic - we need to check count and then existence of expected items
-		Assert.That(dictionary.Keys, Has.Count.EqualTo(2));
-		Assert.That(dictionary.Keys, Contains.Item("apples"));
-		Assert.That(dictionary.Keys, Contains.Item("bananas"));
-		Assert.That(dictionary.Values, Is.EquivalentTo(new[] { 3, 5 }));
+		Assert.Multiple(() => {
+			Assert.That(dictionary.Keys, Has.Count.EqualTo(2));
+			Assert.That(dictionary.Keys, Is.EquivalentTo(new[] { "apples", "bananas" }));
+			Assert.That(dictionary.Values, Is.EqualTo(new[] { 3, 5 }));
+		});
 	}
 
 	[Test]
@@ -44,11 +46,12 @@ public class OrderedMultiDictionaryTests
 		dictionary.Add("apple", "red");
 		dictionary.Add("apple", "green");
 
-		// Key order is non-deterministic - we need to check count and then existence of expected items
-		Assert.That(dictionary.Keys, Has.Count.EqualTo(1));
-		Assert.That(dictionary.Keys, Contains.Item("apple"));
-		Assert.That(dictionary.Values, Has.Count.EqualTo(2));
-		Assert.That(dictionary.Values, Is.EquivalentTo(new[] { "red", "green" }));
+		Assert.Multiple(() => {
+			Assert.That(dictionary.Keys, Has.Count.EqualTo(1)); // Explicitly test Count property
+			Assert.That(dictionary.Keys, Is.EquivalentTo(new[] { "apple" }));
+			Assert.That(dictionary.Values, Has.Count.EqualTo(2)); // Explicitly test Count property
+			Assert.That(dictionary.Values, Is.EqualTo(new[] { "red", "green" }));
+		});
 	}
 
 	#endregion
@@ -64,11 +67,11 @@ public class OrderedMultiDictionaryTests
 		dictionary.Add("bananas", 5);
 		dictionary.Set("bananas", 8);
 
-		// Key order is non-deterministic - we need to check count and then existence of expected items
-		Assert.That(dictionary.Keys, Has.Count.EqualTo(2));
-		Assert.That(dictionary.Keys, Contains.Item("apples"));
-		Assert.That(dictionary.Keys, Contains.Item("bananas"));
-		Assert.That(dictionary.Values, Is.EquivalentTo(new[] { 3, 8 }));
+		Assert.Multiple(() => {
+			Assert.That(dictionary.Keys, Has.Count.EqualTo(2));
+			Assert.That(dictionary.Keys, Is.EquivalentTo(new[] { "apples", "bananas" }));
+			Assert.That(dictionary.Values, Is.EqualTo(new[] { 3, 8 }));
+		});
 	}
 
 	[Test]
@@ -81,12 +84,12 @@ public class OrderedMultiDictionaryTests
 		dictionary.Add("apple", "green");
 		dictionary.Set("apple", "both");
 
-		// Key order is non-deterministic - we need to check count and then existence of expected items
-		Assert.That(dictionary.Keys, Has.Count.EqualTo(2));
-		Assert.That(dictionary.Keys, Contains.Item("apple"));
-		Assert.That(dictionary.Keys, Contains.Item("banana"));
-		Assert.That(dictionary.Values, Has.Count.EqualTo(2));
-		Assert.That(dictionary.Values, Is.EquivalentTo(new[] { "yellow", "both" }));
+		Assert.Multiple(() => {
+			Assert.That(dictionary.Keys, Has.Count.EqualTo(2));
+			Assert.That(dictionary.Keys, Is.EquivalentTo(new[] { "apple", "banana" }));
+			Assert.That(dictionary.Values, Has.Count.EqualTo(2));
+			Assert.That(dictionary.Values, Is.EqualTo(new[] { "yellow", "both" }));
+		});
 	}
 
 	[Test]
@@ -107,13 +110,15 @@ public class OrderedMultiDictionaryTests
 		// - apple  => green
 		// - grape  => purple
 
-		Assert.That(dictionary.Values, Has.Count.EqualTo(4));
-		Assert.That(dictionary, Is.EquivalentTo(new[] {
-			new KeyValuePair<string, string>("apple", "red"),
-			new KeyValuePair<string, string>("pepper", "red"),
-			new KeyValuePair<string, string>("apple", "green"),
-			new KeyValuePair<string, string>("grape", "purple"),
-		}));
+		Assert.Multiple(() => {
+			Assert.That(dictionary.Values, Has.Count.EqualTo(4));
+			Assert.That(dictionary, Is.EqualTo(new[] {
+				new KeyValuePair<string, string>("apple", "red"),
+				new KeyValuePair<string, string>("pepper", "red"),
+				new KeyValuePair<string, string>("apple", "green"),
+				new KeyValuePair<string, string>("grape", "purple"),
+			}));
+		});
 	}
 
 	#endregion
@@ -129,8 +134,10 @@ public class OrderedMultiDictionaryTests
 		dictionary.Add("apple", "green");
 		dictionary.RemoveAll("apple");
 
-		Assert.That(dictionary.Keys, Is.EquivalentTo(Array.Empty<string>()));
-		Assert.That(dictionary.Values, Is.EquivalentTo(Array.Empty<string>()));
+		Assert.Multiple(() => {
+			Assert.That(dictionary.Keys, Is.EqualTo(Array.Empty<string>()));
+			Assert.That(dictionary.Values, Is.EqualTo(Array.Empty<string>()));
+		});
 	}
 
 	[Test]
@@ -141,8 +148,10 @@ public class OrderedMultiDictionaryTests
 		dictionary.Add("apples", 3);
 		dictionary.RemoveAll("bananas");
 
-		Assert.That(dictionary.Keys, Is.EquivalentTo(new[] { "apples" }));
-		Assert.That(dictionary.Values, Is.EquivalentTo(new[] { 3 }));
+		Assert.Multiple(() => {
+			Assert.That(dictionary.Keys, Is.EqualTo(new[] { "apples" }));
+			Assert.That(dictionary.Values, Is.EqualTo(new[] { 3 }));
+		});
 	}
 
 	#endregion
@@ -194,10 +203,12 @@ public class OrderedMultiDictionaryTests
 		// - apple  => green
 		// - grape  => purple
 
-		Assert.That(dictionary["apple"], Is.EqualTo("green"), "Single-value access by key should return highest-index value");
-		Assert.That(dictionary["pepper"], Is.EqualTo("red"));
-		Assert.That(dictionary["grape"], Is.EqualTo("purple"));
-		Assert.Throws<KeyNotFoundException>(() => _ = dictionary["pear"], "Single-value access for non-existent key should throw");
+		Assert.Multiple(() => {
+			Assert.That(dictionary["apple"], Is.EqualTo("green"), "Single-value access by key should return highest-index value");
+			Assert.That(dictionary["pepper"], Is.EqualTo("red"));
+			Assert.That(dictionary["grape"], Is.EqualTo("purple"));
+			Assert.Throws<KeyNotFoundException>(() => _ = dictionary["pear"], "Single-value access for non-existent key should throw");
+		});
 	}
 
 	[Test]
@@ -218,10 +229,12 @@ public class OrderedMultiDictionaryTests
 		// - apple  => green
 		// - grape  => purple
 
-		Assert.That(dictionary.GetAllValues("apple"), Is.EquivalentTo(new[] { "red", "green" }));
-		Assert.That(dictionary.GetAllValues("pepper"), Is.EquivalentTo(new[] { "red" }));
-		Assert.That(dictionary.GetAllValues("grape"), Is.EquivalentTo(new[] { "purple" }));
-		Assert.That(dictionary.GetAllValues("pear"), Is.EquivalentTo(Array.Empty<string>()));
+		Assert.Multiple(() => {
+			Assert.That(dictionary.GetAllValues("apple"), Is.EqualTo(new[] { "red", "green" }));
+			Assert.That(dictionary.GetAllValues("pepper"), Is.EqualTo(new[] { "red" }));
+			Assert.That(dictionary.GetAllValues("grape"), Is.EqualTo(new[] { "purple" }));
+			Assert.That(dictionary.GetAllValues("pear"), Is.EqualTo(Array.Empty<string>()));
+		});
 	}
 
 	#endregion

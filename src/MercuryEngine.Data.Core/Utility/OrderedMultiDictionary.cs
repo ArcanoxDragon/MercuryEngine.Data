@@ -22,6 +22,11 @@ where TValue : notnull
 	}
 
 	/// <summary>
+	/// Gets the number of key-value pairs stored in the dictionary.
+	/// </summary>
+	public int Count => this.values.Count;
+
+	/// <summary>
 	/// Gets a read-only collection of all unique keys in the dictionary. The order in which the keys are returned
 	/// is not defined, and may not match the order of the stored key-value pairs.
 	/// </summary>
