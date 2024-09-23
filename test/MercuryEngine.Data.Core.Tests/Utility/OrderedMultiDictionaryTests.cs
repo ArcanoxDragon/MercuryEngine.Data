@@ -38,19 +38,28 @@ public class OrderedMultiDictionaryTests
 		});
 	}
 
-	[Test]
-	public void TestAddMultipleSameKey()
+	[TestCase(DuplicateKeyHandlingMode.LowestIndexTakesPriority)]
+	[TestCase(DuplicateKeyHandlingMode.HighestIndexTakesPriority)]
+	[TestCase(DuplicateKeyHandlingMode.PreventDuplicateKeys)]
+	public void TestAddMultipleSameKey(DuplicateKeyHandlingMode duplicateKeyHandlingMode)
 	{
-		var dictionary = new OrderedMultiDictionary<string, string>();
+		var dictionary = new OrderedMultiDictionary<string, string>(duplicateKeyHandlingMode);
 
 		dictionary.Add("apple", "red");
 		dictionary.Add("apple", "green");
 
+		string[] expected;
+
+		if (duplicateKeyHandlingMode == DuplicateKeyHandlingMode.PreventDuplicateKeys)
+			expected = ["green"];
+		else
+			expected = ["red", "green"];
+
 		Assert.Multiple(() => {
 			Assert.That(dictionary.Keys, Has.Count.EqualTo(1)); // Explicitly test Count property
 			Assert.That(dictionary.Keys, Is.EquivalentTo(new[] { "apple" }));
-			Assert.That(dictionary.Values, Has.Count.EqualTo(2)); // Explicitly test Count property
-			Assert.That(dictionary.Values, Is.EqualTo(new[] { "red", "green" }));
+			Assert.That(dictionary.Values, Has.Count.EqualTo(expected.Length)); // Explicitly test Count property
+			Assert.That(dictionary.Values, Is.EqualTo(expected));
 		});
 	}
 
@@ -74,10 +83,11 @@ public class OrderedMultiDictionaryTests
 		});
 	}
 
-	[Test]
-	public void TestSetSameKey()
+	[TestCase(DuplicateKeyHandlingMode.LowestIndexTakesPriority)]
+	[TestCase(DuplicateKeyHandlingMode.HighestIndexTakesPriority)]
+	public void TestSetSameKey(DuplicateKeyHandlingMode duplicateKeyHandlingMode)
 	{
-		var dictionary = new OrderedMultiDictionary<string, string>();
+		var dictionary = new OrderedMultiDictionary<string, string>(duplicateKeyHandlingMode);
 
 		dictionary.Add("apple", "red");
 		dictionary.Add("banana", "yellow");
@@ -88,17 +98,23 @@ public class OrderedMultiDictionaryTests
 			Assert.That(dictionary.Keys, Has.Count.EqualTo(2));
 			Assert.That(dictionary.Keys, Is.EquivalentTo(new[] { "apple", "banana" }));
 			Assert.That(dictionary.Values, Has.Count.EqualTo(2));
-			Assert.That(dictionary.Values, Is.EqualTo(new[] { "yellow", "both" }));
+
+			if (duplicateKeyHandlingMode == DuplicateKeyHandlingMode.HighestIndexTakesPriority)
+				Assert.That(dictionary.Values, Is.EqualTo(new[] { "yellow", "both" }));
+			else
+				Assert.That(dictionary.Values, Is.EqualTo(new[] { "both", "yellow" }));
 		});
 	}
 
-	[Test]
-	public void TestSetPreservesOrder()
+	[TestCase(DuplicateKeyHandlingMode.LowestIndexTakesPriority)]
+	[TestCase(DuplicateKeyHandlingMode.HighestIndexTakesPriority)]
+	public void TestSetPreservesOrder(DuplicateKeyHandlingMode duplicateKeyHandlingMode)
 	{
-		var dictionary = new OrderedMultiDictionary<string, string>();
+		var dictionary = new OrderedMultiDictionary<string, string>(duplicateKeyHandlingMode);
 
 		dictionary.Add("apple", "red");
 		dictionary.Add("pepper", "yellow");
+		dictionary.Add("banana", "yellow");
 		dictionary.Add("pepper", "green");
 		dictionary.Add("apple", "green");
 		dictionary.Set("pepper", "red");
@@ -106,18 +122,37 @@ public class OrderedMultiDictionaryTests
 
 		// After this, dictionary should have:
 		// - apple  => red
-		// - pepper => red
+		// - pepper => red      (this and the next one should be swapped for Highest priority mode)
+		// - banana => yellow
 		// - apple  => green
 		// - grape  => purple
 
-		Assert.Multiple(() => {
-			Assert.That(dictionary.Values, Has.Count.EqualTo(4));
-			Assert.That(dictionary, Is.EqualTo(new[] {
+		KeyValuePair<string, string>[] expected;
+
+		if (duplicateKeyHandlingMode == DuplicateKeyHandlingMode.HighestIndexTakesPriority)
+		{
+			expected = [
 				new KeyValuePair<string, string>("apple", "red"),
+				new KeyValuePair<string, string>("banana", "yellow"),
 				new KeyValuePair<string, string>("pepper", "red"),
 				new KeyValuePair<string, string>("apple", "green"),
 				new KeyValuePair<string, string>("grape", "purple"),
-			}));
+			];
+		}
+		else
+		{
+			expected = [
+				new KeyValuePair<string, string>("apple", "red"),
+				new KeyValuePair<string, string>("pepper", "red"),
+				new KeyValuePair<string, string>("banana", "yellow"),
+				new KeyValuePair<string, string>("apple", "green"),
+				new KeyValuePair<string, string>("grape", "purple"),
+			];
+		}
+
+		Assert.Multiple(() => {
+			Assert.That(dictionary.Values, Has.Count.EqualTo(expected.Length)); // Explicitly test Count property
+			Assert.That(dictionary, Is.EqualTo(expected));
 		});
 	}
 
@@ -205,10 +240,11 @@ public class OrderedMultiDictionaryTests
 
 	#region Get
 
-	[Test]
-	public void TestGetSingle()
+	[TestCase(DuplicateKeyHandlingMode.LowestIndexTakesPriority)]
+	[TestCase(DuplicateKeyHandlingMode.HighestIndexTakesPriority)]
+	public void TestGetSingle(DuplicateKeyHandlingMode duplicateKeyHandlingMode)
 	{
-		var dictionary = new OrderedMultiDictionary<string, string>();
+		var dictionary = new OrderedMultiDictionary<string, string>(duplicateKeyHandlingMode);
 
 		dictionary.Add("apple", "red");
 		dictionary.Add("pepper", "yellow");
@@ -224,7 +260,11 @@ public class OrderedMultiDictionaryTests
 		// - grape  => purple
 
 		Assert.Multiple(() => {
-			Assert.That(dictionary["apple"], Is.EqualTo("green"), "Single-value access by key should return highest-index value");
+			if (duplicateKeyHandlingMode == DuplicateKeyHandlingMode.HighestIndexTakesPriority)
+				Assert.That(dictionary["apple"], Is.EqualTo("green"), "Single-value access by key should return highest-index value");
+			else
+				Assert.That(dictionary["apple"], Is.EqualTo("red"), "Single-value access by key should return lowest-index value");
+
 			Assert.That(dictionary["pepper"], Is.EqualTo("red"));
 			Assert.That(dictionary["grape"], Is.EqualTo("purple"));
 			Assert.Throws<KeyNotFoundException>(() => _ = dictionary["pear"], "Single-value access for non-existent key should throw");

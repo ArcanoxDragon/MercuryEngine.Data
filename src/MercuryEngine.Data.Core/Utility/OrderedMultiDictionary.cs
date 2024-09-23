@@ -3,12 +3,30 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace MercuryEngine.Data.Core.Utility;
 
-public class OrderedMultiDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
+public class OrderedMultiDictionary<TKey, TValue>(
+	DuplicateKeyHandlingMode duplicateKeyHandlingMode,
+	IEqualityComparer<TKey> keyComparer
+) : IEnumerable<KeyValuePair<TKey, TValue>>
 where TKey : notnull
 where TValue : notnull
 {
-	private readonly Dictionary<TKey, SortedSet<int>> indices = [];
+	private readonly Dictionary<TKey, SortedSet<int>> indices = new(keyComparer);
 	private readonly List<KeyValuePair<TKey, TValue>> values  = [];
+
+	public OrderedMultiDictionary(DuplicateKeyHandlingMode duplicateKeyHandlingMode)
+		: this(duplicateKeyHandlingMode, EqualityComparer<TKey>.Default) { }
+
+	public OrderedMultiDictionary(IEqualityComparer<TKey> keyComparer)
+		: this(DuplicateKeyHandlingMode.HighestIndexTakesPriority, keyComparer) { }
+
+	public OrderedMultiDictionary()
+		: this(EqualityComparer<TKey>.Default) { }
+
+	/// <summary>
+	/// Gets or sets the strategy used by the multi-dictionary for handling multiple values for
+	/// a given key when using interfaces that operate on one single item.
+	/// </summary>
+	public DuplicateKeyHandlingMode DuplicateKeyHandlingMode { get; set; } = duplicateKeyHandlingMode;
 
 	/// <summary>
 	/// Gets or sets the value for the provided <typeparamref name="TKey"/> in the dictionary.
@@ -44,6 +62,9 @@ where TValue : notnull
 	/// </summary>
 	public void Add(TKey key, TValue value)
 	{
+		if (DuplicateKeyHandlingMode == DuplicateKeyHandlingMode.PreventDuplicateKeys)
+			RemoveAll(key);
+
 		var newIndex = this.values.Count;
 		var indices = GetIndexSet(key);
 
@@ -69,11 +90,17 @@ where TValue : notnull
 
 		var indices = GetIndexSet(key);
 
-		// Remove all but the highest index in the set
 		while (indices.Count > 1)
-			RemoveIndex(indices.Min);
+		{
+			if (DuplicateKeyHandlingMode == DuplicateKeyHandlingMode.HighestIndexTakesPriority)
+				// Remove all but the highest index in the set
+				RemoveIndex(indices.Min);
+			else
+				// Remove all but the lowest index in the set
+				RemoveIndex(indices.Max);
+		}
 
-		// The maximum value in the set is the new index in the value collection where we will store the new value
+		// The last remaining value in the set is the new index in the value collection where we will store the new value
 		this.values[indices.Max] = new KeyValuePair<TKey, TValue>(key, value);
 	}
 
@@ -123,7 +150,11 @@ where TValue : notnull
 			return false;
 		}
 
-		value = this.values[indices.Max].Value;
+		var index = DuplicateKeyHandlingMode == DuplicateKeyHandlingMode.HighestIndexTakesPriority
+			? indices.Max
+			: indices.Min;
+
+		value = this.values[index].Value;
 		return true;
 	}
 
