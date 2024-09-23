@@ -156,6 +156,26 @@ public class OrderedMultiDictionaryTests
 
 	#endregion
 
+	#region Clear
+
+	[Test]
+	public void TestClear()
+	{
+		var dictionary = new OrderedMultiDictionary<string, int>();
+
+		dictionary.Add("apples", 3);
+		dictionary.Add("bananas", 5);
+		dictionary.Clear();
+
+		Assert.Multiple(() => {
+			Assert.That(dictionary, Has.Count.EqualTo(0)); // Explicitly test the "Count" property
+			Assert.That(dictionary.Keys, Is.Empty);
+			Assert.That(dictionary.Values, Is.Empty);
+		});
+	}
+
+	#endregion
+
 	#region Contains
 
 	[Test]

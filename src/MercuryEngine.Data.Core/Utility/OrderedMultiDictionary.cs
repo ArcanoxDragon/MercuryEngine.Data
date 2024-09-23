@@ -96,6 +96,15 @@ where TValue : notnull
 	}
 
 	/// <summary>
+	/// Removes all values from the dictionary.
+	/// </summary>
+	public void Clear()
+	{
+		this.values.Clear();
+		this.indices.Clear();
+	}
+
+	/// <summary>
 	/// Returns whether or not the list contains any values for the provided <paramref name="key"/>.
 	/// </summary>
 	public bool ContainsKey(TKey key)
