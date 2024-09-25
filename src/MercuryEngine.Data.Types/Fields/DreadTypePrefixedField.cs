@@ -45,7 +45,7 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 	public ulong InnerTypeId => TypedField?.TypeId ?? 0L;
 
 	[JsonIgnore]
-	public uint Size => TypedField?.Size ?? 0;
+	public uint Size => sizeof(ulong) + TypedField?.Size ?? 0;
 
 	[JsonIgnore]
 	public bool HasMeaningfulData => InnerData is { HasMeaningfulData: true };

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json.Serialization;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -47,7 +48,13 @@ public class ByteField(byte value) : NumberField<byte>(value)
 
 public class CharField(char value) : NumberField<char>(value)
 {
+	// TODO: This assumes that UTF-8 is always being used for writing, which is *probably* the case, but
+	// the more robust solution would be to turn the Size property into "GetSize" which somehow passes an encoding
+	private static readonly UTF8Encoding UnicodeEncoding = new(false);
+
 	public CharField() : this(default) { }
+
+	public override uint Size => (uint) UnicodeEncoding.GetByteCount([Value]);
 
 	public override void Read(BinaryReader reader)
 		=> Value = reader.ReadChar();

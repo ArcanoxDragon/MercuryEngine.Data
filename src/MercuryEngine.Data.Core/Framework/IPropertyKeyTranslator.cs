@@ -8,4 +8,5 @@ where TKey : notnull
 {
 	TKey GetEmptyKey();
 	TKey TranslateKey(string propertyName);
+	uint GetKeySize(string propertyName);
 }

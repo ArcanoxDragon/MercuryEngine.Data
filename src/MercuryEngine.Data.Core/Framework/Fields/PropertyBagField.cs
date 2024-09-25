@@ -55,7 +55,9 @@ where TPropertyKey : IBinaryField
 		: this(builder.Fields, propertyKeyTranslator, keyComparer) { }
 
 	[JsonIgnore]
-	public uint Size => sizeof(uint) + (uint) this.values.Values.Sum(f => f.Size);
+	public uint Size => sizeof(uint) + (uint) this.values.Sum(
+		pair => this.propertyKeyTranslator.GetKeySize(pair.Key) + pair.Value.Size
+	);
 
 	[JsonIgnore]
 	public bool HasMeaningfulData => this.values.Count > 0;

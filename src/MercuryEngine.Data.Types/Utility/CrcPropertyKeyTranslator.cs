@@ -12,4 +12,6 @@ public class CrcPropertyKeyTranslator : IPropertyKeyTranslator<StrId>
 
 	public StrId TranslateKey(string propertyName)
 		=> new() { Value = propertyName.GetCrc64() };
+
+	public uint GetKeySize(string propertyName) => sizeof(ulong);
 }
