@@ -1,17 +1,18 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using MercuryEngine.Data.Core.Extensions;
 
 namespace MercuryEngine.Data.Core.Utility;
 
-public class OrderedMultiDictionary<TKey, TValue>(
-	DuplicateKeyHandlingMode duplicateKeyHandlingMode,
-	IEqualityComparer<TKey> keyComparer
-) : IEnumerable<KeyValuePair<TKey, TValue>>
+public class OrderedMultiDictionary<TKey, TValue> : IDictionary<TKey, TValue>
 where TKey : notnull
 where TValue : notnull
 {
-	private readonly Dictionary<TKey, SortedSet<int>> indices = new(keyComparer);
-	private readonly List<KeyValuePair<TKey, TValue>> values  = [];
+	private readonly Dictionary<TKey, SortedSet<int>> indices;
+	private readonly List<KeyValuePair<TKey, TValue>> values = [];
+
+	private readonly KeyCollection   keyCollection;
+	private readonly ValueCollection valueCollection;
 
 	public OrderedMultiDictionary(DuplicateKeyHandlingMode duplicateKeyHandlingMode)
 		: this(duplicateKeyHandlingMode, EqualityComparer<TKey>.Default) { }
@@ -22,11 +23,21 @@ where TValue : notnull
 	public OrderedMultiDictionary()
 		: this(EqualityComparer<TKey>.Default) { }
 
+	public OrderedMultiDictionary(DuplicateKeyHandlingMode duplicateKeyHandlingMode,
+								  IEqualityComparer<TKey> keyComparer)
+	{
+		this.indices = new Dictionary<TKey, SortedSet<int>>(keyComparer);
+		this.keyCollection = new KeyCollection(this);
+		this.valueCollection = new ValueCollection(this);
+
+		DuplicateKeyHandlingMode = duplicateKeyHandlingMode;
+	}
+
 	/// <summary>
 	/// Gets or sets the strategy used by the multi-dictionary for handling multiple values for
 	/// a given key when using interfaces that operate on one single item.
 	/// </summary>
-	public DuplicateKeyHandlingMode DuplicateKeyHandlingMode { get; set; } = duplicateKeyHandlingMode;
+	public DuplicateKeyHandlingMode DuplicateKeyHandlingMode { get; set; }
 
 	/// <summary>
 	/// Gets or sets the value for the provided <typeparamref name="TKey"/> in the dictionary.
@@ -48,13 +59,13 @@ where TValue : notnull
 	/// Gets a read-only collection of all unique keys in the dictionary. The order in which the keys are returned
 	/// is not defined, and may not match the order of the stored key-value pairs.
 	/// </summary>
-	public IReadOnlyCollection<TKey> Keys => new KeyCollection(this);
+	public IReadOnlyCollection<TKey> Keys => this.keyCollection;
 
 	/// <summary>
 	/// Gets a read-only collection of all values in the dictionary. The order in which the values are returned
 	/// is identical to the order in which the values are stored in the dictionary.
 	/// </summary>
-	public IReadOnlyCollection<TValue> Values => new ValueCollection(this);
+	public IReadOnlyCollection<TValue> Values => this.valueCollection;
 
 	/// <summary>
 	/// Adds a new <paramref name="value"/> to the dictionary for the provided <paramref name="key"/>.
@@ -107,19 +118,25 @@ where TValue : notnull
 	/// <summary>
 	/// Removes all values for the provided <paramref name="key"/> from the dictionary.
 	/// </summary>
-	public void RemoveAll(TKey key)
+	public bool RemoveAll(TKey key)
 	{
 		if (!this.indices.TryGetValue(key, out var indices))
-			return;
+			return false;
+
+		var removed = false;
 
 		while (indices.Count > 0)
+		{
 			// Always removing the max index will be faster, as there will be potentially fewer indices
 			// that need to be shifted down by the time we get to lower indices.
 			RemoveIndex(indices.Max);
+			removed = true;
+		}
 
 		// Also remove the key from the indices dictionary so that it does not appear in the Keys collection
 		// (this should be done AFTER removing the individual values!)
 		this.indices.Remove(key);
+		return removed;
 	}
 
 	/// <summary>
@@ -171,6 +188,59 @@ where TValue : notnull
 			yield return this.values[index].Value;
 	}
 
+	#region IDictionary<TKey, TValue>
+
+	ICollection<TKey> IDictionary<TKey, TValue>.Keys => this.indices.Keys;
+
+	ICollection<TValue> IDictionary<TKey, TValue>.Values => this.valueCollection;
+
+	bool IDictionary<TKey, TValue>.Remove(TKey key)
+		=> RemoveAll(key);
+
+	#endregion
+
+	#region ICollection<KeyValuePair<TKey, TValue>>
+
+	public bool IsReadOnly => false;
+
+	void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
+		=> Add(item.Key, item.Value);
+
+	bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+		=> this.values.Exists(i => Equals(i.Key, item.Key) && Equals(i.Value, item.Value));
+
+	void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int index)
+	{
+		ArgumentNullException.ThrowIfNull(array);
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(index, array.Length);
+
+		if (array.Length - index < this.values.Count)
+			throw new ArgumentException("Not enough room in the target array");
+
+		foreach (var (i, pair) in this.values.Pairs())
+			array[index + i] = pair;
+	}
+
+	bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
+	{
+		var startIndex = 0;
+		var removed = false;
+
+		while (this.values.FindIndex(startIndex, TestItem) is var foundIndex and >= 0)
+		{
+			RemoveIndex(foundIndex);
+			startIndex = foundIndex; // We just removed this index, so we should include the new item at that index in the next search
+			removed = true;
+		}
+
+		return removed;
+
+		bool TestItem(KeyValuePair<TKey, TValue> candidate)
+			=> Equals(candidate.Key, item.Key) && Equals(candidate.Value, item.Value);
+	}
+
+	#endregion
+
 	private void RemoveIndex(int index)
 	{
 		// We have to iterate through all indices and remove the reference to the index that is being removed.
@@ -220,7 +290,7 @@ where TValue : notnull
 			=> GetEnumerator();
 	}
 
-	private sealed class ValueCollection(OrderedMultiDictionary<TKey, TValue> owner) : IReadOnlyCollection<TValue>
+	private sealed class ValueCollection(OrderedMultiDictionary<TKey, TValue> owner) : ICollection<TValue>, IReadOnlyCollection<TValue>
 	{
 		public int Count => owner.values.Count;
 
@@ -229,6 +299,39 @@ where TValue : notnull
 
 		IEnumerator IEnumerable.GetEnumerator()
 			=> GetEnumerator();
+
+		#region ICollection (for IDictionary contract)
+
+		bool ICollection<TValue>.IsReadOnly => true;
+
+		void ICollection<TValue>.Add(TValue item)
+			=> throw ReadOnlyException();
+
+		void ICollection<TValue>.Clear()
+			=> throw ReadOnlyException();
+
+		bool ICollection<TValue>.Contains(TValue item)
+			=> owner.values.Exists(pair => Equals(pair.Value, item));
+
+		void ICollection<TValue>.CopyTo(TValue[] array, int index)
+		{
+			ArgumentNullException.ThrowIfNull(array);
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(index, array.Length);
+
+			if (array.Length - index < owner.values.Count)
+				throw new ArgumentException("Not enough room in the target array");
+
+			foreach (var (i, (_, value)) in owner.values.Pairs())
+				array[index + i] = value;
+		}
+
+		bool ICollection<TValue>.Remove(TValue item)
+			=> throw ReadOnlyException();
+
+		private static NotSupportedException ReadOnlyException()
+			=> new("Mutating a key collection derived from a dictionary is not allowed.");
+
+		#endregion
 	}
 
 	#endregion

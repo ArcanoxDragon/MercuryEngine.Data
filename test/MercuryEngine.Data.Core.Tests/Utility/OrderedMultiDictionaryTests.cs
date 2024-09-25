@@ -298,4 +298,99 @@ public class OrderedMultiDictionaryTests
 	}
 
 	#endregion
+
+	#region IDictionary<TKey, TValue> Contract
+
+	[Test]
+	public void TestDictionaryReadOnlyCollections()
+	{
+		var orderedDictionary = new OrderedMultiDictionary<string, int>();
+
+		orderedDictionary.Add("apples", 3);
+		orderedDictionary.Add("bananas", 5);
+
+		IDictionary<string, int> dictionary = orderedDictionary;
+
+		Assert.Multiple(() => {
+			TestCollection(dictionary.Keys, "apples", "pears");
+			TestCollection(dictionary.Values, 5, -1);
+			TestCollection(dictionary, new KeyValuePair<string, int>("apples", 3), new KeyValuePair<string, int>("pears", -1));
+		});
+
+#pragma warning disable NUnit2045
+		static void TestCollection<T>(ICollection<T> collection, T itemInCollection, T itemNotInCollection)
+		{
+			Assert.That(collection.Contains(itemInCollection), Is.True);
+			Assert.That(collection.Contains(itemNotInCollection), Is.False);
+
+			if (collection.IsReadOnly)
+			{
+				Assert.Throws<NotSupportedException>(() => collection.Add(default!));
+				Assert.Throws<NotSupportedException>(() => collection.Remove(default!));
+				Assert.Throws<NotSupportedException>(collection.Clear);
+			}
+
+			TestCollectionCopyTo(collection);
+		}
+
+		static void TestCollectionCopyTo<T>(ICollection<T> collection)
+		{
+			Assert.Throws<ArgumentNullException>(() => collection.CopyTo(null!, 0));
+			Assert.Throws<ArgumentOutOfRangeException>(() => collection.CopyTo([], 1));
+
+			var tooSmallArray = new T[collection.Count - 1];
+
+			Assert.Throws<ArgumentException>(() => collection.CopyTo(tooSmallArray, 0));
+
+			var equalSizeArray = new T[collection.Count];
+
+			Assert.Throws<ArgumentException>(() => collection.CopyTo(equalSizeArray, 1));
+
+			collection.CopyTo(equalSizeArray, 0);
+
+			Assert.That(equalSizeArray, Is.EqualTo(collection));
+		}
+#pragma warning restore NUnit2045
+	}
+
+	[Test]
+	public void TestDictionaryAsIDictionary()
+	{
+		var orderedDictionary = new OrderedMultiDictionary<string, int>();
+
+		orderedDictionary.Add("apples", 3);
+		orderedDictionary.Add("apples", 5);
+
+		IDictionary<string, int> dictionary = orderedDictionary;
+
+		dictionary.Remove("apples");
+
+		// Should not contain ANY "apples" items now
+		Assert.That(dictionary.ContainsKey("apples"), Is.False);
+	}
+
+	[Test]
+	public void TestDictionaryAsCollection()
+	{
+		var orderedDictionary = new OrderedMultiDictionary<string, int>();
+
+		orderedDictionary.Add("apples", 3);
+		orderedDictionary.Add("bananas", 5);
+
+		ICollection<KeyValuePair<string, int>> dictionaryAsCollection = orderedDictionary;
+
+		Assert.Multiple(() => {
+			dictionaryAsCollection.Add(new KeyValuePair<string, int>("pears", 10));
+			dictionaryAsCollection.Remove(new KeyValuePair<string, int>("pears", 5));
+
+			// Should still have { "pears", 10 }
+			Assert.That(dictionaryAsCollection.Contains(new KeyValuePair<string, int>("pears", 10)));
+
+			dictionaryAsCollection.Remove(new KeyValuePair<string, int>("pears", 10));
+
+			Assert.That(dictionaryAsCollection.Contains(new KeyValuePair<string, int>("pears", 10)), Is.False);
+		});
+	}
+
+	#endregion
 }
