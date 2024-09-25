@@ -110,7 +110,7 @@ public class FixedLengthStringField(int length, string initialValue) : BaseBinar
 		var bytesRemaining = Length;
 
 		Task<int> ReadChunkAsync()
-			=> reader.BaseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+			=> reader.BaseStream.ReadAsync(buffer, 0, Math.Min(bytesRemaining, buffer.Length), cancellationToken);
 
 		while (bytesRemaining > 0 && await ReadChunkAsync().ConfigureAwait(false) is > 0 and var bytesRead)
 		{
