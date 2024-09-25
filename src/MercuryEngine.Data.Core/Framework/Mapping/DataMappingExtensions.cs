@@ -54,8 +54,6 @@ public static class DataMappingExtensions
 	{
 		if (field.Handler.Field is IDataMapperAware dataMapperAwareField)
 			dataMapperAwareField.DataMapper = dataMapper;
-		if (field.Handler is IDataMapperAware dataMapperAwareHandler)
-			dataMapperAwareHandler.DataMapper = dataMapper;
 
 		field.Write(writer);
 	}
@@ -64,8 +62,6 @@ public static class DataMappingExtensions
 	{
 		if (field.Handler.Field is IDataMapperAware dataMapperAwareField)
 			dataMapperAwareField.DataMapper = dataMapper;
-		if (field.Handler is IDataMapperAware dataMapperAwareHandler)
-			dataMapperAwareHandler.DataMapper = dataMapper;
 
 		return field.WriteAsync(writer, cancellationToken);
 	}
