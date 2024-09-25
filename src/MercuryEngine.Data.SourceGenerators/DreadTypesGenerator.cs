@@ -4,6 +4,7 @@ using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.Definitions.Utility;
 using MercuryEngine.Data.SourceGenerators.Generators;
+using MercuryEngine.Data.SourceGenerators.Generators.Structs;
 using MercuryEngine.Data.SourceGenerators.Utility;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
@@ -77,21 +78,17 @@ public class DreadTypesGenerator : ISourceGenerator
 				isError = true;
 			}
 
-			if (isError)
-			{
-				yield return source;
-			}
-			else
+			if (!isError)
 			{
 				// XmlDoc comments
 				yield return "/// <summary>";
 				yield return $"/// Original type name: {TypeNameUtility.XmlEscapeTypeName(typeName)}&#10;";
 				yield return $"/// Kind: {type.Kind}";
 				yield return "/// </summary>";
-
-				// Actual type source
-				yield return source;
 			}
+
+			// Actual type source
+			yield return source;
 		}
 	}
 
@@ -136,8 +133,10 @@ public class DreadTypesGenerator : ISourceGenerator
 	private IEnumerable<string> GetStandardNamespaceImports()
 	{
 		yield return "using System;";
+		yield return "using MercuryEngine.Data.Core.Extensions;";
 		yield return "using MercuryEngine.Data.Core.Framework;";
 		yield return "using MercuryEngine.Data.Core.Framework.Fields;";
+		yield return "using MercuryEngine.Data.Core.Framework.Fields.Fluent;";
 		yield return "using MercuryEngine.Data.Core.Framework.Structures;";
 		yield return "using MercuryEngine.Data.Core.Framework.Structures.Fluent;";
 		yield return "using MercuryEngine.Data.Types.Attributes;";

@@ -72,7 +72,7 @@ where TValue : IBinaryField
 		field.Value.Clear();
 
 		foreach (var (key, value) in source)
-			field.Value.Add(new KeyValuePairField<TKey, TValue>(key, value));
+			field.Value.Add(key, value);
 	}
 
 	private void PostProcessRead()

@@ -81,7 +81,7 @@ public partial class BmssvTests
 
 		await tempStream.CopyToAsync(outFileStream);
 
-		Assert.That(newBuffer.Length, Is.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
+		Assert.That(newBuffer, Has.Length.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
 
 		for (var i = 0; i < newBuffer.Length; i++)
 		{

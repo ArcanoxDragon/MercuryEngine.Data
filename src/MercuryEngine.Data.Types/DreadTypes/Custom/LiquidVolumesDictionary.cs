@@ -1,7 +1,7 @@
-﻿using MercuryEngine.Data.Core.Framework.Fields;
+﻿using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
-using MercuryEngine.Data.Types.Extensions;
 using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.DreadTypes.Custom;
@@ -17,13 +17,29 @@ public class LiquidVolumesDictionary : DataStructure<LiquidVolumesDictionary>, I
 
 	public sealed class Entry : DataStructure<Entry>
 	{
-		public Vector2? Min { get; set; }
-		public Vector2? Max { get; set; }
+		public Entry()
+		{
+			RawFields = MsePropertyBagField.Create(fields => {
+				fields.AddField<Vector2>(nameof(Min));
+				fields.AddField<Vector2>(nameof(Max));
+			});
+		}
+
+		public Vector2? Min
+		{
+			get => RawFields.Get<Vector2>(nameof(Min));
+			set => RawFields.SetOrClear(nameof(Min), value);
+		}
+
+		public Vector2? Max
+		{
+			get => RawFields.Get<Vector2>(nameof(Max));
+			set => RawFields.SetOrClear(nameof(Max), value);
+		}
+
+		public MsePropertyBagField RawFields { get; }
 
 		protected override void Describe(DataStructureBuilder<Entry> builder)
-			=> builder.MsePropertyBag(fields => {
-				fields.RawProperty("Min", m => m.Min)
-					.RawProperty("Max", m => m.Max);
-			});
+			=> builder.RawProperty(m => m.RawFields);
 	}
 }

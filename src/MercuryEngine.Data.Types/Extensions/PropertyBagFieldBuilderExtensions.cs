@@ -1,7 +1,5 @@
-﻿using System.Linq.Expressions;
-using JetBrains.Annotations;
-using MercuryEngine.Data.Core.Framework.Structures;
-using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+﻿using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Framework.Fields.Fluent;
 using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.Extensions;
@@ -9,13 +7,7 @@ namespace MercuryEngine.Data.Types.Extensions;
 [UsedImplicitly]
 internal static class PropertyBagFieldBuilderExtensions
 {
-	public static PropertyBagFieldBuilder<T> DreadEnum<T, TEnum>(this PropertyBagFieldBuilder<T> builder, string propertyKey, Expression<Func<T, TEnum>> propertyExpression)
-	where T : IDataStructure
+	public static PropertyBagFieldBuilder DreadEnum<TEnum>(this PropertyBagFieldBuilder builder, string propertyKey)
 	where TEnum : struct, Enum
-		=> builder.Property(propertyKey, propertyExpression, new DreadEnum<TEnum>());
-
-	public static PropertyBagFieldBuilder<T> DreadEnum<T, TEnum>(this PropertyBagFieldBuilder<T> builder, string propertyKey, Expression<Func<T, TEnum?>> propertyExpression)
-	where T : IDataStructure
-	where TEnum : struct, Enum
-		=> builder.NullableProperty(propertyKey, propertyExpression, new DreadEnum<TEnum>());
+		=> builder.AddField(propertyKey, () => new DreadEnum<TEnum>());
 }

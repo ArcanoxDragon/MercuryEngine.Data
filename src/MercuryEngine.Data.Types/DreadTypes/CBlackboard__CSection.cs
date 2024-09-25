@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Definitions.DreadTypes;
@@ -39,7 +40,8 @@ public partial class CBlackboard__CSection
 	public IDictionary<string, DreadTypePrefixedField> Props => this.sectionsAdapter;
 
 	[StructProperty("dctProps")]
-	private Dictionary<TerminatedStringField, DreadTypePrefixedField> RawProps { get; set; } = [];
+	private IDictionary<TerminatedStringField, DreadTypePrefixedField> RawProps
+		=> RawFields.Dictionary<TerminatedStringField, DreadTypePrefixedField>("dctProps");
 
 	#region Property Getters
 

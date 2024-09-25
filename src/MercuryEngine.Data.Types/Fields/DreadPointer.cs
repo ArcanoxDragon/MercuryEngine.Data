@@ -7,16 +7,16 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Types.Fields;
 
 [PublicAPI]
-public class DreadPointer<TField> : IBinaryField, IDataMapperAware
+public class DreadPointer<TField> : IResettableField, IDataMapperAware
 where TField : class, ITypedDreadField
 {
 	private const ulong NullTypeId = 0UL;
 
 	public DreadPointer() { }
 
-	public DreadPointer(TField initialValue)
+	public DreadPointer(TField value)
 	{
-		Value = initialValue;
+		Value = value;
 	}
 
 	public TField? Value { get; set; }
@@ -32,10 +32,13 @@ where TField : class, ITypedDreadField
 	public ulong InnerTypeId => Value?.TypeId ?? 0L;
 
 	[JsonIgnore]
-	public uint Size => Value?.Size ?? 0;
+	public uint Size => sizeof(ulong) + Value?.Size ?? 0;
 
 	[JsonIgnore]
 	public bool HasMeaningfulData => Value is { HasMeaningfulData: true };
+
+	public void Reset()
+		=> Value = null;
 
 	public void Read(BinaryReader reader)
 	{
@@ -63,14 +66,14 @@ where TField : class, ITypedDreadField
 		{
 			if (Value is null)
 			{
-				DataMapper.PushRange("type-prefixed: NULL", writer);
+				DataMapper.PushRange("pointer: NULL", writer);
 
 				// Write an all-zeroes type ID to indicate NULL
 				writer.Write(NullTypeId);
 				return;
 			}
 
-			DataMapper.PushRange($"type-prefixed: {Value.TypeName}", writer);
+			DataMapper.PushRange($"pointer: {Value.TypeName}", writer);
 			writer.Write(Value.TypeId);
 			Value.WriteWithDataMapper(writer, DataMapper);
 		}
@@ -106,14 +109,14 @@ where TField : class, ITypedDreadField
 		{
 			if (Value is null)
 			{
-				await DataMapper.PushRangeAsync("type-prefixed: NULL", writer, cancellationToken).ConfigureAwait(false);
+				await DataMapper.PushRangeAsync("pointer: NULL", writer, cancellationToken).ConfigureAwait(false);
 
 				// Write an all-zeroes type ID to indicate NULL
 				await writer.WriteAsync(NullTypeId, cancellationToken).ConfigureAwait(false);
 				return;
 			}
 
-			await DataMapper.PushRangeAsync($"type-prefixed: {Value.TypeName}", writer, cancellationToken).ConfigureAwait(false);
+			await DataMapper.PushRangeAsync($"pointer: {Value.TypeName}", writer, cancellationToken).ConfigureAwait(false);
 			await writer.WriteAsync(Value.TypeId, cancellationToken).ConfigureAwait(false);
 			await Value.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
 		}

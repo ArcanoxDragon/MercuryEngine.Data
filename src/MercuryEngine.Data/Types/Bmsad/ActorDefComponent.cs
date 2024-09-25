@@ -28,7 +28,7 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 		init => RawType = value;
 	}
 
-	public new ITypedDreadField Fields => InnerFields.Object;
+	public new ITypedDreadField? Fields => InnerFields.Object;
 
 	private string RawType
 	{
@@ -98,7 +98,7 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 		RawExtraFields.Value.Clear();
 
 		foreach (var (key, value) in this.extraFields)
-			RawExtraFields.Value.Add(new KeyValuePairField<TerminatedStringField, ExtraField>(new TerminatedStringField(key), value));
+			RawExtraFields.Value.Add(new TerminatedStringField(key), value);
 	}
 
 	protected override void AfterRead()
@@ -130,16 +130,22 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 
 	private sealed class FieldsWrapper : DataStructure<FieldsWrapper>
 	{
-		public StrId            EmptyString { get; }      = new();
-		public StrId            Root        { get; }      = new();
-		public ITypedDreadField Object      { get; set; } = new base__core__CBaseObject(); // Has to be non-null!
+		public StrId             EmptyString { get; } = new();
+		public StrId             Root        { get; } = new();
+		public ITypedDreadField? Object      { get; set; }
 
-		public override bool HasMeaningfulData => Object.HasMeaningfulData;
+		public override bool HasMeaningfulData => Object != null;
+
+		public override void Reset()
+		{
+			base.Reset();
+			Object = null;
+		}
 
 		protected override void Describe(DataStructureBuilder<FieldsWrapper> builder)
 			=> builder
 				.RawProperty(m => m.EmptyString)
 				.RawProperty(m => m.Root)
-				.RawProperty(m => m.Object);
+				.NullableRawProperty(m => m.Object, () => new base__core__CBaseObject());
 	}
 }

@@ -30,7 +30,7 @@ where T : DataStructure<T>
 
 	protected IEnumerable<DataStructureField> Fields => this.fieldsLazy.Value;
 
-	public void Reset()
+	public virtual void Reset()
 	{
 		foreach (var field in Fields)
 			field.Reset();

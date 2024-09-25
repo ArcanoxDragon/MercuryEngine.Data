@@ -4,12 +4,12 @@ using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.Utility;
 
-public class CrcPropertyKeyGenerator : IPropertyKeyGenerator<StrId>
+public class CrcPropertyKeyTranslator : IPropertyKeyTranslator<StrId>
 {
-	public static CrcPropertyKeyGenerator Instance { get; } = new();
+	public static CrcPropertyKeyTranslator Instance { get; } = new();
 
 	public StrId GetEmptyKey() => new();
 
-	public StrId GenerateKey(string propertyName)
+	public StrId TranslateKey(string propertyName)
 		=> new() { Value = propertyName.GetCrc64() };
 }

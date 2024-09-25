@@ -223,6 +223,19 @@ where T : IDataStructure
 		return AddField(new DataStructureField(adapter, description));
 	}
 
+	public DataStructureBuilder<T> NullableRawProperty<TField>(Expression<Func<T, TField?>> propertyExpression)
+	where TField : class, IBinaryField, new()
+		=> NullableRawProperty(propertyExpression, () => new TField());
+
+	public DataStructureBuilder<T> NullableRawProperty<TField>(Expression<Func<T, TField?>> propertyExpression, Func<TField> fieldFactory)
+	where TField : class, IBinaryField
+	{
+		var property = ReflectionUtility.GetProperty(propertyExpression);
+		var adapter = new NullableDirectPropertyFieldHandler(BuildingStructure, property, fieldFactory);
+		var description = $"{property.Name}: {typeof(TField).Name}?";
+		return AddField(new DataStructureField(adapter, description));
+	}
+
 	public DataStructureBuilder<T> RawField(IBinaryField field)
 		=> RawField(field, $"<inline {field.GetType().Name}>");
 
@@ -264,34 +277,6 @@ where T : IDataStructure
 		var adapter = new DictionaryPropertyFieldHandler<TKey, TValue>(field, BuildingStructure, property);
 		var description = $"{property.Name}: Dictionary<{typeof(TKey).Name}, {typeof(TValue).Name}>";
 		return AddField(new DataStructureField(adapter, description));
-	}
-
-	#endregion
-
-	#region Property Bags
-
-	public DataStructureBuilder<T> PropertyBag<TPropertyKey>(
-		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
-		Action<PropertyBagFieldBuilder<T>> configure)
-	where TPropertyKey : IBinaryField
-		=> PropertyBag(propertyKeyGenerator, configure, EqualityComparer<TPropertyKey>.Default);
-
-	public DataStructureBuilder<T> PropertyBag<TPropertyKey>(
-		IPropertyKeyGenerator<TPropertyKey> propertyKeyGenerator,
-		Action<PropertyBagFieldBuilder<T>> configure,
-		IEqualityComparer<TPropertyKey> keyEqualityComparer)
-	where TPropertyKey : IBinaryField
-	{
-		var builder = new PropertyBagFieldBuilder<T>(BuildingStructure);
-
-		configure(builder);
-
-		var handler = new PropertyBagFieldHandler<TPropertyKey>(builder.Fields, builder.FieldOrder, propertyKeyGenerator, keyEqualityComparer) {
-			WriteEmptyFields = builder.ShouldWriteEmptyFields,
-		};
-		var description = $"<property bag: {builder.Fields.Count} properties>";
-
-		return AddField(new DataStructureField(handler, description));
 	}
 
 	#endregion

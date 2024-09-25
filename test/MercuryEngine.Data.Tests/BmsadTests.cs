@@ -80,7 +80,10 @@ public class BmsadTests
 
 		tempStream.CopyTo(outFileStream);
 
-		Assert.That(newBuffer.Length, Is.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
+		if (inFile.EndsWith("pf_mushr_fr.bmsad"))
+			Assert.Pass("The \"pf_mushr_fr.bmsad\" file has an encoding error in the base game, so comparison is skipped.");
+
+		Assert.That(newBuffer, Has.Length.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
 
 		for (var i = 0; i < newBuffer.Length; i++)
 		{

@@ -27,5 +27,13 @@ internal static class Constants
 			"MercuryEngine.Data.DreadTypes",
 			DiagnosticSeverity.Error,
 			true);
+
+		public static readonly DiagnosticDescriptor PropertyMissingGetterDescriptor = new(
+			"MD1003",
+			"Property is missing a getter",
+			"Property \"{0}\" on type \"{1}\" must have a getter in order to be used for struct field \"{2}\"",
+			"MercuryEngine.Data.DreadTypes",
+			DiagnosticSeverity.Error,
+			true);
 	}
 }

@@ -1,7 +1,8 @@
-﻿using MercuryEngine.Data.Core.Framework.Fields;
+﻿using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.Fields.Fluent;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
-using MercuryEngine.Data.Types.Extensions;
 using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Types.DreadTypes.Custom;
@@ -24,15 +25,24 @@ public class CMinimapManager_TGlobalMapIcons : DataStructure<CMinimapManager_TGl
 			=> builder.Array(m => m.Icons);
 	}
 
-	public sealed class GlobalMapIcon : DataStructure<GlobalMapIcon>
+	public sealed class GlobalMapIcon : BaseDreadDataStructure<GlobalMapIcon>
 	{
-		public string?  IconId  { get; set; }
-		public Vector2? IconPos { get; set; }
+		public string? IconId
+		{
+			get => RawFields.GetValue<string>("sIconID");
+			set => RawFields.SetOrClearValue("sIconID", value);
+		}
 
-		protected override void Describe(DataStructureBuilder<GlobalMapIcon> builder)
-			=> builder.MsePropertyBag(fields => {
-				fields.Property("sIconID", m => m.IconId)
-					.RawProperty("vIconPos", m => m.IconPos);
-			});
+		public Vector2? IconPos
+		{
+			get => RawFields.Get<Vector2>("vIconPos");
+			set => RawFields.SetOrClear("vIconPos", value);
+		}
+
+		protected override void DefineFields(PropertyBagFieldBuilder fields)
+		{
+			fields.String("sIconID");
+			fields.AddField<Vector2>("vIconPos");
+		}
 	}
 }

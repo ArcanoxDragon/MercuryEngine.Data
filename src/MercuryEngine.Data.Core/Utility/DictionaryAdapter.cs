@@ -124,7 +124,7 @@ public class DictionaryAdapter<TBackingKey, TBackingValue, TAccessKey, TAccessVa
 			=> owner.backingDictionary.Keys.Clear();
 
 		public bool Contains(TAccessKey item)
-			=> owner.backingDictionary.Keys.Contains(owner.translateKeyReverse(item));
+			=> owner.backingDictionary.ContainsKey(owner.translateKeyReverse(item));
 
 		public void CopyTo(TAccessKey[] array, int arrayIndex)
 		{

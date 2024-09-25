@@ -7,6 +7,7 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Fields;
 
+// TODO: Rename to ListField or something
 [PublicAPI]
 public class ArrayField<TItem>(Func<TItem> itemFactory, List<TItem> initialValue) : BaseBinaryField<List<TItem>>(initialValue)
 where TItem : IBinaryField
@@ -20,7 +21,7 @@ where TItem : IBinaryField
 		: this(itemFactory, []) { }
 
 	[JsonIgnore]
-	public override uint Size => sizeof(int) + (uint) Value.Sum(e => e.Size);
+	public override uint Size => sizeof(uint) + (uint) Value.Sum(e => e.Size);
 
 	protected virtual string MappingDescription => $"Array<{typeof(TItem).Name}>";
 
