@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Core.Framework.Structures;
+﻿using System.Linq.Expressions;
+using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Types.Fields;
@@ -7,6 +8,12 @@ namespace MercuryEngine.Data.Types.Bmsad;
 
 public class ComponentFunction : DataStructure<ComponentFunction>
 {
+	private static readonly Expression<Func<ComponentFunction, string?>> NameExpression     = m => m.Name;
+	private static readonly Expression<Func<ComponentFunction, bool>>    Unknown1Expression = m => m.Unknown1;
+	private static readonly Expression<Func<ComponentFunction, bool>>    Unknown2Expression = m => m.Unknown2;
+
+	private static readonly Expression<Func<ComponentFunction, IDictionary<StrId, FunctionArgument>>> RawArgumentsExpression = m => m.RawArguments;
+
 	public ComponentFunction()
 	{
 		Arguments = new DictionaryAdapter<StrId, FunctionArgument, string, FunctionArgument>(
@@ -27,9 +34,10 @@ public class ComponentFunction : DataStructure<ComponentFunction>
 	private Dictionary<StrId, FunctionArgument> RawArguments { get; } = [];
 
 	protected override void Describe(DataStructureBuilder<ComponentFunction> builder)
-		=> builder
-			.Property(m => m.Name)
-			.Property(m => m.Unknown1)
-			.Property(m => m.Unknown2)
-			.Dictionary(m => m.RawArguments);
+	{
+		builder.Property(NameExpression);
+		builder.Property(Unknown1Expression);
+		builder.Property(Unknown2Expression);
+		builder.Dictionary(RawArgumentsExpression);
+	}
 }

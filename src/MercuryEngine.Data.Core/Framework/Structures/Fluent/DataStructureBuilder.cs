@@ -234,15 +234,6 @@ where T : IDataStructure
 		return AddField(new DataStructureField(adapter, description));
 	}
 
-	public DataStructureBuilder<T> RawField(IBinaryField field)
-		=> RawField(field, $"<inline {field.GetType().Name}>");
-
-	public DataStructureBuilder<T> RawField(IBinaryField field, string description)
-	{
-		var adapter = new InlineFieldHandler(field);
-		return AddField(new DataStructureField(adapter, description));
-	}
-
 	#endregion
 
 	#region Collection Properties

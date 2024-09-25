@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Linq.Expressions;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
@@ -10,6 +11,23 @@ namespace MercuryEngine.Data.Types.Bmsad;
 
 public class ActorDefComponent : DataStructure<ActorDefComponent>
 {
+	#region Singleton Expressions
+
+	private static readonly Expression<Func<ActorDefComponent, string?>>       TypeExpression        = m => m.Type;
+	private static readonly Expression<Func<ActorDefComponent, int>>           Unknown1Expression    = m => m.Unknown1;
+	private static readonly Expression<Func<ActorDefComponent, int>>           Unknown2Expression    = m => m.Unknown2;
+	private static readonly Expression<Func<ActorDefComponent, FieldsWrapper>> InnerFieldsExpression = m => m.InnerFields;
+
+	private static readonly Expression<Func<ActorDefComponent, ConditionalField<DictionaryField<TerminatedStringField, ExtraField>>>>
+		RawExtraFieldsConditionExpression = m => m.RawExtraFieldsCondition;
+
+	private static readonly Expression<Func<ActorDefComponent, IList<ComponentFunction>>> FunctionsExpression = m => m.Functions;
+
+	private static readonly Expression<Func<ActorDefComponent, SwitchField<ComponentDependencies>>>
+		RawDependenciesExpression = m => m.RawDependencies;
+
+	#endregion
+
 	private static readonly IDictionary<string, ExtraField> EmptyExtraFields
 		= new ReadOnlyDictionary<string, ExtraField>(new Dictionary<string, ExtraField>());
 
@@ -19,6 +37,10 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 
 	public ActorDefComponent()
 	{
+		RawExtraFieldsCondition = new ConditionalField<DictionaryField<TerminatedStringField, ExtraField>>(
+			() => DreadTypeLibrary.IsChildOf(Type, "CComponent"),
+			RawExtraFields
+		);
 		RawDependencies = ComponentDependencies.Create(this);
 	}
 
@@ -69,26 +91,22 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 	/// <summary>Wrapper around the length-prefixed sub-structure</summary>
 	private FieldsWrapper InnerFields { get; } = new();
 
-	private DictionaryField<TerminatedStringField, ExtraField> RawExtraFields { get; } = DictionaryField.Create<TerminatedStringField, ExtraField>();
+	private ConditionalField<DictionaryField<TerminatedStringField, ExtraField>> RawExtraFieldsCondition { get; }
+
+	private DictionaryField<TerminatedStringField, ExtraField> RawExtraFields { get; }
+		= DictionaryField.Create<TerminatedStringField, ExtraField>();
 
 	private SwitchField<ComponentDependencies> RawDependencies { get; }
 
 	protected override void Describe(DataStructureBuilder<ActorDefComponent> builder)
 	{
-		builder
-			.Property(m => m.Type)
-			.Property(m => m.Unknown1)
-			.Property(m => m.Unknown2)
-			.RawProperty(m => m.InnerFields)
-			.RawField(
-				new ConditionalField<DictionaryField<TerminatedStringField, ExtraField>>(
-					() => DreadTypeLibrary.IsChildOf(Type, "CComponent"),
-					RawExtraFields
-				),
-				$"{nameof(ExtraFields)}: Dictionary<string, {nameof(ExtraField)}>?"
-			)
-			.Array(m => m.Functions)
-			.RawProperty(m => m.RawDependencies);
+		builder.Property(TypeExpression);
+		builder.Property(Unknown1Expression);
+		builder.Property(Unknown2Expression);
+		builder.RawProperty(InnerFieldsExpression);
+		builder.RawProperty(RawExtraFieldsConditionExpression);
+		builder.Array(FunctionsExpression);
+		builder.RawProperty(RawDependenciesExpression);
 	}
 
 	protected override void BeforeWrite()

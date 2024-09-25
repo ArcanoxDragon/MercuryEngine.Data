@@ -7,7 +7,18 @@ namespace MercuryEngine.Data.Types.Bmsad;
 
 public class FunctionArgument : DataStructure<FunctionArgument>
 {
-	private static readonly Expression<Func<FunctionArgument, char>> TypeExpression = m => m.Type;
+	private static readonly Expression<Func<FunctionArgument, char>>        TypeExpression   = m => m.Type;
+	private static readonly Expression<Func<FunctionArgument, SwitchField>> SwitchExpression = m => m.Switch;
+
+	public FunctionArgument()
+	{
+		Switch = SwitchField.FromProperty(this, TypeExpression, sw => {
+			sw.AddCase('s', StringField);
+			sw.AddCase('f', FloatField);
+			sw.AddCase('b', BooleanField);
+			sw.AddCase('i', IntegerField);
+		});
+	}
 
 	public char Type { get; set; } = 'b';
 
@@ -44,6 +55,8 @@ public class FunctionArgument : DataStructure<FunctionArgument>
 		}
 	}
 
+	private SwitchField Switch { get; }
+
 	private TerminatedStringField StringField  { get; } = new();
 	private FloatField            FloatField   { get; } = new();
 	private BooleanField          BooleanField { get; } = new();
@@ -52,13 +65,6 @@ public class FunctionArgument : DataStructure<FunctionArgument>
 	protected override void Describe(DataStructureBuilder<FunctionArgument> builder)
 	{
 		builder.Property(TypeExpression);
-		builder.RawField(
-			SwitchField.FromProperty(this, TypeExpression, sw => {
-				sw.AddCase('s', StringField);
-				sw.AddCase('f', FloatField);
-				sw.AddCase('b', BooleanField);
-				sw.AddCase('i', IntegerField);
-			}), $"{nameof(Value)}: Switch[{nameof(Type)}]"
-		);
+		builder.RawProperty(SwitchExpression);
 	}
 }
