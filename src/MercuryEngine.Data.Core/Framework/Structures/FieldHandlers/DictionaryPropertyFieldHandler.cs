@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
@@ -13,11 +14,17 @@ public class DictionaryPropertyFieldHandler<TKey, TValue>(DictionaryField<TKey, 
 where TKey : IBinaryField
 where TValue : IBinaryField
 {
+	private readonly Func<object, IDictionary<TKey, TValue>?> getter = ReflectionUtility.GetGetter<IDictionary<TKey, TValue>?>(property);
+
+	// Setter is lazy-initialized because it requires Dictionary<TKey, TValue> instead of IDictionary<TKey, TValue>.
+	// IDictionary<TKey, TValue> properties need to work as long as we don't need to activate null lists.
+	private Action<object, Dictionary<TKey, TValue>?>? setter;
+
 	public uint Size
 	{
 		get
 		{
-			if (property.GetValue(owner) is null)
+			if (this.getter(owner) is null)
 				return 0;
 
 			PrepareForWrite();
@@ -29,7 +36,7 @@ where TValue : IBinaryField
 	{
 		get
 		{
-			if (property.GetValue(owner) is null)
+			if (this.getter(owner) is null)
 				return false;
 
 			return GetDictionaryFromProperty().Count > 0;
@@ -88,20 +95,18 @@ where TValue : IBinaryField
 
 	private IDictionary<TKey, TValue> GetDictionaryFromProperty()
 	{
-		var value = property.GetValue(owner);
+		var dictionary = this.getter(owner);
 
-		if (value is null)
+		if (dictionary is null)
 		{
 			if (!activateWhenNull)
 				throw new InvalidOperationException($"Property \"{property.Name}\" on {owner.GetType().FullName} returned null while writing to a dictionary field");
 
-			value = new Dictionary<TKey, TValue>();
-			property.SetValue(owner, value);
-		}
+			dictionary = new Dictionary<TKey, TValue>();
 
-		if (value is not IDictionary<TKey, TValue> dictionary)
-			throw new InvalidOperationException($"Property \"{property.Name}\" on {owner.GetType().FullName} returned a value of type " +
-												$"\"{value.GetType().FullName}\" when \"{typeof(IDictionary<TKey, TValue>).FullName}\" was expected");
+			this.setter ??= ReflectionUtility.GetSetter<Dictionary<TKey, TValue>?>(property);
+			this.setter(owner, (Dictionary<TKey, TValue>) dictionary);
+		}
 
 		return dictionary;
 	}

@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
@@ -9,11 +10,13 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 /// </summary>
 public class DirectPropertyFieldHandler(object owner, PropertyInfo property) : IFieldHandler
 {
+	private readonly Func<object, IBinaryField?> getter = ReflectionUtility.GetGetter<IBinaryField?>(property);
+
 	public uint Size              => Field.Size;
 	public bool HasMeaningfulData => Field.HasMeaningfulData;
 
 	public IBinaryField Field
-		=> ( property.GetValue(owner) as IBinaryField )
+		=> this.getter(owner)
 		   ?? throw new InvalidOperationException($"Property \"{property.Name}\" was null while reading or writing a field " +
 												  $"on {owner.GetType().FullName}. {nameof(IBinaryField)} properties must " +
 												  $"never have a null value.");

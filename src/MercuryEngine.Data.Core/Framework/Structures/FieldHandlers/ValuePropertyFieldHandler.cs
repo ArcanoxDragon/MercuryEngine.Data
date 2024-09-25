@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
@@ -11,6 +12,9 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 public class ValuePropertyFieldHandler<T>(IBinaryField<T> field, object owner, PropertyInfo property, bool nullable = false) : IFieldHandler
 where T : notnull
 {
+	private readonly Func<object, T?>  getter = ReflectionUtility.GetGetter<T?>(property);
+	private readonly Action<object, T> setter = ReflectionUtility.GetSetter<T>(property);
+
 	public uint Size              => PrepareForWrite() ? field.Size : 0;
 	public bool HasMeaningfulData => PrepareForWrite() && field.HasMeaningfulData;
 
@@ -21,7 +25,7 @@ where T : notnull
 	public void HandleRead(BinaryReader reader)
 	{
 		field.Read(reader);
-		property.SetValue(owner, field.Value);
+		this.setter(owner, field.Value);
 	}
 
 	public void HandleWrite(BinaryWriter writer)
@@ -35,7 +39,7 @@ where T : notnull
 	public async Task HandleReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken)
 	{
 		await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
-		property.SetValue(owner, field.Value);
+		this.setter(owner, field.Value);
 	}
 
 	public Task HandleWriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken)
@@ -48,7 +52,7 @@ where T : notnull
 
 	private bool PrepareForWrite()
 	{
-		var value = property.GetValue(owner);
+		var value = this.getter(owner);
 
 		if (value is null)
 		{
@@ -58,7 +62,7 @@ where T : notnull
 			throw new InvalidOperationException($"Property \"{property.Name}\" on {owner.GetType().FullName} returned null while writing to a binary field");
 		}
 
-		field.Value = (T) value;
+		field.Value = value;
 		return true;
 	}
 }

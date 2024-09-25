@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Core.Framework.Fields.Fluent;
+﻿using System.Collections.Concurrent;
+using MercuryEngine.Data.Core.Framework.Fields.Fluent;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
@@ -7,6 +8,8 @@ namespace MercuryEngine.Data.Types.Fields;
 public abstract class BaseDreadDataStructure<TSelf> : DataStructure<TSelf>
 where TSelf : BaseDreadDataStructure<TSelf>
 {
+	private static readonly ConcurrentDictionary<Type, MsePropertyBagField> PropertyBagPrototypes = [];
+
 	private readonly Lazy<MsePropertyBagField> rawFieldsLazy;
 
 	protected BaseDreadDataStructure()
@@ -24,5 +27,12 @@ where TSelf : BaseDreadDataStructure<TSelf>
 	protected abstract void DefineFields(PropertyBagFieldBuilder fields);
 
 	private MsePropertyBagField CreatePropertyBagField()
+	{
+		var prototype = PropertyBagPrototypes.GetOrAdd(GetType(), _ => CreatePropergyBagPrototype());
+
+		return prototype.Clone();
+	}
+
+	private MsePropertyBagField CreatePropergyBagPrototype()
 		=> MsePropertyBagField.Create(DefineFields);
 }

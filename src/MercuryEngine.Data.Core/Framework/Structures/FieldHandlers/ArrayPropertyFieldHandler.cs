@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
@@ -12,11 +13,17 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 public class ArrayPropertyFieldHandler<T>(ArrayField<T> field, object owner, PropertyInfo property, bool activateWhenNull = false) : IFieldHandler
 where T : IBinaryField
 {
+	private readonly Func<object, IList<T>?> getter = ReflectionUtility.GetGetter<IList<T>?>(property);
+
+	// Setter is lazy-initialized because it requires List<T> instead of IList<T>.
+	// IList<T> properties need to work as long as we don't need to activate null lists.
+	private Action<object, List<T>?>? setter;
+
 	public uint Size
 	{
 		get
 		{
-			if (property.GetValue(owner) is null)
+			if (this.getter(owner) is null)
 				return 0;
 
 			PrepareForWrite();
@@ -28,7 +35,7 @@ where T : IBinaryField
 	{
 		get
 		{
-			if (property.GetValue(owner) is null)
+			if (this.getter(owner) is null)
 				return false;
 
 			return GetListFromProperty().Count > 0;
@@ -111,20 +118,18 @@ where T : IBinaryField
 
 	private IList<T> GetListFromProperty()
 	{
-		var value = property.GetValue(owner);
+		var list = this.getter(owner);
 
-		if (value is null)
+		if (list is null)
 		{
 			if (!activateWhenNull)
 				throw new InvalidOperationException($"Property \"{property.Name}\" on {owner.GetType().FullName} returned null while writing to an array field");
 
-			value = new List<T>();
-			property.SetValue(owner, value);
-		}
+			list = new List<T>();
 
-		if (value is not IList<T> list)
-			throw new InvalidOperationException($"Property \"{property.Name}\" on {owner.GetType().FullName} returned a value of type " +
-												$"\"{value.GetType().FullName}\" when \"{typeof(IList<T>).FullName}\" was expected");
+			this.setter ??= ReflectionUtility.GetSetter<List<T>?>(property);
+			this.setter(owner, (List<T>) list);
+		}
 
 		return list;
 	}

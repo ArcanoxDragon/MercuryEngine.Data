@@ -23,12 +23,13 @@ where TField : IBinaryField
 	where TProperty : notnull
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var getter = ReflectionUtility.CreateNonNullPropertyGetter<TProperty>(@object, property);
 		var builder = new SwitchFieldBuilder<TProperty, TField>();
 
 		build(builder);
 
-		return new SwitchField<TField>(new SwitchFieldEvaluator<TProperty, TField>(builder.Cases, builder.Fallback, getter));
+		var evaluator = new PropertySwitchFieldEvaluator<TProperty, TField>(builder, @object, property);
+
+		return new SwitchField<TField>(evaluator);
 	}
 
 	#endregion
@@ -77,12 +78,13 @@ public class SwitchField : SwitchField<IBinaryField>
 	where TProperty : notnull
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var getter = ReflectionUtility.CreateNonNullPropertyGetter<TProperty>(@object, property);
 		var builder = new SwitchFieldBuilder<TProperty, IBinaryField>();
 
 		build(builder);
 
-		return new SwitchField(new SwitchFieldEvaluator<TProperty, IBinaryField>(builder.Cases, builder.Fallback, getter));
+		var evaluator = new PropertySwitchFieldEvaluator<TProperty, IBinaryField>(builder, @object, property);
+
+		return new SwitchField(evaluator);
 	}
 
 	#endregion

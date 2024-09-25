@@ -54,6 +54,14 @@ where TPropertyKey : IBinaryField
 		IEqualityComparer<TPropertyKey> keyComparer)
 		: this(builder.Fields, propertyKeyTranslator, keyComparer) { }
 
+	protected PropertyBagField(PropertyBagField<TPropertyKey> other)
+	{
+		this.values = new OrderedMultiDictionary<string, IBinaryField>();
+		this.fieldDefinitions = other.fieldDefinitions;
+		this.propertyKeyReverseLookup = other.propertyKeyReverseLookup;
+		this.propertyKeyTranslator = other.propertyKeyTranslator;
+	}
+
 	[JsonIgnore]
 	public uint Size => sizeof(uint) + (uint) this.values.Sum(
 		pair => this.propertyKeyTranslator.GetKeySize(pair.Key) + pair.Value.Size
@@ -69,6 +77,8 @@ where TPropertyKey : IBinaryField
 		get => DataMapper;
 		set => DataMapper = value;
 	}
+
+	public virtual PropertyBagField<TPropertyKey> Clone() => new(this);
 
 	#region Value Getters/Setters
 

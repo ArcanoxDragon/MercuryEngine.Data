@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
@@ -7,15 +8,19 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 /// <summary>
 /// Handles reading and writing a nullable property that can hold a direct <see cref="IBinaryField"/> instance.
 /// </summary>
-public class NullableDirectPropertyFieldHandler(object owner, PropertyInfo property, Func<IBinaryField> fieldFactory) : IFieldHandler
+public class NullableDirectPropertyFieldHandler<TField>(object owner, PropertyInfo property, Func<TField> fieldFactory) : IFieldHandler
+where TField : IBinaryField
 {
+	private readonly Func<object, TField?>   getter = ReflectionUtility.GetGetter<TField?>(property);
+	private readonly Action<object, TField?> setter = ReflectionUtility.GetSetter<TField?>(property);
+
 	public uint Size              => Field?.Size ?? 0u;
 	public bool HasMeaningfulData => Field is { HasMeaningfulData: true };
 
 	public IBinaryField? Field
 	{
-		get => property.GetValue(owner) as IBinaryField;
-		set => property.SetValue(owner, value);
+		get => this.getter(owner);
+		set => this.setter(owner, (TField?) value);
 	}
 
 	public void Reset() => Field = null;

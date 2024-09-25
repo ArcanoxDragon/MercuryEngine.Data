@@ -10,28 +10,24 @@ using Task = System.Threading.Tasks.Task;
 namespace MercuryEngine.Data.Core.Framework.Fields;
 
 [PublicAPI]
-public class EnumField<T> : BaseBinaryField<T>
+public class EnumField<T>(T initialValue) : BaseBinaryField<T>(initialValue)
 where T : struct, Enum
 {
-	private readonly Func<BinaryReader, T>   readFunction;
-	private readonly Action<BinaryWriter, T> writeFunction;
+	// Dynamically-compiled read/write functions that will call the appropriate overload on BinaryReader/BinaryWriter
+	// (these are necessary because different enums may have differently-sized backing data types)
+	private static readonly Func<BinaryReader, T>   ReadFunction  = CreateReadFunction();
+	private static readonly Action<BinaryWriter, T> WriteFunction = CreateWriteFunction();
 
 	public EnumField() : this(default) { }
-
-	public EnumField(T initialValue) : base(initialValue)
-	{
-		this.readFunction = CreateReadFunction();
-		this.writeFunction = CreateWriteFunction();
-	}
 
 	[JsonIgnore]
 	public override uint Size => (uint) Unsafe.SizeOf<T>();
 
 	public override void Read(BinaryReader reader)
-		=> Value = this.readFunction(reader);
+		=> Value = ReadFunction(reader);
 
 	public override void Write(BinaryWriter writer)
-		=> this.writeFunction(writer, Value);
+		=> WriteFunction(writer, Value);
 
 	public override Task ReadAsync(AsyncBinaryReader asyncReader, CancellationToken cancellationToken = default)
 	{
@@ -58,7 +54,7 @@ where T : struct, Enum
 
 	#region Function Generation
 
-	private Func<BinaryReader, T> CreateReadFunction()
+	private static Func<BinaryReader, T> CreateReadFunction()
 	{
 		var underlyingType = Enum.GetUnderlyingType(typeof(T));
 
@@ -83,7 +79,7 @@ where T : struct, Enum
 		return function.Compile();
 	}
 
-	private Action<BinaryWriter, T> CreateWriteFunction()
+	private static Action<BinaryWriter, T> CreateWriteFunction()
 	{
 		var underlyingType = Enum.GetUnderlyingType(typeof(T));
 

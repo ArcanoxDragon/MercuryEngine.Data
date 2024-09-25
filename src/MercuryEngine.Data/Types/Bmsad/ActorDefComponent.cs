@@ -3,8 +3,8 @@ using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.Bmsad.Dependencies;
-using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Fields;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Types.Bmsad;
 
@@ -79,7 +79,7 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 			.Property(m => m.Type)
 			.Property(m => m.Unknown1)
 			.Property(m => m.Unknown2)
-			.RawField(new LengthPrefixedField<FieldsWrapper>(InnerFields, validateReads: false), $"{nameof(Fields)}: LengthPrefixed")
+			.RawProperty(m => m.InnerFields)
 			.RawField(
 				new ConditionalField<DictionaryField<TerminatedStringField, ExtraField>>(
 					() => DreadTypeLibrary.IsChildOf(Type, "CComponent"),
@@ -128,24 +128,86 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 		throw new NotSupportedException($"Unable to determine character class type name for \"{actorDefTypeName}\"");
 	}
 
-	private sealed class FieldsWrapper : DataStructure<FieldsWrapper>
+	private sealed class FieldsWrapper : IResettableField
 	{
-		public StrId             EmptyString { get; } = new();
-		public StrId             Root        { get; } = new();
+		public StrId             EmptyString { get; } = new("");
+		public StrId             Root        { get; } = new("Root");
 		public ITypedDreadField? Object      { get; set; }
 
-		public override bool HasMeaningfulData => Object != null;
+		public uint Size      => sizeof(uint) + InnerSize;
+		public uint InnerSize => Object is null ? 0 : ( EmptyString.Size + Root.Size + Object.Size );
 
-		public override void Reset()
+		public bool HasMeaningfulData => Object != null;
+
+		public void Reset()
 		{
-			base.Reset();
 			Object = null;
 		}
 
-		protected override void Describe(DataStructureBuilder<FieldsWrapper> builder)
-			=> builder
-				.RawProperty(m => m.EmptyString)
-				.RawProperty(m => m.Root)
-				.NullableRawProperty(m => m.Object, () => new base__core__CBaseObject());
+		public void Read(BinaryReader reader)
+		{
+			// Read length prefix. Stream must always advance this exact amount after the read.
+			var length = reader.ReadUInt32();
+
+			if (length == 0)
+			{
+				Reset();
+				return;
+			}
+
+			var startPosition = reader.BaseStream.Position;
+
+			EmptyString.Read(reader);
+			Root.Read(reader);
+			Object?.Read(reader);
+
+			reader.BaseStream.Seek(startPosition + length, SeekOrigin.Begin);
+		}
+
+		public void Write(BinaryWriter writer)
+		{
+			writer.Write(InnerSize);
+
+			if (Object is null)
+				return;
+
+			EmptyString.Write(writer);
+			Root.Write(writer);
+			Object.Write(writer);
+		}
+
+		public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		{
+			// Read length prefix. Stream must always advance this exact amount after the read.
+			var length = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
+
+			if (length == 0)
+			{
+				Reset();
+				return;
+			}
+
+			var startPosition = reader.BaseStream.Position;
+
+			await EmptyString.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+			await Root.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+
+			if (Object != null)
+				await Object.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+
+			reader.BaseStream.Seek(startPosition + length, SeekOrigin.Begin);
+		}
+
+		public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		{
+			await writer.WriteAsync(InnerSize, cancellationToken).ConfigureAwait(false);
+
+			if (Object is null)
+				return;
+
+			await EmptyString.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+			await Root.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+			await Object.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+		}
 	}
 }

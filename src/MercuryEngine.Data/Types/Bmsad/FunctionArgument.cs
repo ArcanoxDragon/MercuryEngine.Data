@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Core.Framework.Fields;
+﻿using System.Linq.Expressions;
+using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
@@ -6,6 +7,8 @@ namespace MercuryEngine.Data.Types.Bmsad;
 
 public class FunctionArgument : DataStructure<FunctionArgument>
 {
+	private static readonly Expression<Func<FunctionArgument, char>> TypeExpression = m => m.Type;
+
 	public char Type { get; set; } = 'b';
 
 	public object Value
@@ -47,12 +50,15 @@ public class FunctionArgument : DataStructure<FunctionArgument>
 	private Int32Field            IntegerField { get; } = new();
 
 	protected override void Describe(DataStructureBuilder<FunctionArgument> builder)
-		=> builder
-			.Property(m => m.Type)
-			.RawField(SwitchField.FromProperty(this, m => m.Type, sw => {
-						  sw.AddCase('s', StringField);
-						  sw.AddCase('f', FloatField);
-						  sw.AddCase('b', BooleanField);
-						  sw.AddCase('i', IntegerField);
-					  }), $"{nameof(Value)}: Switch[{nameof(Type)}]");
+	{
+		builder.Property(TypeExpression);
+		builder.RawField(
+			SwitchField.FromProperty(this, TypeExpression, sw => {
+				sw.AddCase('s', StringField);
+				sw.AddCase('f', FloatField);
+				sw.AddCase('b', BooleanField);
+				sw.AddCase('i', IntegerField);
+			}), $"{nameof(Value)}: Switch[{nameof(Type)}]"
+		);
+	}
 }

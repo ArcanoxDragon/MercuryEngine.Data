@@ -15,8 +15,6 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fluent;
 public sealed class DataStructureBuilder<T>
 where T : IDataStructure
 {
-	private static readonly NullabilityInfoContext NullabilityInfoContext = new();
-
 	internal DataStructureBuilder(T structure)
 	{
 		BuildingStructure = structure;
@@ -93,7 +91,7 @@ where T : IDataStructure
 	public DataStructureBuilder<T> Property(Expression<Func<T, string?>> propertyExpression)
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var nullabilityInfo = NullabilityInfoContext.Create(property);
+		var nullabilityInfo = ReflectionUtility.NullabilityInfoContext.Create(property);
 
 		if (nullabilityInfo.WriteState == NullabilityState.NotNull)
 			// Property is annotated as non-null, so we will use Property instead of NullableProperty
@@ -231,7 +229,7 @@ where T : IDataStructure
 	where TField : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new NullableDirectPropertyFieldHandler(BuildingStructure, property, fieldFactory);
+		var adapter = new NullableDirectPropertyFieldHandler<TField>(BuildingStructure, property, fieldFactory);
 		var description = $"{property.Name}: {typeof(TField).Name}?";
 		return AddField(new DataStructureField(adapter, description));
 	}

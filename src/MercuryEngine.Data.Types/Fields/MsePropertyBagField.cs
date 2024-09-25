@@ -20,4 +20,8 @@ public class MsePropertyBagField : PropertyBagField<StrId>
 
 	public MsePropertyBagField(PropertyBagFieldBuilder builder)
 		: base(builder, CrcPropertyKeyTranslator.Instance, StrId.EqualityComparer) { }
+
+	protected MsePropertyBagField(MsePropertyBagField other) : base(other) { }
+
+	public override MsePropertyBagField Clone() => new(this);
 }
