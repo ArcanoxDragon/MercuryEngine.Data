@@ -34,9 +34,6 @@ where TField : class, ITypedDreadField
 	[JsonIgnore]
 	public uint Size => sizeof(ulong) + Value?.Size ?? 0;
 
-	[JsonIgnore]
-	public bool HasMeaningfulData => Value is { HasMeaningfulData: true };
-
 	public void Reset()
 		=> Value = null;
 

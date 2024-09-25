@@ -67,9 +67,6 @@ where TPropertyKey : IBinaryField
 		pair => this.propertyKeyTranslator.GetKeySize(pair.Key) + pair.Value.Size
 	);
 
-	[JsonIgnore]
-	public bool HasMeaningfulData => this.values.Count > 0;
-
 	protected DataMapper? DataMapper { get; set; }
 
 	DataMapper? IDataMapperAware.DataMapper

@@ -16,13 +16,6 @@ public interface IFieldHandler
 	uint Size { get; }
 
 	/// <summary>
-	/// Gets whether or not the handler's field represents "meaningful" or "significant" data. For example, length-prefixed
-	/// fields may return <see langword="false"/> if the length they write is <c>0</c>, even though the field will still
-	/// write some bytes of data (the length).
-	/// </summary>
-	bool HasMeaningfulData { get; }
-
-	/// <summary>
 	/// The <see cref="IBinaryField"/> instance that would be written by this handler, if applicable.
 	/// </summary>
 	IBinaryField? Field { get; }

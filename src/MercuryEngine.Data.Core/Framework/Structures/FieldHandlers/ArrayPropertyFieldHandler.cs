@@ -31,17 +31,6 @@ where T : IBinaryField
 		}
 	}
 
-	public bool HasMeaningfulData
-	{
-		get
-		{
-			if (this.getter(owner) is null)
-				return false;
-
-			return GetListFromProperty().Count > 0;
-		}
-	}
-
 	public IBinaryField Field => field;
 
 	public void Reset() => GetListFromProperty().Clear();

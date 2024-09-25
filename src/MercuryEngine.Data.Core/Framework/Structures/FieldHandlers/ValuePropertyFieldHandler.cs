@@ -16,7 +16,6 @@ where T : notnull
 	private readonly Action<object, T> setter = ReflectionUtility.GetSetter<T>(property);
 
 	public uint Size              => PrepareForWrite() ? field.Size : 0;
-	public bool HasMeaningfulData => PrepareForWrite() && field.HasMeaningfulData;
 
 	public IBinaryField Field => field;
 

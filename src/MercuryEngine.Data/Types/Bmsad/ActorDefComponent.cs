@@ -155,8 +155,6 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 		public uint Size      => sizeof(uint) + InnerSize;
 		public uint InnerSize => Object is null ? 0 : ( EmptyString.Size + Root.Size + Object.Size );
 
-		public bool HasMeaningfulData => Object != null;
-
 		public void Reset()
 		{
 			Object = null;

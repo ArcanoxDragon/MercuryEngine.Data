@@ -23,9 +23,6 @@ where T : DataStructure<T>
 	public uint Size => (uint) Fields.Sum(f => f.Size);
 
 	[JsonIgnore]
-	public virtual bool HasMeaningfulData => Fields.Any(f => f.HasMeaningfulData);
-
-	[JsonIgnore]
 	public DataMapper? DataMapper { get; set; }
 
 	protected IEnumerable<DataStructureField> Fields => this.fieldsLazy.Value;

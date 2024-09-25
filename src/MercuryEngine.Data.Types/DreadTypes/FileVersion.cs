@@ -17,7 +17,6 @@ public sealed class FileVersion : IBinaryField, IEquatable<FileVersion>
 	public ushort Minor { get; set; }
 
 	public uint Size              => 2 * sizeof(ushort);
-	public bool HasMeaningfulData => true;
 
 	public void Read(BinaryReader reader)
 	{

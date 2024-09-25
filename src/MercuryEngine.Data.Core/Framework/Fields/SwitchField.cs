@@ -50,9 +50,6 @@ where TField : IBinaryField
 	[JsonIgnore]
 	public uint Size => EffectiveField.Size;
 
-	[JsonIgnore]
-	public bool HasMeaningfulData => EffectiveField.HasMeaningfulData;
-
 	public void Reset() => ( EffectiveField as IResettableField )?.Reset();
 	public void Read(BinaryReader reader) => EffectiveField.Read(reader);
 	public void Write(BinaryWriter writer) => EffectiveField.Write(writer);

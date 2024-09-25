@@ -15,8 +15,6 @@ where T : notnull
 
 	public uint Size => field.Size;
 
-	public bool HasMeaningfulData => Field.HasMeaningfulData;
-
 	public IBinaryField Field => field;
 
 	public void Reset() => field.Reset();

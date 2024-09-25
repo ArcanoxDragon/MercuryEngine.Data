@@ -13,7 +13,6 @@ public class DirectPropertyFieldHandler(object owner, PropertyInfo property) : I
 	private readonly Func<object, IBinaryField?> getter = ReflectionUtility.GetGetter<IBinaryField?>(property);
 
 	public uint Size              => Field.Size;
-	public bool HasMeaningfulData => Field.HasMeaningfulData;
 
 	public IBinaryField Field
 		=> this.getter(owner)

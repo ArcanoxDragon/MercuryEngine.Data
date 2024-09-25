@@ -15,7 +15,6 @@ where TField : IBinaryField
 	private readonly Action<object, TField?> setter = ReflectionUtility.GetSetter<TField?>(property);
 
 	public uint Size              => Field?.Size ?? 0u;
-	public bool HasMeaningfulData => Field is { HasMeaningfulData: true };
 
 	public IBinaryField? Field
 	{

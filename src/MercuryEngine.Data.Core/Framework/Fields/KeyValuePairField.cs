@@ -14,9 +14,6 @@ where TValue : IBinaryField
 	[JsonIgnore]
 	public uint Size => Key.Size + Value.Size;
 
-	[JsonIgnore]
-	public bool HasMeaningfulData => Value.HasMeaningfulData;
-
 	protected DataMapper? DataMapper { get; set; }
 
 	internal bool DidReadKey { get; private set; }

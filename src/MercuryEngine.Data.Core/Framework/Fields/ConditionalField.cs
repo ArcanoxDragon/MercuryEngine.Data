@@ -13,9 +13,6 @@ where TField : IBinaryField
 	[JsonIgnore]
 	public uint Size => predicate() ? this.innerField.Size : 0;
 
-	[JsonIgnore]
-	public bool HasMeaningfulData => predicate();
-
 	public void Read(BinaryReader reader)
 	{
 		if (!predicate())

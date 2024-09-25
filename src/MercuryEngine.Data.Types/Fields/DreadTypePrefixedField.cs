@@ -47,9 +47,6 @@ public class DreadTypePrefixedField : IBinaryField, IDataMapperAware
 	[JsonIgnore]
 	public uint Size => sizeof(ulong) + TypedField?.Size ?? 0;
 
-	[JsonIgnore]
-	public bool HasMeaningfulData => InnerData is { HasMeaningfulData: true };
-
 	public void Read(BinaryReader reader)
 	{
 		var typeId = reader.ReadUInt64();
