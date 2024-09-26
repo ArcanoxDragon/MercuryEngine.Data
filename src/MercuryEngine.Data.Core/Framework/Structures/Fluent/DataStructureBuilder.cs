@@ -15,12 +15,7 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fluent;
 public sealed class DataStructureBuilder<T>
 where T : IDataStructure
 {
-	internal DataStructureBuilder(T structure)
-	{
-		BuildingStructure = structure;
-	}
-
-	private T BuildingStructure { get; }
+	internal DataStructureBuilder() { }
 
 	private List<DataStructureField> Fields { get; init; } = [];
 
@@ -28,7 +23,7 @@ where T : IDataStructure
 
 	public DataStructureBuilder<TOther> For<TOther>()
 	where TOther : T
-		=> new((TOther) BuildingStructure) {
+		=> new() {
 			Fields = Fields, // Build to same field collection
 		};
 
@@ -185,7 +180,7 @@ where T : IDataStructure
 	where TProperty : notnull
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ValuePropertyFieldHandler<TProperty>(field, BuildingStructure, property);
+		var adapter = new ValuePropertyFieldHandler<TProperty>(field, property);
 		var description = $"{property.Name}: {typeof(TProperty).Name}";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -194,7 +189,7 @@ where T : IDataStructure
 	where TProperty : class
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ValuePropertyFieldHandler<TProperty>(field, BuildingStructure, property, nullable: true);
+		var adapter = new ValuePropertyFieldHandler<TProperty>(field, property, nullable: true);
 		var description = $"{property.Name}: {typeof(TProperty).Name}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -203,7 +198,7 @@ where T : IDataStructure
 	where TProperty : struct
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ValuePropertyFieldHandler<TProperty>(field, BuildingStructure, property, nullable: true);
+		var adapter = new ValuePropertyFieldHandler<TProperty>(field, property, nullable: true);
 		var description = $"{property.Name}: {typeof(TProperty).Name}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -216,7 +211,7 @@ where T : IDataStructure
 	where TField : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new DirectPropertyFieldHandler(BuildingStructure, property);
+		var adapter = new DirectPropertyFieldHandler(property);
 		var description = $"{property.Name}: {typeof(TField).Name}";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -229,7 +224,7 @@ where T : IDataStructure
 	where TField : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new NullableDirectPropertyFieldHandler<TField>(BuildingStructure, property, fieldFactory);
+		var adapter = new NullableDirectPropertyFieldHandler<TField>(property, fieldFactory);
 		var description = $"{property.Name}: {typeof(TField).Name}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -247,7 +242,7 @@ where T : IDataStructure
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var field = new ArrayField<TItem>(itemFactory);
-		var adapter = new ArrayPropertyFieldHandler<TItem>(field, BuildingStructure, property);
+		var adapter = new ArrayPropertyFieldHandler<TItem>(field, property);
 		var description = $"{property.Name}: {typeof(TItem).Name}[]";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -263,7 +258,7 @@ where T : IDataStructure
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var field = new DictionaryField<TKey, TValue>(keyFactory, valueFactory);
-		var adapter = new DictionaryPropertyFieldHandler<TKey, TValue>(field, BuildingStructure, property);
+		var adapter = new DictionaryPropertyFieldHandler<TKey, TValue>(field, property);
 		var description = $"{property.Name}: Dictionary<{typeof(TKey).Name}, {typeof(TValue).Name}>";
 		return AddField(new DataStructureField(adapter, description));
 	}

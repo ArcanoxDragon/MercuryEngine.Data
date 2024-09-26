@@ -8,37 +8,49 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 /// <summary>
 /// Handles reading and writing a nullable property that can hold a direct <see cref="IBinaryField"/> instance.
 /// </summary>
-public class NullableDirectPropertyFieldHandler<TField>(object owner, PropertyInfo property, Func<TField> fieldFactory) : IFieldHandler
+public class NullableDirectPropertyFieldHandler<TField>(PropertyInfo property, Func<TField> fieldFactory) : IFieldHandler
 where TField : IBinaryField
 {
 	private readonly Func<object, TField?>   getter = ReflectionUtility.GetGetter<TField?>(property);
 	private readonly Action<object, TField?> setter = ReflectionUtility.GetSetter<TField?>(property);
 
-	public uint Size              => Field?.Size ?? 0u;
+	public uint GetSize(IDataStructure dataStructure)
+		=> GetField(dataStructure)?.Size ?? 0u;
 
-	public IBinaryField? Field
+	public IBinaryField? GetField(IDataStructure dataStructure)
+		=> this.getter(dataStructure);
+
+	public void SetField(IDataStructure dataStructure, TField? field)
+		=> this.setter(dataStructure, field);
+
+	public void Reset(IDataStructure dataStructure)
+		=> SetField(dataStructure, default);
+
+	public void HandleRead(IDataStructure dataStructure, BinaryReader reader)
 	{
-		get => this.getter(owner);
-		set => this.setter(owner, (TField?) value);
+		if (GetField(dataStructure) is not TField field)
+		{
+			field = fieldFactory();
+			SetField(dataStructure, field);
+		}
+
+		field.Read(reader);
 	}
 
-	public void Reset() => Field = null;
+	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer)
+		=> GetField(dataStructure)?.Write(writer);
 
-	public void HandleRead(BinaryReader reader)
+	public Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken)
 	{
-		Field ??= fieldFactory();
-		Field.Read(reader);
+		if (GetField(dataStructure) is not TField field)
+		{
+			field = fieldFactory();
+			SetField(dataStructure, field);
+		}
+
+		return field.ReadAsync(reader, cancellationToken);
 	}
 
-	public void HandleWrite(BinaryWriter writer)
-		=> Field?.Write(writer);
-
-	public Task HandleReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken)
-	{
-		Field ??= fieldFactory();
-		return Field.ReadAsync(reader, cancellationToken);
-	}
-
-	public Task HandleWriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken)
-		=> Field?.WriteAsync(writer, cancellationToken) ?? Task.CompletedTask;
+	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
+		=> GetField(dataStructure)?.WriteAsync(writer, cancellationToken) ?? Task.CompletedTask;
 }

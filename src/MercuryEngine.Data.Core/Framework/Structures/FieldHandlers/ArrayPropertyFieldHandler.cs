@@ -10,7 +10,7 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 /// Handles reading and writing a <see cref="IList{T}"/> property with items of type <typeparamref name="T"/> using an
 /// <see cref="ArrayField{TItem}"/> with items of the same type.
 /// </summary>
-public class ArrayPropertyFieldHandler<T>(ArrayField<T> field, object owner, PropertyInfo property, bool activateWhenNull = false) : IFieldHandler
+public class ArrayPropertyFieldHandler<T>(ArrayField<T> field, PropertyInfo property, bool activateWhenNull = false) : IFieldHandler
 where T : IBinaryField
 {
 	private readonly Func<object, IList<T>?> getter = ReflectionUtility.GetGetter<IList<T>?>(property);
@@ -19,51 +19,50 @@ where T : IBinaryField
 	// IList<T> properties need to work as long as we don't need to activate null lists.
 	private Action<object, List<T>?>? setter;
 
-	public uint Size
+	public uint GetSize(IDataStructure dataStructure)
 	{
-		get
-		{
-			if (this.getter(owner) is null)
-				return 0;
+		if (this.getter(dataStructure) is null)
+			return 0;
 
-			PrepareForWrite();
-			return field.Size;
-		}
+		PrepareForWrite(dataStructure);
+		return field.Size;
 	}
 
-	public IBinaryField Field => field;
+	public IBinaryField GetField(IDataStructure dataStructure)
+		=> field;
 
-	public void Reset() => GetListFromProperty().Clear();
+	public void Reset(IDataStructure dataStructure)
+		=> GetListFromProperty(dataStructure).Clear();
 
-	public void HandleRead(BinaryReader reader)
+	public void HandleRead(IDataStructure dataStructure, BinaryReader reader)
 	{
 		field.Read(reader);
-		PostProcessRead();
+		PostProcessRead(dataStructure);
 	}
 
-	public void HandleWrite(BinaryWriter writer)
+	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer)
 	{
-		PrepareForWrite();
+		PrepareForWrite(dataStructure);
 		field.Write(writer);
 	}
 
-	public async Task HandleReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken)
+	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken)
 	{
 		await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
-		PostProcessRead();
+		PostProcessRead(dataStructure);
 	}
 
-	public Task HandleWriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken)
+	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
 	{
-		PrepareForWrite();
+		PrepareForWrite(dataStructure);
 		return field.WriteAsync(writer, cancellationToken);
 	}
 
-	private void PrepareForWrite()
+	private void PrepareForWrite(IDataStructure dataStructure)
 	{
 		// Update the field list from the property
 
-		var source = GetListFromProperty();
+		var source = GetListFromProperty(dataStructure);
 		var destination = field.Value;
 
 		destination.Clear();
@@ -82,11 +81,11 @@ where T : IBinaryField
 		}
 	}
 
-	private void PostProcessRead()
+	private void PostProcessRead(IDataStructure dataStructure)
 	{
 		// Update the list stored in the property
 		var source = field.Value;
-		var destination = GetListFromProperty();
+		var destination = GetListFromProperty(dataStructure);
 
 		destination.Clear();
 
@@ -105,19 +104,19 @@ where T : IBinaryField
 		}
 	}
 
-	private IList<T> GetListFromProperty()
+	private IList<T> GetListFromProperty(IDataStructure dataStructure)
 	{
-		var list = this.getter(owner);
+		var list = this.getter(dataStructure);
 
 		if (list is null)
 		{
 			if (!activateWhenNull)
-				throw new InvalidOperationException($"Property \"{property.Name}\" on {owner.GetType().FullName} returned null while writing to an array field");
+				throw new InvalidOperationException($"Property \"{property.Name}\" on {dataStructure.GetType().FullName} returned null while writing to an array field");
 
 			list = new List<T>();
 
 			this.setter ??= ReflectionUtility.GetSetter<List<T>?>(property);
-			this.setter(owner, (List<T>) list);
+			this.setter(dataStructure, (List<T>) list);
 		}
 
 		return list;

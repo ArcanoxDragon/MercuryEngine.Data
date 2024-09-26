@@ -50,20 +50,20 @@ public static class DataMappingExtensions
 		return field.WriteAsync(writer, cancellationToken);
 	}
 
-	public static void WriteWithDataMapper(this DataStructureField field, BinaryWriter writer, DataMapper? dataMapper)
+	public static void WriteWithDataMapper(this DataStructureField field, IDataStructure dataStructure, BinaryWriter writer, DataMapper? dataMapper)
 	{
-		if (field.Handler.Field is IDataMapperAware dataMapperAwareField)
+		if (field.Handler.GetField(dataStructure) is IDataMapperAware dataMapperAwareField)
 			dataMapperAwareField.DataMapper = dataMapper;
 
-		field.Write(writer);
+		field.Handler.HandleWrite(dataStructure, writer);
 	}
 
-	public static Task WriteWithDataMapperAsync(this DataStructureField field, AsyncBinaryWriter writer, DataMapper? dataMapper, CancellationToken cancellationToken)
+	public static Task WriteWithDataMapperAsync(this DataStructureField field, IDataStructure dataStructure, AsyncBinaryWriter writer, DataMapper? dataMapper, CancellationToken cancellationToken)
 	{
-		if (field.Handler.Field is IDataMapperAware dataMapperAwareField)
+		if (field.Handler.GetField(dataStructure) is IDataMapperAware dataMapperAwareField)
 			dataMapperAwareField.DataMapper = dataMapper;
 
-		return field.WriteAsync(writer, cancellationToken);
+		return field.Handler.HandleWriteAsync(dataStructure, writer, cancellationToken);
 	}
 
 	public static string FormatRangePath(this IEnumerable<DataRange> rangePath)

@@ -13,13 +13,16 @@ where T : notnull
 {
 	private readonly T expectedValue = field.Value;
 
-	public uint Size => field.Size;
+	public uint GetSize(IDataStructure dataStructure)
+		=> field.Size;
 
-	public IBinaryField Field => field;
+	public IBinaryField GetField(IDataStructure dataStructure)
+		=> field;
 
-	public void Reset() => field.Reset();
+	public void Reset(IDataStructure dataStructure)
+		=> field.Reset();
 
-	public void HandleRead(BinaryReader reader)
+	public void HandleRead(IDataStructure dataStructure, BinaryReader reader)
 	{
 		field.Read(reader);
 
@@ -27,9 +30,9 @@ where T : notnull
 			AssertValue();
 	}
 
-	public void HandleWrite(BinaryWriter writer) => field.Write(writer);
+	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer) => field.Write(writer);
 
-	public async Task HandleReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken)
+	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken)
 	{
 		await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 
@@ -37,7 +40,7 @@ where T : notnull
 			AssertValue();
 	}
 
-	public Task HandleWriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken)
+	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
 		=> field.WriteAsync(writer, cancellationToken);
 
 	private void AssertValue()

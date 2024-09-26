@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Concurrent;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
@@ -12,15 +13,17 @@ namespace MercuryEngine.Data.Core.Framework.Structures;
 public abstract class DataStructure<T> : IDataStructure, IBinaryField<T>, IDataMapperAware
 where T : DataStructure<T>
 {
+	private static readonly ConcurrentDictionary<Type, List<DataStructureField>> FieldsByTypeCache = [];
+
 	private readonly Lazy<List<DataStructureField>> fieldsLazy;
 
 	protected DataStructure()
 	{
-		this.fieldsLazy = new Lazy<List<DataStructureField>>(BuildFieldList);
+		this.fieldsLazy = new Lazy<List<DataStructureField>>(GetFieldList);
 	}
 
 	[JsonIgnore]
-	public uint Size => (uint) Fields.Sum(f => f.Size);
+	public uint Size => (uint) Fields.Sum(f => f.Handler.GetSize(this));
 
 	[JsonIgnore]
 	public DataMapper? DataMapper { get; set; }
@@ -30,18 +33,21 @@ where T : DataStructure<T>
 	public virtual void Reset()
 	{
 		foreach (var field in Fields)
-			field.Reset();
+			field.Handler.Reset(this);
 	}
 
 	#region Structure Building
 
 	protected abstract void Describe(DataStructureBuilder<T> builder);
 
-	private List<DataStructureField> BuildFieldList()
-	{
-		var builder = new DataStructureBuilder<T>((T) this);
+	private List<DataStructureField> GetFieldList()
+		=> FieldsByTypeCache.GetOrAdd(GetType(), BuildFieldList, this);
 
-		Describe(builder);
+	private static List<DataStructureField> BuildFieldList(Type structureType, DataStructure<T> buildingStructure)
+	{
+		var builder = new DataStructureBuilder<T>();
+
+		buildingStructure.Describe(builder);
 
 		return builder.Build();
 	}
@@ -60,7 +66,7 @@ where T : DataStructure<T>
 
 			try
 			{
-				field.Read(reader);
+				field.Handler.HandleRead(this, reader);
 			}
 			catch (Exception ex)
 			{
@@ -81,7 +87,7 @@ where T : DataStructure<T>
 			try
 			{
 				DataMapper.PushRange($"field: {field.Description}", writer);
-				field.WriteWithDataMapper(writer, DataMapper);
+				field.WriteWithDataMapper(this, writer, DataMapper);
 			}
 			catch (Exception ex)
 			{
@@ -107,7 +113,7 @@ where T : DataStructure<T>
 
 			try
 			{
-				await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+				await field.Handler.HandleReadAsync(this, reader, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
@@ -128,7 +134,7 @@ where T : DataStructure<T>
 			try
 			{
 				await DataMapper.PushRangeAsync($"field: {field.Description}", writer, cancellationToken).ConfigureAwait(false);
-				await field.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
+				await field.WriteWithDataMapperAsync(this, writer, DataMapper, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{

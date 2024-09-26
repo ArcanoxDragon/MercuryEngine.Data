@@ -10,7 +10,11 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 /// and values of type <typeparamref name="TValue"/> using a <see cref="DictionaryField{TKey,TValue}"/> with keys and values
 /// of the same types.
 /// </summary>
-public class DictionaryPropertyFieldHandler<TKey, TValue>(DictionaryField<TKey, TValue> field, object owner, PropertyInfo property, bool activateWhenNull = false) : IFieldHandler
+public class DictionaryPropertyFieldHandler<TKey, TValue>(
+	DictionaryField<TKey, TValue> field,
+	PropertyInfo property,
+	bool activateWhenNull = false
+) : IFieldHandler
 where TKey : IBinaryField
 where TValue : IBinaryField
 {
@@ -20,50 +24,49 @@ where TValue : IBinaryField
 	// IDictionary<TKey, TValue> properties need to work as long as we don't need to activate null lists.
 	private Action<object, Dictionary<TKey, TValue>?>? setter;
 
-	public uint Size
+	public uint GetSize(IDataStructure dataStructure)
 	{
-		get
-		{
-			if (this.getter(owner) is null)
-				return 0;
+		if (this.getter(dataStructure) is null)
+			return 0;
 
-			PrepareForWrite();
-			return field.Size;
-		}
+		PrepareForWrite(dataStructure);
+		return field.Size;
 	}
 
-	public IBinaryField Field => field;
+	public IBinaryField GetField(IDataStructure dataStructure)
+		=> field;
 
-	public void Reset() => GetDictionaryFromProperty().Clear();
+	public void Reset(IDataStructure dataStructure)
+		=> GetDictionaryFromProperty(dataStructure).Clear();
 
-	public void HandleRead(BinaryReader reader)
+	public void HandleRead(IDataStructure dataStructure, BinaryReader reader)
 	{
 		field.Read(reader);
-		PostProcessRead();
+		PostProcessRead(dataStructure);
 	}
 
-	public void HandleWrite(BinaryWriter writer)
+	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer)
 	{
-		PrepareForWrite();
+		PrepareForWrite(dataStructure);
 		field.Write(writer);
 	}
 
-	public async Task HandleReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken)
+	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken)
 	{
 		await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
-		PostProcessRead();
+		PostProcessRead(dataStructure);
 	}
 
-	public Task HandleWriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken)
+	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
 	{
-		PrepareForWrite();
+		PrepareForWrite(dataStructure);
 		return field.WriteAsync(writer, cancellationToken);
 	}
 
-	private void PrepareForWrite()
+	private void PrepareForWrite(IDataStructure dataStructure)
 	{
 		// Update the field dictionary from the property
-		var source = GetDictionaryFromProperty();
+		var source = GetDictionaryFromProperty(dataStructure);
 
 		field.Value.Clear();
 
@@ -71,10 +74,10 @@ where TValue : IBinaryField
 			field.Value.Add(key, value);
 	}
 
-	private void PostProcessRead()
+	private void PostProcessRead(IDataStructure dataStructure)
 	{
 		// Update the dictionary stored in the property
-		var destination = GetDictionaryFromProperty();
+		var destination = GetDictionaryFromProperty(dataStructure);
 
 		destination.Clear();
 
@@ -82,19 +85,19 @@ where TValue : IBinaryField
 			destination.Add(key, value);
 	}
 
-	private IDictionary<TKey, TValue> GetDictionaryFromProperty()
+	private IDictionary<TKey, TValue> GetDictionaryFromProperty(IDataStructure dataStructure)
 	{
-		var dictionary = this.getter(owner);
+		var dictionary = this.getter(dataStructure);
 
 		if (dictionary is null)
 		{
 			if (!activateWhenNull)
-				throw new InvalidOperationException($"Property \"{property.Name}\" on {owner.GetType().FullName} returned null while writing to a dictionary field");
+				throw new InvalidOperationException($"Property \"{property.Name}\" on {dataStructure.GetType().FullName} returned null while writing to a dictionary field");
 
 			dictionary = new Dictionary<TKey, TValue>();
 
 			this.setter ??= ReflectionUtility.GetSetter<Dictionary<TKey, TValue>?>(property);
-			this.setter(owner, (Dictionary<TKey, TValue>) dictionary);
+			this.setter(dataStructure, (Dictionary<TKey, TValue>) dictionary);
 		}
 
 		return dictionary;

@@ -11,23 +11,24 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 public interface IFieldHandler
 {
 	/// <summary>
-	/// The size of the data that this handler's field currently represents.
+	/// Gets the size of the data that this handler's field currently represents in the provided <paramref name="dataStructure"/>.
 	/// </summary>
-	uint Size { get; }
+	uint GetSize(IDataStructure dataStructure);
 
 	/// <summary>
-	/// The <see cref="IBinaryField"/> instance that would be written by this handler, if applicable.
+	/// The <see cref="IBinaryField"/> instance that would be written by this handler for the provided <paramref name="dataStructure"/>,
+	/// if applicable.
 	/// </summary>
-	IBinaryField? Field { get; }
+	IBinaryField? GetField(IDataStructure dataStructure);
 
 	/// <summary>
-	/// Resets the field to its "default" state.
+	/// Resets the handler's field in the provided <paramref name="dataStructure"/> to its "default" state.
 	/// </summary>
-	void Reset();
+	void Reset(IDataStructure dataStructure);
 
-	void HandleRead(BinaryReader reader);
-	void HandleWrite(BinaryWriter writer);
+	void HandleRead(IDataStructure dataStructure, BinaryReader reader);
+	void HandleWrite(IDataStructure dataStructure, BinaryWriter writer);
 
-	Task HandleReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken);
-	Task HandleWriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken);
+	Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken);
+	Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken);
 }
