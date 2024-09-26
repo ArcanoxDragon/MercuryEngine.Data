@@ -18,7 +18,7 @@ internal static class ReflectionUtility
 			throw new MissingMethodException($"The type \"{typeof(T).FullName}\" must have a public parameterless constructor in order to be used in {callerMemberName}");
 
 		var newExpression = Expression.New(defaultConstructor); // new T()
-		var factoryLambda = Expression.Lambda<Func<T>>(newExpression);
+		var factoryLambda = Expression.Lambda<Func<T>>(newExpression, tailCall: true);
 
 		return factoryLambda.Compile();
 	}

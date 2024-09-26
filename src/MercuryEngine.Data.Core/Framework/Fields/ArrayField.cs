@@ -12,10 +12,12 @@ namespace MercuryEngine.Data.Core.Framework.Fields;
 public class ArrayField<TItem>(Func<TItem> itemFactory, List<TItem> initialValue) : BaseBinaryField<List<TItem>>(initialValue)
 where TItem : IBinaryField
 {
+	private static readonly Func<TItem> DefaultItemFactory = ReflectionUtility.CreateFactoryFromDefaultConstructor<TItem>();
+
 	private readonly Func<TItem> itemFactory = itemFactory;
 
 	public ArrayField()
-		: this(ReflectionUtility.CreateFactoryFromDefaultConstructor<TItem>()) { }
+		: this(DefaultItemFactory) { }
 
 	public ArrayField(Func<TItem> itemFactory)
 		: this(itemFactory, []) { }
