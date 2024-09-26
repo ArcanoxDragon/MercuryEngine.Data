@@ -56,8 +56,8 @@ public class DictionaryAdapter<TBackingKey, TBackingValue, TAccessKey, TAccessVa
 		ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex);
 		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(arrayIndex, array.Length);
 
-		if (arrayIndex + Count >= array.Length)
-			throw new ArgumentException("Destination array is not long enough to copy all the items in the collection. Check array index and length.");
+		if (array.Length - arrayIndex < Count)
+			throw new ArgumentException("Not enough room in the target array");
 
 		var index = arrayIndex;
 

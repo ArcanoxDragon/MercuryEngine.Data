@@ -10,7 +10,7 @@ namespace MercuryEngine.Data.SourceGenerators.Generators.Structs;
 public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 {
 	// Many fields have a prefix indicating the type; we want to strip that off
-	private static readonly Regex        FieldNameRegex       = new(@"(?:[abcefioprstuv]|v\d|hash|vect|vo|wp|dct|str|arr|dic|map|lst)?([a-zA-Z][a-zA-Z\d_]*)", RegexOptions.Compiled);
+	private static readonly Regex        FieldNameRegex       = new(@"(?:[abcefinoprstuv]|v\d|hash|vect|vo|wp|dct|str|arr|dic|map|lst)?([a-zA-Z][a-zA-Z\d_]*)", RegexOptions.Compiled);
 	private static readonly List<string> ForbiddenMemberNames = ["Write", "Size", "Reset"];
 
 	public static DreadStructGenerator Instance { get; } = new();

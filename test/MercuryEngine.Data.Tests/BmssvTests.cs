@@ -2,7 +2,6 @@
 using System.Text.Json;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Formats;
-using MercuryEngine.Data.Tests.Extensions;
 using MercuryEngine.Data.Tests.Utility;
 using MercuryEngine.Data.Tests.Utility.Json;
 
@@ -107,11 +106,7 @@ public partial class BmssvTests
 
 	private static void DumpBmssvFile(Bmssv bmssv, string bmssvFilePath)
 	{
-		var jsonObject = JsonSerializer.SerializeToNode(bmssv, JsonUtility.JsonOptions)!.AsObject();
-
-		jsonObject.Sort();
-
-		var jsonDump = jsonObject.ToJsonString(JsonUtility.JsonOptions);
+		var jsonDump = JsonSerializer.Serialize(bmssv, JsonUtility.JsonOptions);
 
 		TestContext.Out.WriteLine("JSON dump of current parsed state:");
 		TestContext.Out.WriteLine(jsonDump);

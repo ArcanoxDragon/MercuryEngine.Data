@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
 
 namespace MercuryEngine.Data.Tests.Utility.Json;
@@ -15,11 +16,13 @@ internal static class JsonUtility
 		TypeInfoResolver = JsonTypeInfoResolver.Combine(
 			TestJsonSerializerContext.Default,
 			new DefaultJsonTypeInfoResolver()
-		),
+		).WithAddedModifier(SortPropertiesByName),
 		Converters = {
 			new JsonStringEnumConverter(),
 			new ArrayFieldJsonConverter(),
 			new DictionaryFieldJsonConverter(),
+			new EnumFieldJsonConverter(),
+			new FixedLengthStringFieldJsonConverter(),
 			new NumberFieldJsonConverter<BooleanField, bool>(),
 			new NumberFieldJsonConverter<ByteField, byte>(),
 			new NumberFieldJsonConverter<CharField, char>(),
@@ -38,4 +41,25 @@ internal static class JsonUtility
 			new DreadTypedFieldJsonConverter(),
 		},
 	};
+
+	private static void SortPropertiesByName(JsonTypeInfo typeInfo)
+	{
+		if (typeInfo.Properties.Count == 0)
+			return;
+
+		var propertiesDict = typeInfo.Properties.ToDictionary(p => p.Name);
+		var propertiesList = typeInfo.Properties.ToList();
+		var maxExistingOrder = propertiesList.Max(p => p.Order);
+
+		propertiesList.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
+
+		foreach (var (i, property) in propertiesList.Pairs())
+		{
+			if (property.Order != 0)
+				// Don't override explicit order
+				continue;
+
+			propertiesDict[property.Name].Order = i + maxExistingOrder + 1;
+		}
+	}
 }

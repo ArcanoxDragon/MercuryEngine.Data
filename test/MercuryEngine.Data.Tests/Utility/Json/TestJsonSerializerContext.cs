@@ -10,6 +10,8 @@ namespace MercuryEngine.Data.Tests.Utility.Json;
 		typeof(JsonStringEnumConverter),
 		typeof(ArrayFieldJsonConverter),
 		typeof(DictionaryFieldJsonConverter),
+		typeof(EnumFieldJsonConverter),
+		typeof(FixedLengthStringFieldJsonConverter),
 		typeof(NumberFieldJsonConverter<BooleanField, bool>),
 		typeof(NumberFieldJsonConverter<ByteField, byte>),
 		typeof(NumberFieldJsonConverter<CharField, char>),
@@ -30,4 +32,6 @@ namespace MercuryEngine.Data.Tests.Utility.Json;
 )]
 [JsonSerializable(typeof(Bmsad))]
 [JsonSerializable(typeof(Bmssv))]
+[JsonSerializable(typeof(TerminatedStringField), GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSerializable(typeof(FixedLengthStringField), GenerationMode = JsonSourceGenerationMode.Metadata)]
 public partial class TestJsonSerializerContext : JsonSerializerContext;

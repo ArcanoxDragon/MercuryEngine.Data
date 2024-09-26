@@ -17,7 +17,10 @@ public interface IPropertyBagField : IResettableField, IDataMapperAware
 	void Set(string propertyName, IBinaryField field);
 
 	TValue? GetValue<TValue>(string propertyName, TValue? defaultValue = default)
-	where TValue : notnull;
+	where TValue : class;
+
+	TValue? GetValue<TValue>(string propertyName, TValue? defaultValue = default)
+	where TValue : struct;
 
 	void SetValue<TValue>(string propertyName, TValue value)
 	where TValue : notnull;
@@ -97,7 +100,23 @@ where TPropertyKey : IBinaryField
 
 	[return: NotNullIfNotNull(nameof(defaultValue))]
 	public TValue? GetValue<TValue>(string propertyName, TValue? defaultValue = default)
-	where TValue : notnull
+	where TValue : class
+	{
+		if (!this.fieldDefinitions.ContainsKey(propertyName))
+			throw UnrecognizedPropertyException(propertyName);
+
+		if (!this.values.TryGetValue(propertyName, out var field))
+			return defaultValue;
+
+		if (field is not IBinaryField<TValue> valueField)
+			throw NotValueFieldException<TValue>(propertyName, field.GetType());
+
+		return valueField.Value;
+	}
+
+	[return: NotNullIfNotNull(nameof(defaultValue))]
+	public TValue? GetValue<TValue>(string propertyName, TValue? defaultValue = default)
+	where TValue : struct
 	{
 		if (!this.fieldDefinitions.ContainsKey(propertyName))
 			throw UnrecognizedPropertyException(propertyName);

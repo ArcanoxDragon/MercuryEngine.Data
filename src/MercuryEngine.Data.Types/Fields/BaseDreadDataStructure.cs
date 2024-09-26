@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Text.Json.Serialization;
 using MercuryEngine.Data.Core.Framework.Fields.Fluent;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
@@ -17,6 +18,7 @@ where TSelf : BaseDreadDataStructure<TSelf>
 		this.rawFieldsLazy = new Lazy<MsePropertyBagField>(CreatePropertyBagField);
 	}
 
+	[JsonIgnore]
 	public MsePropertyBagField RawFields => this.rawFieldsLazy.Value;
 
 	protected override void Describe(DataStructureBuilder<TSelf> builder)

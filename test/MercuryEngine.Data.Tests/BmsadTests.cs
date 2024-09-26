@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Formats;
-using MercuryEngine.Data.Tests.Extensions;
 using MercuryEngine.Data.Tests.Utility;
 using MercuryEngine.Data.Tests.Utility.Json;
 
@@ -125,11 +124,7 @@ public partial class BmsadTests
 
 	private static void DumpBmsadFile(Bmsad bmsad, string bmsadFilePath, bool quiet = false)
 	{
-		var jsonObject = JsonSerializer.SerializeToNode(bmsad, JsonUtility.JsonOptions)!.AsObject();
-
-		jsonObject.Sort();
-
-		var jsonDump = jsonObject.ToJsonString(JsonUtility.JsonOptions);
+		var jsonDump = JsonSerializer.Serialize(bmsad, JsonUtility.JsonOptions);
 
 		if (!quiet)
 		{

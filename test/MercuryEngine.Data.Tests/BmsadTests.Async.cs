@@ -5,7 +5,6 @@ using MercuryEngine.Data.Tests.Utility;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using MercuryEngine.Data.Tests.Extensions;
 
 namespace MercuryEngine.Data.Tests;
 
@@ -110,11 +109,7 @@ public partial class BmsadTests
 
 	private static async Task DumpBmsadFileAsync(Bmsad bmsad, string bmsadFilePath, bool quiet = false)
 	{
-		var jsonObject = JsonSerializer.SerializeToNode(bmsad, JsonUtility.JsonOptions)!.AsObject();
-
-		jsonObject.Sort();
-
-		var jsonDump = jsonObject.ToJsonString(JsonUtility.JsonOptions);
+		var jsonDump = JsonSerializer.Serialize(bmsad, JsonUtility.JsonOptions);
 
 		if (!quiet)
 		{
