@@ -1,6 +1,7 @@
 ﻿using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using MercuryEngine.Data.Core.Framework.Fields;
 
 namespace MercuryEngine.Data.Tests.Utility.Json;
@@ -11,6 +12,10 @@ internal static class JsonUtility
 		WriteIndented = true,
 		ReferenceHandler = ReferenceHandler.IgnoreCycles,
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+		TypeInfoResolver = JsonTypeInfoResolver.Combine(
+			TestJsonSerializerContext.Default,
+			new DefaultJsonTypeInfoResolver()
+		),
 		Converters = {
 			new JsonStringEnumConverter(),
 			new ArrayFieldJsonConverter(),

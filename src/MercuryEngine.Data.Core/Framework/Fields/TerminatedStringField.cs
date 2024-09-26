@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -40,6 +41,7 @@ public class TerminatedStringField(string initialValue) : BaseBinaryField<string
 	/// <summary>
 	/// The encoding used when reading and writing strings. Defaults to a version of <see cref="Encoding.UTF8"/> that does not write a BOM.
 	/// </summary>
+	[JsonIgnore]
 	public Encoding Encoding { get; set; } = DefaultEncoding;
 
 	public override uint Size => (uint) Encoding.GetByteCount(Value) + 1;
