@@ -31,8 +31,8 @@ public class Global
 		var stringToHashMap = KnownStrings.NewStrings.ToImmutableSortedDictionary(s => s, s => s.GetCrc64(), StringComparer.Ordinal);
 		var stringToHashMapHex = KnownStrings.NewStrings.ToImmutableSortedDictionary(s => s, s => s.GetCrc64().ToHexString(), StringComparer.Ordinal);
 
-		DumpDictionary(stringToHashMap, "discovered_strings.json");
-		DumpDictionary(stringToHashMapHex, "discovered_strings_hex.json");
+		DumpDictionary(stringToHashMap, "dread_discovered_strings.json");
+		DumpDictionary(stringToHashMapHex, "dread_discovered_strings_hex.json");
 
 		static void DumpDictionary<TKey, TValue>(ImmutableSortedDictionary<TKey, TValue> dict, string fileName)
 		where TKey : notnull

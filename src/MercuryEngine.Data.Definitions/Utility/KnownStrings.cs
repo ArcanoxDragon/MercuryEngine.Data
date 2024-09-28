@@ -12,9 +12,9 @@ public static class KnownStrings
 {
 	static KnownStrings()
 	{
-		ParseStringsFromDataFile("DataDefinitions/property_names.json");
-		ParseStringsFromDataFile("DataDefinitions/resource_names.json");
-		ParseStringsFromDataFile("DataDefinitions/discovered_strings.json");
+		ParseStringsFromDataFile("DataDefinitions/dread_property_names.json");
+		ParseStringsFromDataFile("DataDefinitions/dread_resource_names.json");
+		ParseStringsFromDataFile("DataDefinitions/dread_discovered_strings.json");
 	}
 
 	public static IReadOnlyList<string> NewStrings => InternalKnownStrings.NewDiscoveredStrings;
