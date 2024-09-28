@@ -6,24 +6,26 @@ namespace MercuryEngine.Data.Tests.Infrastructure;
 
 public abstract class BaseTestFixture
 {
-	protected static readonly string PackagesPath = Configuration.PackagesPath; // Store it for faster access
+	// Store these in fields for faster access
+	protected static readonly string PackagesPath = Configuration.PackagesPath;
+	protected static readonly string RomFsPath    = Configuration.RomFsPath;
 
 	private static readonly EnumerationOptions EnumerationOptions = new() {
 		MatchCasing = MatchCasing.CaseInsensitive,
 		RecurseSubdirectories = true,
 	};
 
-	protected static IEnumerable<TestCaseData> GetTestCasesFromPackages(string fileFormat)
-	{
-		foreach (var bmsadFile in Directory.EnumerateFiles(PackagesPath, $"*.{fileFormat}", EnumerationOptions))
-		{
-			var relativePath = Path.GetRelativePath(PackagesPath, bmsadFile);
+	protected static IEnumerable<TestCaseData> GetTestCasesFromRomFs(string fileFormat)
+		=> Directory.EnumerateFiles(RomFsPath, $"*.{fileFormat}", EnumerationOptions)
+			.Select(file => new TestCaseData(file) {
+				TestName = Path.GetRelativePath(RomFsPath, file),
+			});
 
-			yield return new TestCaseData(bmsadFile) {
-				TestName = relativePath,
-			};
-		}
-	}
+	protected static IEnumerable<TestCaseData> GetTestCasesFromPackages(string fileFormat)
+		=> Directory.EnumerateFiles(PackagesPath, $"*.{fileFormat}", EnumerationOptions)
+			.Select(file => new TestCaseData(file) {
+				TestName = Path.GetRelativePath(PackagesPath, file),
+			});
 
 	protected static void ReadWriteAndCompare<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
