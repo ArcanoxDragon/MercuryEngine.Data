@@ -9,7 +9,10 @@ namespace MercuryEngine.Data.Tests;
 public partial class BmsadTests : BaseTestFixture
 {
 	private static IEnumerable<TestCaseData> GetTestFiles()
-		=> GetTestCasesFromPackages("bmsad");
+		// Add "quiet" arg to test cases (NUnit can't handle optional parameters???)
+		=> GetTestCasesFromPackages("bmsad").Select(tc => new TestCaseData(tc.Arguments[0], false) {
+			TestName = tc.TestName,
+		});
 
 	[Test]
 	public void TestDumpAllBmsads()
@@ -62,13 +65,5 @@ public partial class BmsadTests : BaseTestFixture
 	}
 
 	private static void DumpBmsadFile(Bmsad bmsad, string bmsadFilePath, bool quiet = false)
-	{
-		var jsonDump = DataUtilities.DumpDataStructure(bmsad, bmsadFilePath, PackagesPath);
-
-		if (!quiet)
-		{
-			TestContext.Out.WriteLine("JSON dump of current parsed state:");
-			TestContext.Out.WriteLine(jsonDump);
-		}
-	}
+		=> DataUtilities.DumpDataStructure(bmsad, bmsadFilePath, PackagesPath, print: !quiet);
 }

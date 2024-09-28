@@ -10,6 +10,9 @@ namespace MercuryEngine.Data.Tests.Utility.Json;
 		typeof(JsonStringEnumConverter),
 		typeof(ArrayFieldJsonConverter),
 		typeof(DictionaryFieldJsonConverter),
+		typeof(DreadPointerJsonConverter),
+		typeof(DreadTypedFieldJsonConverter),
+		typeof(DreadTypePrefixedFieldJsonConverter),
 		typeof(EnumFieldJsonConverter),
 		typeof(FixedLengthStringFieldJsonConverter),
 		typeof(NumberFieldJsonConverter<BooleanField, bool>),
@@ -26,12 +29,11 @@ namespace MercuryEngine.Data.Tests.Utility.Json;
 		typeof(NumberFieldJsonConverter<DecimalField, decimal>),
 		typeof(StrIdJsonConverter),
 		typeof(TerminatedStringFieldJsonConverter),
-		typeof(DreadTypePrefixedFieldJsonConverter),
-		typeof(DreadTypedFieldJsonConverter),
 	]
 )]
 [JsonSerializable(typeof(Bmsad))]
 [JsonSerializable(typeof(Bmssv))]
+[JsonSerializable(typeof(Bptdat))]
 [JsonSerializable(typeof(TerminatedStringField), GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(FixedLengthStringField), GenerationMode = JsonSourceGenerationMode.Metadata)]
 public partial class TestJsonSerializerContext : JsonSerializerContext;

@@ -21,6 +21,9 @@ internal static class JsonUtility
 			new JsonStringEnumConverter(),
 			new ArrayFieldJsonConverter(),
 			new DictionaryFieldJsonConverter(),
+			new DreadPointerJsonConverter(),
+			new DreadTypedFieldJsonConverter(),
+			new DreadTypePrefixedFieldJsonConverter(),
 			new EnumFieldJsonConverter(),
 			new FixedLengthStringFieldJsonConverter(),
 			new NumberFieldJsonConverter<BooleanField, bool>(),
@@ -37,8 +40,6 @@ internal static class JsonUtility
 			new NumberFieldJsonConverter<DecimalField, decimal>(),
 			new StrIdJsonConverter(),
 			new TerminatedStringFieldJsonConverter(),
-			new DreadTypePrefixedFieldJsonConverter(),
-			new DreadTypedFieldJsonConverter(),
 		},
 	};
 

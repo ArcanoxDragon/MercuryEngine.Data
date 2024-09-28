@@ -14,7 +14,7 @@ where TField : class, ITypedDreadField
 
 	public DreadPointer() { }
 
-	public DreadPointer(TField value)
+	public DreadPointer(TField? value)
 	{
 		Value = value;
 	}

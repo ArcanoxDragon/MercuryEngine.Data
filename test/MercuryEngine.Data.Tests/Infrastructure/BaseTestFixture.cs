@@ -19,7 +19,7 @@ public abstract class BaseTestFixture
 		{
 			var relativePath = Path.GetRelativePath(PackagesPath, bmsadFile);
 
-			yield return new TestCaseData(bmsadFile, false) {
+			yield return new TestCaseData(bmsadFile) {
 				TestName = relativePath,
 			};
 		}
@@ -28,7 +28,9 @@ public abstract class BaseTestFixture
 	protected static void ReadWriteAndCompare<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
-		var dataFormatName = typeof(T).Name.ToUpper();
+		var dataMapper = new DataMapper();
+		var dataStructure = new T { DataMapper = dataMapper };
+		var dataFormatName = dataStructure.DisplayName;
 
 		if (!quiet)
 			TestContext.Progress.WriteLine($"Parsing {dataFormatName} file: {sourceFilePath}");
@@ -38,11 +40,6 @@ public abstract class BaseTestFixture
 		var originalBuffer = reader.ReadBytes((int) fileStream.Length);
 
 		fileStream.Seek(0, SeekOrigin.Begin);
-
-		var dataMapper = new DataMapper();
-		var dataStructure = new T {
-			DataMapper = dataMapper,
-		};
 
 		// Read structure and dump to JSON
 		dataStructure.Read(fileStream);
@@ -82,7 +79,9 @@ public abstract class BaseTestFixture
 	protected static async Task ReadWriteAndCompareAsync<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
-		var dataFormatName = typeof(T).Name.ToUpper();
+		var dataMapper = new DataMapper();
+		var dataStructure = new T { DataMapper = dataMapper };
+		var dataFormatName = dataStructure.DisplayName;
 
 		if (!quiet)
 			await TestContext.Progress.WriteLineAsync($"Parsing {dataFormatName} file: {sourceFilePath}");
@@ -92,11 +91,6 @@ public abstract class BaseTestFixture
 		var originalBuffer = reader.ReadBytes((int) fileStream.Length);
 
 		fileStream.Seek(0, SeekOrigin.Begin);
-
-		var dataMapper = new DataMapper();
-		var dataStructure = new T {
-			DataMapper = dataMapper,
-		};
 
 		// Read structure and dump to JSON
 		await dataStructure.ReadAsync(fileStream);
