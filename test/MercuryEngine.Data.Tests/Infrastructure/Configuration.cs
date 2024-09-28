@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace MercuryEngine.Data.Tests;
+namespace MercuryEngine.Data.Tests.Infrastructure;
 
 internal static class Configuration
 {
-	public const string DreadRomFsKey    = "DreadRomFs";
+	public const string DreadRomFsKey = "DreadRomFs";
 	public const string DreadPackagesKey = "DreadPackages";
 
 	public static IConfigurationRoot Instance { get; }
