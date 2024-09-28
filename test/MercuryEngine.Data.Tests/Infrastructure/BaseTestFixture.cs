@@ -35,7 +35,7 @@ public abstract class BaseTestFixture
 		if (!quiet)
 			TestContext.Progress.WriteLine($"Parsing {dataFormatName} file: {sourceFilePath}");
 
-		using var fileStream = File.Open(sourceFilePath, FileMode.Open, FileAccess.Read);
+		using var fileStream = File.Open(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 		using var reader = new BinaryReader(fileStream);
 		var originalBuffer = reader.ReadBytes((int) fileStream.Length);
 
@@ -52,7 +52,7 @@ public abstract class BaseTestFixture
 		tempStream.Seek(0, SeekOrigin.Begin);
 
 		// Write a copy of the data file back out
-		var relativePath = Path.GetDirectoryName(Path.GetRelativePath(PackagesPath, sourceFilePath))!;
+		var relativePath = Path.GetDirectoryName(Path.GetRelativePath(relativeTo, sourceFilePath))!;
 		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativePath);
 		var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".out" + Path.GetExtension(sourceFilePath);
 		var outFilePath = Path.Combine(outFileDir, outFileName);
@@ -103,7 +103,7 @@ public abstract class BaseTestFixture
 		tempStream.Seek(0, SeekOrigin.Begin);
 
 		// Write a copy of the data file back out
-		var relativePath = Path.GetDirectoryName(Path.GetRelativePath(PackagesPath, sourceFilePath))!;
+		var relativePath = Path.GetDirectoryName(Path.GetRelativePath(relativeTo, sourceFilePath))!;
 		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativePath);
 		var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".out" + Path.GetExtension(sourceFilePath);
 		var outFilePath = Path.Combine(outFileDir, outFileName);

@@ -1,7 +1,7 @@
-﻿using MercuryEngine.Data.Formats;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using MercuryEngine.Data.Formats;
 
-namespace MercuryEngine.Data.Tests;
+namespace MercuryEngine.Data.Tests.Formats;
 
 public partial class BmsadTests
 {

@@ -2,7 +2,7 @@
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Tests.Utility;
 
-namespace MercuryEngine.Data.Tests;
+namespace MercuryEngine.Data.Tests.Formats;
 
 [TestFixture]
 public partial class BmssvTests : BaseTestFixture
