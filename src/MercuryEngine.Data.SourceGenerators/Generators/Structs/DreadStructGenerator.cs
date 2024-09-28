@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.SourceGenerators.Extensions;
@@ -86,6 +87,12 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 		{
 			if (!generationContext.KnownTypes.TryGetValue(fieldTypeName, out var fieldType))
 				throw new InvalidOperationException($"Field \"{fieldName}\" on struct type \"{typeName}\" has unknown type \"{fieldTypeName}\"");
+
+			if (FieldExistsOnParent(dreadType, fieldName, generationContext, out var parentWithDuplicate))
+			{
+				fields.Add(new SkippedStructField(fieldName, $"the field was already defined on the parent type \"{parentWithDuplicate.TypeName}\""));
+				continue;
+			}
 
 			// Normalize typedefs to their underlying type
 			while (fieldType is DreadTypedefType)
@@ -387,6 +394,25 @@ public class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 
 			_ => throw new InvalidOperationException($"Unsupported primitive kind \"{primitiveKind}\""),
 		};
+
+	private static bool FieldExistsOnParent(DreadStructType structType, string fieldName, GenerationContext context, [NotNullWhen(true)] out DreadStructType? containingStruct)
+	{
+		containingStruct = default;
+
+		if (structType.Parent is null)
+			return false;
+
+		if (FindType(structType.Parent, context) is not DreadStructType parentStruct)
+			return false;
+
+		if (parentStruct.Fields.ContainsKey(fieldName))
+		{
+			containingStruct = parentStruct;
+			return true;
+		}
+
+		return FieldExistsOnParent(parentStruct, fieldName, context, out containingStruct);
+	}
 
 	private static BaseDreadType FindType(string typeName, GenerationContext context)
 	{

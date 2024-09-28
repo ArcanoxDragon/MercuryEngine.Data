@@ -6,7 +6,7 @@ internal sealed record InvalidStructField(string FieldName, string ErrorMessage)
 	public bool HasSummary     => false;
 
 	public string GenerateSummary()
-		=> "";
+		=> string.Empty;
 
 	public IEnumerable<string> GenerateProperty()
 		=> [$"// Error generating field \"{FieldName}\": {ErrorMessage}"];
