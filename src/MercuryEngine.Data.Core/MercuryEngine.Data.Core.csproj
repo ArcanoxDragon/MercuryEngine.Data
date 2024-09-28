@@ -11,5 +11,10 @@
 		<PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
 		<PackageReference Include="Overby.Extensions.AsyncBinaryReaderWriter" Version="1.0.39" />
 	</ItemGroup>
+	
+	<ItemGroup>
+		<InternalsVisibleTo Include="MercuryEngine.Data.Definitions" />
+		<InternalsVisibleTo Include="MercuryEngine.Data.Tests" />
+	</ItemGroup>
 
 </Project>

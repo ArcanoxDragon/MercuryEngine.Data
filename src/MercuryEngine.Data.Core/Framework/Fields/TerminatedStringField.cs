@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Fields;
@@ -29,6 +30,10 @@ public class TerminatedStringField(string initialValue) : BaseBinaryField<string
 				throw new ArgumentOutOfRangeException(nameof(value), $"Value cannot be larger than the maximum length of {MaxLength} bytes.");
 
 			base.Value = value;
+
+#if DEBUG
+			InternalKnownStrings.Record(value);
+#endif
 		}
 	}
 

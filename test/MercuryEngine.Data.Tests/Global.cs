@@ -14,6 +14,14 @@ public class Global
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 	};
 
+	[OneTimeSetUp]
+	public void InitKnownStrings()
+	{
+		// We need to load the "KnownStrings" class before any tests are run so that
+		// the JSON string dictionaries get parsed before any string fields are read
+		KnownStrings.Record(string.Empty);
+	}
+
 	[OneTimeTearDown]
 	public void WriteNewStrings()
 	{
@@ -21,12 +29,21 @@ public class Global
 			return;
 
 		var stringToHashMap = KnownStrings.NewStrings.ToImmutableSortedDictionary(s => s, s => s.GetCrc64(), StringComparer.Ordinal);
-		var newStringsJson = JsonSerializer.Serialize(stringToHashMap, NewStringsJsonOptions);
+		var stringToHashMapHex = KnownStrings.NewStrings.ToImmutableSortedDictionary(s => s, s => s.GetCrc64().ToHexString(), StringComparer.Ordinal);
 
-		var outputDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles");
-		var outputPath = Path.Combine(outputDir, "discovered_strings.json");
+		DumpDictionary(stringToHashMap, "discovered_strings.json");
+		DumpDictionary(stringToHashMapHex, "discovered_strings_hex.json");
 
-		Directory.CreateDirectory(outputDir);
-		File.WriteAllText(outputPath, newStringsJson);
+		static void DumpDictionary<TKey, TValue>(ImmutableSortedDictionary<TKey, TValue> dict, string fileName)
+		where TKey : notnull
+		{
+			var newStringsJson = JsonSerializer.Serialize(dict, NewStringsJsonOptions);
+
+			var outputDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles");
+			var outputPath = Path.Combine(outputDir, fileName);
+
+			Directory.CreateDirectory(outputDir);
+			File.WriteAllText(outputPath, newStringsJson);
+		}
 	}
 }

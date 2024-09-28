@@ -3,16 +3,13 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
-using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Core.Utility;
 
 namespace MercuryEngine.Data.Definitions.Utility;
 
 [PublicAPI]
 public static class KnownStrings
 {
-	private static readonly Dictionary<ulong, string> HashToStringLookup   = [];
-	private static readonly List<string>              NewDiscoveredStrings = [];
-
 	static KnownStrings()
 	{
 		ParseStringsFromDataFile("DataDefinitions/property_names.json");
@@ -20,39 +17,25 @@ public static class KnownStrings
 		ParseStringsFromDataFile("DataDefinitions/discovered_strings.json");
 	}
 
-	public static IReadOnlyList<string> NewStrings => NewDiscoveredStrings;
+	public static IReadOnlyList<string> NewStrings => InternalKnownStrings.NewDiscoveredStrings;
 
 	/// <summary>
 	/// Gets a string by its CRC64 hash.
 	/// </summary>
 	public static string Get(ulong hash)
-	{
-		if (!TryGet(hash, out var value))
-			throw new KeyNotFoundException($"There is no known string with a CRC hash of \"{hash.ToHexString()}\" (raw: {hash})");
-
-		return value;
-	}
+		=> InternalKnownStrings.Get(hash);
 
 	/// <summary>
 	/// Attempts to look up a string by its CRC64 hash.
 	/// </summary>
 	public static bool TryGet(ulong hash, [NotNullWhen(true)] out string? value)
-		=> HashToStringLookup.TryGetValue(hash, out value);
+		=> InternalKnownStrings.TryGet(hash, out value);
 
 	/// <summary>
 	/// Records the CRC64 hash of the provided <paramref name="value"/> so that it can be retrieved by the hash at a later point in time.
 	/// </summary>
 	public static void Record(string value)
-	{
-		var hash = value.GetCrc64();
-
-		if (HashToStringLookup.TryAdd(hash, value))
-		{
-			NewDiscoveredStrings.Add(value);
-			Debug.WriteLine("################ DISCOVERED NEW STRING!!! ################");
-			Debug.WriteLine(value);
-		}
-	}
+		=> InternalKnownStrings.Record(value);
 
 	private static void ParseStringsFromDataFile(string fileName)
 	{
@@ -94,7 +77,7 @@ public static class KnownStrings
 
 					var crcHash = reader.GetUInt64();
 
-					HashToStringLookup[crcHash] = currentKey;
+					InternalKnownStrings.HashToStringLookup[crcHash] = currentKey;
 					break;
 				case JsonTokenType.EndObject:
 					break;

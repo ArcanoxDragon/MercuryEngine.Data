@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Fields;
@@ -37,6 +38,10 @@ public class FixedLengthStringField(int length, string initialValue) : BaseBinar
 				throw new ArgumentOutOfRangeException(nameof(value), $"Value cannot be larger than the maximum length of {Length} bytes.");
 
 			base.Value = value;
+
+#if DEBUG
+			InternalKnownStrings.Record(value);
+#endif
 		}
 	}
 

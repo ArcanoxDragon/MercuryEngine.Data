@@ -8,7 +8,7 @@ public static class BinaryExtensions
 	{
 		var bytes = BitConverter.GetBytes(value);
 
-		if (BitConverter.IsLittleEndian)
+		if (!BitConverter.IsLittleEndian)
 			Array.Reverse(bytes);
 
 		ReadOnlySpan<byte> span = bytes.AsSpan();
