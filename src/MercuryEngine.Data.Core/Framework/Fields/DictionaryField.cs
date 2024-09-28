@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -36,6 +37,7 @@ where TValue : IBinaryField
 
 		for (var i = 0; i < entryCount; i++)
 		{
+			var startPosition = reader.BaseStream.GetRealPosition();
 			var entry = new KeyValuePairField<TKey, TValue>(this.keyFactory(), this.valueFactory());
 
 			try
@@ -45,7 +47,7 @@ where TValue : IBinaryField
 			}
 			catch (Exception ex)
 			{
-				throw new IOException(GetEntryReadExceptionMessage(i, entry), ex);
+				throw new IOException(GetEntryReadExceptionMessage(i, entry, startPosition), ex);
 			}
 		}
 	}
@@ -90,6 +92,7 @@ where TValue : IBinaryField
 
 		for (var i = 0; i < entryCount; i++)
 		{
+			var startPosition = reader.BaseStream.GetRealPosition();
 			var entry = new KeyValuePairField<TKey, TValue>(this.keyFactory(), this.valueFactory());
 
 			try
@@ -99,7 +102,7 @@ where TValue : IBinaryField
 			}
 			catch (Exception ex)
 			{
-				throw new IOException(GetEntryReadExceptionMessage(i, entry), ex);
+				throw new IOException(GetEntryReadExceptionMessage(i, entry, startPosition), ex);
 			}
 		}
 	}
@@ -136,16 +139,19 @@ where TValue : IBinaryField
 		await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
 	}
 
-	protected virtual string GetEntryReadExceptionMessage(int index, KeyValuePairField<TKey, TValue> entry)
+	protected virtual string GetEntryReadExceptionMessage(int index, KeyValuePairField<TKey, TValue> entry, long position)
 	{
 		if (entry.DidReadKey)
-			return $"An exception occurred while reading key \"{entry.Key}\" (index {index}) of a dictionary of {typeof(TKey).Name} -> {typeof(TValue).Name}";
+			return $"An exception occurred while reading key \"{entry.Key}\" (index {index}) of a dictionary " +
+				   $"of {typeof(TKey).Name} -> {typeof(TValue).Name} (position: {position})";
 
-		return $"An exception occurred while reading entry {index} of a dictionary of {typeof(TKey).Name} -> {typeof(TValue).Name}";
+		return $"An exception occurred while reading entry {index} of a dictionary " +
+			   $"of {typeof(TKey).Name} -> {typeof(TValue).Name} (position: {position})";
 	}
 
 	protected virtual string GetEntryWriteExceptionMessage(int index, KeyValuePairField<TKey, TValue> entry)
-		=> $"An exception occurred while writing key \"{entry.Key}\" (index {index}) of a dictionary of {typeof(TKey).Name} -> {typeof(TValue).Name}";
+		=> $"An exception occurred while writing key \"{entry.Key}\" (index {index}) of a dictionary " +
+		   $"of {typeof(TKey).Name} -> {typeof(TValue).Name}";
 
 	protected virtual string GetEntryMappingDescription(int index, KeyValuePairField<TKey, TValue> entry)
 		=> $"key: {entry.Key}";

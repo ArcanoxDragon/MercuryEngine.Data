@@ -37,6 +37,7 @@ where TItem : IBinaryField
 
 		for (var i = 0; i < entryCount; i++)
 		{
+			var startPosition = reader.BaseStream.GetRealPosition();
 			var entry = this.itemFactory();
 
 			Value.Add(entry);
@@ -47,7 +48,7 @@ where TItem : IBinaryField
 			}
 			catch (Exception ex)
 			{
-				throw new IOException(GetEntryReadExceptionMessage(i, entry), ex);
+				throw new IOException(GetEntryReadExceptionMessage(i, entry, startPosition), ex);
 			}
 		}
 	}
@@ -86,6 +87,7 @@ where TItem : IBinaryField
 
 		for (var i = 0; i < entryCount; i++)
 		{
+			var startPosition = reader.BaseStream.GetRealPosition();
 			var entry = this.itemFactory();
 
 			Value.Add(entry);
@@ -96,7 +98,7 @@ where TItem : IBinaryField
 			}
 			catch (Exception ex)
 			{
-				throw new IOException(GetEntryReadExceptionMessage(i, entry), ex);
+				throw new IOException(GetEntryReadExceptionMessage(i, entry, startPosition), ex);
 			}
 		}
 	}
@@ -127,8 +129,8 @@ where TItem : IBinaryField
 		await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
 	}
 
-	protected virtual string GetEntryReadExceptionMessage(int index, TItem entry)
-		=> $"An exception occurred while reading entry {index} of an array of {typeof(TItem).Name}";
+	protected virtual string GetEntryReadExceptionMessage(int index, TItem entry, long position)
+		=> $"An exception occurred while reading entry {index} of an array of {typeof(TItem).Name} (position: {position})";
 
 	protected virtual string GetEntryWriteExceptionMessage(int index, TItem entry)
 		=> $"An exception occurred while writing entry {index} of an array of {typeof(TItem).Name}";
