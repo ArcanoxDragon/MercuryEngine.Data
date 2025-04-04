@@ -13,7 +13,7 @@ public class Btunda : BaseStandardFormat<Btunda, base__tunable__CTunableManager>
 	public override string DisplayName => "BTUNDA";
 
 	[JsonIgnore] // The property on the structure itself should be serialized instead of this one
-	public IDictionary<string, base__tunable__CTunable?>? CheckpointData
+	public IDictionary<string, base__tunable__CTunable?>? Tunables
 	{
 		get
 		{
