@@ -15,16 +15,19 @@ public abstract class BaseTestFixture
 		RecurseSubdirectories = true,
 	};
 
+	private static string GetTestName(string basePath, string filePath)
+		=> Path.GetRelativePath(basePath, filePath).Replace('\\', '$').Replace('/', '$');
+
 	protected static IEnumerable<TestCaseData> GetTestCasesFromRomFs(string fileFormat)
 		=> Directory.EnumerateFiles(RomFsPath, $"*.{fileFormat}", EnumerationOptions)
 			.Select(file => new TestCaseData(file) {
-				TestName = Path.GetRelativePath(RomFsPath, file),
+				TestName = $"romfs:{GetTestName(RomFsPath, file)}",
 			});
 
 	protected static IEnumerable<TestCaseData> GetTestCasesFromPackages(string fileFormat)
 		=> Directory.EnumerateFiles(PackagesPath, $"*.{fileFormat}", EnumerationOptions)
 			.Select(file => new TestCaseData(file) {
-				TestName = Path.GetRelativePath(PackagesPath, file),
+				TestName = $"pkg:{GetTestName(RomFsPath, file)}",
 			});
 
 	protected static void ReadWriteAndCompare<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
