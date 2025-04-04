@@ -9,7 +9,7 @@ public class Bmssv : BaseStandardFormat<Bmssv, CGameBlackboard>
 	public override string DisplayName => "BMSSV";
 	public override string TypeName    => nameof(CGameBlackboard);
 
-	public override FileVersion Version { get; } = new(3, 1);
+	public override FileVersion Version { get; } = new(3, 1, 0);
 
 	/// <summary>
 	/// A dictionary of all Blackboard sections present in the BMSSV file.
