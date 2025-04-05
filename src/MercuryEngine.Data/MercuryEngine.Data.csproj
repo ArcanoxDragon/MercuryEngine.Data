@@ -1,19 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<LangVersion>latest</LangVersion>
+		<TargetFramework>$(MainTargetFramework)</TargetFramework>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
+		<PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\MercuryEngine.Data.Core\MercuryEngine.Data.Core.csproj" />
-	  <ProjectReference Include="..\MercuryEngine.Data.Types\MercuryEngine.Data.Types.csproj" />
+		<ProjectReference Include="..\MercuryEngine.Data.Core\MercuryEngine.Data.Core.csproj" />
+		<ProjectReference Include="..\MercuryEngine.Data.Types\MercuryEngine.Data.Types.csproj" />
 	</ItemGroup>
 
 </Project>

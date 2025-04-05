@@ -1,0 +1,8 @@
+<Project>
+	<PropertyGroup>
+		<MainTargetFramework>net9.0</MainTargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
+</Project>
