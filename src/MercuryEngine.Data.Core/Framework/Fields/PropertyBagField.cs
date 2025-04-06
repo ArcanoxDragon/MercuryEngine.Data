@@ -249,6 +249,10 @@ where TPropertyKey : IBinaryField
 				await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 				this.values.Add(propertyName, field);
 			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
 			catch (Exception ex)
 			{
 				throw FieldReadException(propertyName, i, field, startPosition, ex);
@@ -275,6 +279,10 @@ where TPropertyKey : IBinaryField
 				{
 					await DataMapper.PushRangeAsync($"property: {propertyName}", writer, cancellationToken).ConfigureAwait(false);
 					await field.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
+				}
+				catch (OperationCanceledException)
+				{
+					throw;
 				}
 				catch (Exception ex)
 				{

@@ -115,6 +115,10 @@ where T : DataStructure<T>
 			{
 				await field.Handler.HandleReadAsync(this, reader, cancellationToken).ConfigureAwait(false);
 			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
 			catch (Exception ex)
 			{
 				throw new IOException($"An exception occurred while reading field {i} ({field.Description}) of {GetType().Name} (position: {startPosition})", ex);
@@ -135,6 +139,10 @@ where T : DataStructure<T>
 			{
 				await DataMapper.PushRangeAsync($"field: {field.Description}", writer, cancellationToken).ConfigureAwait(false);
 				await field.WriteWithDataMapperAsync(this, writer, DataMapper, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException)
+			{
+				throw;
 			}
 			catch (Exception ex)
 			{

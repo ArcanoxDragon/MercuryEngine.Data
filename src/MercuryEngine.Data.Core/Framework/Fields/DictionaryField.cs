@@ -100,6 +100,10 @@ where TValue : IBinaryField
 				await entry.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 				Value.Add(entry.Key, entry.Value);
 			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
 			catch (Exception ex)
 			{
 				throw new IOException(GetEntryReadExceptionMessage(i, entry, startPosition), ex);
@@ -123,6 +127,10 @@ where TValue : IBinaryField
 			{
 				await DataMapper.PushRangeAsync(GetEntryMappingDescription(i, entry), writer, cancellationToken).ConfigureAwait(false);
 				await entry.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException)
+			{
+				throw;
 			}
 			catch (Exception ex)
 			{
