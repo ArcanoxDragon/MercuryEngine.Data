@@ -1,6 +1,6 @@
 ﻿namespace MercuryEngine.Data.Core.Utility;
 
-internal class SlicedStream : Stream
+public class SlicedStream : Stream
 {
 	private readonly long basePosition;
 

@@ -18,17 +18,25 @@ public abstract class BaseTestFixture
 	private static string GetTestName(string basePath, string filePath)
 		=> Path.GetRelativePath(basePath, filePath).Replace('\\', '$').Replace('/', '$');
 
-	protected static IEnumerable<TestCaseData> GetTestCasesFromRomFs(string fileFormat)
-		=> Directory.EnumerateFiles(RomFsPath, $"*.{fileFormat}", EnumerationOptions)
+	protected static IEnumerable<TestCaseData> GetTestCasesFromRomFs(string fileFormat, string? subDirectory = null)
+	{
+		var searchPath = Path.Join(RomFsPath, subDirectory);
+
+		return Directory.EnumerateFiles(searchPath, $"*.{fileFormat}", EnumerationOptions)
 			.Select(file => new TestCaseData(file) {
 				TestName = $"romfs:{GetTestName(RomFsPath, file)}",
 			});
+	}
 
-	protected static IEnumerable<TestCaseData> GetTestCasesFromPackages(string fileFormat)
-		=> Directory.EnumerateFiles(PackagesPath, $"*.{fileFormat}", EnumerationOptions)
+	protected static IEnumerable<TestCaseData> GetTestCasesFromPackages(string fileFormat, string? subDirectory = null)
+	{
+		var searchPath = Path.Join(PackagesPath, subDirectory);
+
+		return Directory.EnumerateFiles(searchPath, $"*.{fileFormat}", EnumerationOptions)
 			.Select(file => new TestCaseData(file) {
-				TestName = $"pkg:{GetTestName(RomFsPath, file)}",
+				TestName = $"pkg:{GetTestName(PackagesPath, file)}",
 			});
+	}
 
 	protected static void ReadWriteAndCompare<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
