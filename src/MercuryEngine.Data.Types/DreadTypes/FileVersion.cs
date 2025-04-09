@@ -18,7 +18,7 @@ public sealed class FileVersion : IBinaryField, IEquatable<FileVersion>
 	public byte   Minor { get; set; }
 	public byte   Patch { get; set; }
 
-	public uint Size => 2 * sizeof(ushort);
+	public uint Size => sizeof(ushort) + 2 * sizeof(byte);
 
 	public void Read(BinaryReader reader)
 	{
