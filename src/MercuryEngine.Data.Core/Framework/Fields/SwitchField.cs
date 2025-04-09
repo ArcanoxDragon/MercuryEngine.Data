@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields.Fluent;
@@ -14,7 +15,11 @@ where TField : IBinaryField
 {
 	#region Static Factories
 
-	public static SwitchField<TField> FromProperty<TOwner, TProperty>(
+	public static SwitchField<TField> FromProperty<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+		TOwner,
+		TProperty
+	>(
 		TOwner @object,
 		Expression<Func<TOwner, TProperty>> propertyExpression,
 		Action<SwitchFieldBuilder<TProperty, TField>> build
@@ -27,7 +32,7 @@ where TField : IBinaryField
 
 		build(builder);
 
-		var evaluator = new PropertySwitchFieldEvaluator<TProperty, TField>(builder, @object, property);
+		var evaluator = new PropertySwitchFieldEvaluator<TOwner, TProperty, TField>(builder, @object, property);
 
 		return new SwitchField<TField>(evaluator);
 	}
@@ -66,7 +71,11 @@ public class SwitchField : SwitchField<IBinaryField>
 {
 	#region Static Factories
 
-	public static new SwitchField FromProperty<TOwner, TProperty>(
+	public static new SwitchField FromProperty<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+		TOwner,
+		TProperty
+	>(
 		TOwner @object,
 		Expression<Func<TOwner, TProperty>> propertyExpression,
 		Action<SwitchFieldBuilder<TProperty, IBinaryField>> build
@@ -79,7 +88,7 @@ public class SwitchField : SwitchField<IBinaryField>
 
 		build(builder);
 
-		var evaluator = new PropertySwitchFieldEvaluator<TProperty, IBinaryField>(builder, @object, property);
+		var evaluator = new PropertySwitchFieldEvaluator<TOwner, TProperty, IBinaryField>(builder, @object, property);
 
 		return new SwitchField(evaluator);
 	}

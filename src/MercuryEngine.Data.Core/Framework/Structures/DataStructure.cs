@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
@@ -10,7 +11,10 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Core.Framework.Structures;
 
 [PublicAPI]
-public abstract class DataStructure<T> : IDataStructure, IBinaryField<T>, IDataMapperAware
+public abstract class DataStructure<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	T
+> : IDataStructure, IBinaryField<T>, IDataMapperAware
 where T : DataStructure<T>
 {
 	private static readonly ConcurrentDictionary<Type, List<DataStructureField>> FieldsByTypeCache = [];

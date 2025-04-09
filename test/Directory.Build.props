@@ -1,0 +1,7 @@
+<Project>
+	<PropertyGroup>
+		<IsTrimmable>false</IsTrimmable>
+	</PropertyGroup>
+	
+	<Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
+</Project>

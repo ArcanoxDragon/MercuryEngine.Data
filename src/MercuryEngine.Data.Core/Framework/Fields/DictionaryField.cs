@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Mapping;
@@ -8,8 +9,13 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Core.Framework.Fields;
 
 [PublicAPI]
-public class DictionaryField<TKey, TValue>(Func<TKey> keyFactory, Func<TValue> valueFactory)
-	: BaseBinaryField<OrderedMultiDictionary<TKey, TValue>>(new OrderedMultiDictionary<TKey, TValue>())
+public class DictionaryField<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+	TKey,
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+	TValue
+>(Func<TKey> keyFactory, Func<TValue> valueFactory)
+	: BaseBinaryField<OrderedMultiDictionary<TKey, TValue>>([])
 where TKey : IBinaryField
 where TValue : IBinaryField
 {
@@ -168,7 +174,12 @@ where TValue : IBinaryField
 [PublicAPI]
 public static class DictionaryField
 {
-	public static DictionaryField<TKey, TValue> Create<TKey, TValue>()
+	public static DictionaryField<TKey, TValue> Create<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TKey,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TValue
+	>()
 	where TKey : IBinaryField, new()
 	where TValue : IBinaryField, new()
 		=> new(() => new TKey(), () => new TValue());

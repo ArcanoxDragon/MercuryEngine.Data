@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Mapping;
@@ -9,7 +10,10 @@ namespace MercuryEngine.Data.Core.Framework.Fields;
 
 // TODO: Rename to ListField or something
 [PublicAPI]
-public class ArrayField<TItem>(Func<TItem> itemFactory, List<TItem> initialValue) : BaseBinaryField<List<TItem>>(initialValue)
+public class ArrayField<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+	TItem
+>(Func<TItem> itemFactory, List<TItem> initialValue) : BaseBinaryField<List<TItem>>(initialValue)
 where TItem : IBinaryField
 {
 	private static readonly Func<TItem> DefaultItemFactory = ReflectionUtility.CreateFactoryFromDefaultConstructor<TItem>();
@@ -149,7 +153,10 @@ where TItem : IBinaryField
 [PublicAPI]
 public static class ArrayField
 {
-	public static ArrayField<TEntry> Create<TEntry>()
+	public static ArrayField<TEntry> Create<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TEntry
+	>()
 	where TEntry : IBinaryField, new()
 		=> new(() => new TEntry());
 }

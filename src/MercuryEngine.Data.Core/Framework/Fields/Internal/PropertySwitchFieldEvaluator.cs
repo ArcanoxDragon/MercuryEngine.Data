@@ -1,18 +1,25 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields.Fluent;
 using MercuryEngine.Data.Core.Utility;
 
 namespace MercuryEngine.Data.Core.Framework.Fields.Internal;
 
-internal class PropertySwitchFieldEvaluator<TCondition, TField>(
+internal class PropertySwitchFieldEvaluator<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	TOwner,
+	TCondition,
+	TField
+>(
 	SwitchFieldBuilder<TCondition, TField> builder,
-	object owner,
+	TOwner owner,
 	PropertyInfo property
 ) : SwitchFieldEvaluator<TCondition, TField>(builder)
+where TOwner : notnull
 where TCondition : notnull
 where TField : IBinaryField
 {
-	private readonly Func<object, TCondition?> getter = ReflectionUtility.GetGetter<TCondition?>(property);
+	private readonly Func<TOwner, TCondition?> getter = ReflectionUtility.GetGetter<TOwner, TCondition?>(property);
 
 	protected override TCondition GetConditionValue()
 	{

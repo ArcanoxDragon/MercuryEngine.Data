@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Reflection;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields;
@@ -12,7 +13,10 @@ namespace MercuryEngine.Data.Core.Framework.Structures.Fluent;
 /// </summary>
 /// <typeparam name="T">The type of structure this <see cref="DataStructureBuilder{T}"/> can build.</typeparam>
 [PublicAPI]
-public sealed class DataStructureBuilder<T>
+public sealed class DataStructureBuilder<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	T
+>
 where T : IDataStructure
 {
 	internal DataStructureBuilder() { }
@@ -21,7 +25,10 @@ where T : IDataStructure
 
 	internal List<DataStructureField> Build() => Fields;
 
-	public DataStructureBuilder<TOther> For<TOther>()
+	public DataStructureBuilder<TOther> For<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+		TOther
+	>()
 	where TOther : T
 		=> new() {
 			Fields = Fields, // Build to same field collection
@@ -180,7 +187,7 @@ where T : IDataStructure
 	where TProperty : notnull
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ValuePropertyFieldHandler<TProperty>(field, property);
+		var adapter = new ValuePropertyFieldHandler<T, TProperty>(field, property);
 		var description = $"{property.Name}: {typeof(TProperty).Name}";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -189,7 +196,7 @@ where T : IDataStructure
 	where TProperty : class
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ValuePropertyFieldHandler<TProperty>(field, property, nullable: true);
+		var adapter = new ValuePropertyFieldHandler<T, TProperty>(field, property, nullable: true);
 		var description = $"{property.Name}: {typeof(TProperty).Name}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -198,7 +205,7 @@ where T : IDataStructure
 	where TProperty : struct
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ValuePropertyFieldHandler<TProperty>(field, property, nullable: true);
+		var adapter = new ValuePropertyFieldHandler<T, TProperty>(field, property, nullable: true);
 		var description = $"{property.Name}: {typeof(TProperty).Name}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -211,7 +218,7 @@ where T : IDataStructure
 	where TField : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new DirectPropertyFieldHandler(property);
+		var adapter = new DirectPropertyFieldHandler<T>(property);
 		var description = $"{property.Name}: {typeof(TField).Name}";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -224,7 +231,7 @@ where T : IDataStructure
 	where TField : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new NullableDirectPropertyFieldHandler<TField>(property, fieldFactory);
+		var adapter = new NullableDirectPropertyFieldHandler<T, TField>(property, fieldFactory);
 		var description = $"{property.Name}: {typeof(TField).Name}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -233,32 +240,48 @@ where T : IDataStructure
 
 	#region Collection Properties
 
-	public DataStructureBuilder<T> Array<TItem>(Expression<Func<T, IList<TItem>>> propertyExpression)
+	public DataStructureBuilder<T> Array<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TItem
+	>(Expression<Func<T, IList<TItem>>> propertyExpression)
 	where TItem : class, IBinaryField, new()
 		=> Array(propertyExpression, () => new TItem());
 
-	public DataStructureBuilder<T> Array<TItem>(Expression<Func<T, IList<TItem>>> propertyExpression, Func<TItem> itemFactory)
+	public DataStructureBuilder<T> Array<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TItem
+	>(Expression<Func<T, IList<TItem>>> propertyExpression, Func<TItem> itemFactory)
 	where TItem : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var field = new ArrayField<TItem>(itemFactory);
-		var adapter = new ArrayPropertyFieldHandler<TItem>(field, property);
+		var adapter = new ArrayPropertyFieldHandler<T, TItem>(field, property);
 		var description = $"{property.Name}: {typeof(TItem).Name}[]";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
-	public DataStructureBuilder<T> Dictionary<TKey, TValue>(Expression<Func<T, IDictionary<TKey, TValue>>> propertyExpression)
+	public DataStructureBuilder<T> Dictionary<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TKey,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TValue
+	>(Expression<Func<T, IDictionary<TKey, TValue>>> propertyExpression)
 	where TKey : class, IBinaryField, new()
 	where TValue : class, IBinaryField, new()
 		=> Dictionary(propertyExpression, () => new TKey(), () => new TValue());
 
-	public DataStructureBuilder<T> Dictionary<TKey, TValue>(Expression<Func<T, IDictionary<TKey, TValue>>> propertyExpression, Func<TKey> keyFactory, Func<TValue> valueFactory)
+	public DataStructureBuilder<T> Dictionary<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TKey,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TValue
+	>(Expression<Func<T, IDictionary<TKey, TValue>>> propertyExpression, Func<TKey> keyFactory, Func<TValue> valueFactory)
 	where TKey : class, IBinaryField
 	where TValue : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var field = new DictionaryField<TKey, TValue>(keyFactory, valueFactory);
-		var adapter = new DictionaryPropertyFieldHandler<TKey, TValue>(field, property);
+		var adapter = new DictionaryPropertyFieldHandler<T, TKey, TValue>(field, property);
 		var description = $"{property.Name}: Dictionary<{typeof(TKey).Name}, {typeof(TValue).Name}>";
 		return AddField(new DataStructureField(adapter, description));
 	}

@@ -1,8 +1,13 @@
-﻿namespace MercuryEngine.Data.Core.Extensions;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace MercuryEngine.Data.Core.Extensions;
 
 internal static class ReflectionExtensions
 {
-	public static IEnumerable<Type> GetAllInterfaces(this Type type)
+	public static IEnumerable<Type> GetAllInterfaces(
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+		this Type type
+	)
 	{
 		foreach (var @interface in type.GetInterfaces())
 			yield return @interface;
@@ -14,7 +19,11 @@ internal static class ReflectionExtensions
 		}
 	}
 
-	public static bool IsInstanceOfGeneric(this Type type, Type genericType)
+	public static bool IsInstanceOfGeneric(
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+		this Type type,
+		Type genericType
+	)
 	{
 		if (!genericType.IsGenericType)
 			throw new ArgumentException($"The \"{nameof(genericType)}\" parameter must be a generic type", nameof(genericType));

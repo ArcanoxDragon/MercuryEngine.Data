@@ -16,6 +16,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.SourceGenerators", "src\MercuryEngine.Data.SourceGenerators\MercuryEngine.Data.SourceGenerators.csproj", "{C8340E4D-442B-4CF8-AEC0-5F9353C94D03}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0D081BBD-7AE2-41FA-8B38-9E01A0096653}"
+	ProjectSection(SolutionItems) = preProject
+		test\Directory.Build.props = test\Directory.Build.props
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MercuryEngine.Data.Core.Tests", "test\MercuryEngine.Data.Core.Tests\MercuryEngine.Data.Core.Tests.csproj", "{9A5D1E9B-92DF-4537-8CB0-C6168F5F0689}"
 EndProject

@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -8,20 +9,24 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 /// <summary>
 /// Handles reading and writing a nullable property that can hold a direct <see cref="IBinaryField"/> instance.
 /// </summary>
-public class NullableDirectPropertyFieldHandler<TField>(PropertyInfo property, Func<TField> fieldFactory) : IFieldHandler
+public class NullableDirectPropertyFieldHandler<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	TOwner,
+	TField
+>(PropertyInfo property, Func<TField> fieldFactory) : IFieldHandler
 where TField : IBinaryField
 {
-	private readonly Func<object, TField?>   getter = ReflectionUtility.GetGetter<TField?>(property);
-	private readonly Action<object, TField?> setter = ReflectionUtility.GetSetter<TField?>(property);
+	private readonly Func<TOwner, TField?>   getter = ReflectionUtility.GetGetter<TOwner, TField?>(property);
+	private readonly Action<TOwner, TField?> setter = ReflectionUtility.GetSetter<TOwner, TField?>(property);
 
 	public uint GetSize(IDataStructure dataStructure)
 		=> GetField(dataStructure)?.Size ?? 0u;
 
 	public IBinaryField? GetField(IDataStructure dataStructure)
-		=> this.getter(dataStructure);
+		=> this.getter((TOwner) dataStructure);
 
 	public void SetField(IDataStructure dataStructure, TField? field)
-		=> this.setter(dataStructure, field);
+		=> this.setter((TOwner) dataStructure, field);
 
 	public void Reset(IDataStructure dataStructure)
 		=> SetField(dataStructure, default);

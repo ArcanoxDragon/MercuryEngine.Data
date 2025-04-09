@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace MercuryEngine.Data.Core.Framework.Fields.Fluent;
 
@@ -56,20 +57,36 @@ public sealed class PropertyBagFieldBuilder
 
 	#region Collection Properties
 
-	public PropertyBagFieldBuilder Array<TItem>(string propertyName)
+	public PropertyBagFieldBuilder Array<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TItem
+	>(string propertyName)
 	where TItem : class, IBinaryField, new()
 		=> Array(propertyName, () => new TItem());
 
-	public PropertyBagFieldBuilder Array<TItem>(string propertyName, Func<TItem> itemFactory)
+	public PropertyBagFieldBuilder Array<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TItem
+	>(string propertyName, Func<TItem> itemFactory)
 	where TItem : class, IBinaryField
 		=> AddField(propertyName, () => new ArrayField<TItem>(itemFactory));
 
-	public PropertyBagFieldBuilder Dictionary<TKey, TValue>(string propertyName)
+	public PropertyBagFieldBuilder Dictionary<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TKey,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TValue
+	>(string propertyName)
 	where TKey : class, IBinaryField, new()
 	where TValue : class, IBinaryField, new()
 		=> Dictionary(propertyName, () => new TKey(), () => new TValue());
 
-	public PropertyBagFieldBuilder Dictionary<TKey, TValue>(string propertyName, Func<TKey> keyFactory, Func<TValue> valueFactory)
+	public PropertyBagFieldBuilder Dictionary<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TKey,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TValue
+	>(string propertyName, Func<TKey> keyFactory, Func<TValue> valueFactory)
 	where TKey : class, IBinaryField
 	where TValue : class, IBinaryField
 		=> AddField(propertyName, () => new DictionaryField<TKey, TValue>(keyFactory, valueFactory));

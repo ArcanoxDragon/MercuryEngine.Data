@@ -1,8 +1,11 @@
 ﻿using System.Text;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
-using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
+
+#if DEBUG
+using MercuryEngine.Data.Core.Utility;
+#endif
 
 namespace MercuryEngine.Data.Core.Framework.Fields;
 

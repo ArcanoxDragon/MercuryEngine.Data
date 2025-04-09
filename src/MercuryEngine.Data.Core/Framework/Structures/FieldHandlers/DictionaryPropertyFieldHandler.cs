@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -10,7 +11,12 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 /// and values of type <typeparamref name="TValue"/> using a <see cref="DictionaryField{TKey,TValue}"/> with keys and values
 /// of the same types.
 /// </summary>
-public class DictionaryPropertyFieldHandler<TKey, TValue>(
+public class DictionaryPropertyFieldHandler<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	TOwner,
+	TKey,
+	TValue
+>(
 	DictionaryField<TKey, TValue> field,
 	PropertyInfo property,
 	bool activateWhenNull = false
@@ -18,15 +24,15 @@ public class DictionaryPropertyFieldHandler<TKey, TValue>(
 where TKey : IBinaryField
 where TValue : IBinaryField
 {
-	private readonly Func<object, IDictionary<TKey, TValue>?> getter = ReflectionUtility.GetGetter<IDictionary<TKey, TValue>?>(property);
+	private readonly Func<TOwner, IDictionary<TKey, TValue>?> getter = ReflectionUtility.GetGetter<TOwner, IDictionary<TKey, TValue>?>(property);
 
 	// Setter is lazy-initialized because it requires Dictionary<TKey, TValue> instead of IDictionary<TKey, TValue>.
 	// IDictionary<TKey, TValue> properties need to work as long as we don't need to activate null lists.
-	private Action<object, Dictionary<TKey, TValue>?>? setter;
+	private Action<TOwner, Dictionary<TKey, TValue>?>? setter;
 
 	public uint GetSize(IDataStructure dataStructure)
 	{
-		if (this.getter(dataStructure) is null)
+		if (this.getter((TOwner) dataStructure) is null)
 			return 0;
 
 		PrepareForWrite(dataStructure);
@@ -87,7 +93,7 @@ where TValue : IBinaryField
 
 	private IDictionary<TKey, TValue> GetDictionaryFromProperty(IDataStructure dataStructure)
 	{
-		var dictionary = this.getter(dataStructure);
+		var dictionary = this.getter((TOwner) dataStructure);
 
 		if (dictionary is null)
 		{
@@ -96,8 +102,8 @@ where TValue : IBinaryField
 
 			dictionary = new Dictionary<TKey, TValue>();
 
-			this.setter ??= ReflectionUtility.GetSetter<Dictionary<TKey, TValue>?>(property);
-			this.setter(dataStructure, (Dictionary<TKey, TValue>) dictionary);
+			this.setter ??= ReflectionUtility.GetSetter<TOwner, Dictionary<TKey, TValue>?>(property);
+			this.setter((TOwner) dataStructure, (Dictionary<TKey, TValue>) dictionary);
 		}
 
 		return dictionary;

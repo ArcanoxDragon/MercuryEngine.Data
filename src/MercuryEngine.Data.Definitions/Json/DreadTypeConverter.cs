@@ -5,7 +5,7 @@ using MercuryEngine.Data.Definitions.DreadTypes;
 
 namespace MercuryEngine.Data.Definitions.Json;
 
-public class DreadTypeConverter : JsonConverter<BaseDreadType>
+internal class DreadTypeConverter : JsonConverter<BaseDreadType>
 {
 	private static readonly JsonSerializerOptions InnerOptions = new() {
 		PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -22,14 +22,14 @@ public class DreadTypeConverter : JsonConverter<BaseDreadType>
 			return null;
 
 		if (obj["kind"]?.GetValue<string>() is not { } kind)
-			throw new JsonException($"Object is missing the \"kind\" property, or the property was not a string");
+			throw new JsonException("Object is missing the \"kind\" property, or the property was not a string");
 
 		if (!Enum.TryParse(kind, true, out DreadTypeKind typeKind))
 			throw new JsonException($"Unrecognized \"kind\" value \"{kind}\"");
 
 		var concreteType = MapTypeKind(typeKind);
 
-		return (BaseDreadType?) obj.Deserialize(concreteType, options);
+		return (BaseDreadType?) obj.Deserialize(concreteType, DreadTypesJsonContext.Default);
 	}
 
 	public override void Write(Utf8JsonWriter writer, BaseDreadType value, JsonSerializerOptions options)
@@ -38,7 +38,7 @@ public class DreadTypeConverter : JsonConverter<BaseDreadType>
 			// This should NEVER happen, but if it SOMEHOW does, we want to throw instead of infinitely recursing
 			throw new JsonException($"Tried to serialize non-inherited instance of {nameof(BaseDreadType)}!");
 
-		JsonSerializer.Serialize(writer, value, value.GetType(), options);
+		JsonSerializer.Serialize(writer, value, value.GetType(), DreadTypesJsonContext.Default);
 	}
 
 	private static Type MapTypeKind(DreadTypeKind typeKind) => typeKind switch {

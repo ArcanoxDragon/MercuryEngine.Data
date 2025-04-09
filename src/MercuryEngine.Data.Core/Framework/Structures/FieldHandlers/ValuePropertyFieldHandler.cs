@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -6,14 +7,18 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 
 /// <summary>
-/// Handles reading and writing a property of type <typeparamref name="T"/> using a <see cref="IBinaryField{T}"/> with
-/// a <see cref="IBinaryField{T}.Value"/> of type <typeparamref name="T"/>.
+/// Handles reading and writing a property of type <typeparamref name="TValue"/> using a <see cref="IBinaryField{T}"/> with
+/// a <see cref="IBinaryField{T}.Value"/> of type <typeparamref name="TValue"/>.
 /// </summary>
-public class ValuePropertyFieldHandler<T>(IBinaryField<T> field, PropertyInfo property, bool nullable = false) : IFieldHandler
-where T : notnull
+public class ValuePropertyFieldHandler<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	TOwner,
+	TValue
+>(IBinaryField<TValue> field, PropertyInfo property, bool nullable = false) : IFieldHandler
+where TValue : notnull
 {
-	private readonly Func<object, T?>  getter = ReflectionUtility.GetGetter<T?>(property);
-	private readonly Action<object, T> setter = ReflectionUtility.GetSetter<T>(property);
+	private readonly Func<TOwner, TValue?>  getter = ReflectionUtility.GetGetter<TOwner, TValue?>(property);
+	private readonly Action<TOwner, TValue> setter = ReflectionUtility.GetSetter<TOwner, TValue>(property);
 
 	public uint GetSize(IDataStructure dataStructure)
 		=> PrepareForWrite(dataStructure) ? field.Size : 0;
@@ -26,7 +31,7 @@ where T : notnull
 	public void HandleRead(IDataStructure dataStructure, BinaryReader reader)
 	{
 		field.Read(reader);
-		this.setter(dataStructure, field.Value);
+		this.setter((TOwner) dataStructure, field.Value);
 	}
 
 	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer)
@@ -40,7 +45,7 @@ where T : notnull
 	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken)
 	{
 		await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
-		this.setter(dataStructure, field.Value);
+		this.setter((TOwner) dataStructure, field.Value);
 	}
 
 	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
@@ -53,7 +58,7 @@ where T : notnull
 
 	private bool PrepareForWrite(IDataStructure dataStructure)
 	{
-		var value = this.getter(dataStructure);
+		var value = this.getter((TOwner) dataStructure);
 
 		if (value is null)
 		{

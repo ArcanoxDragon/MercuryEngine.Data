@@ -19,6 +19,7 @@ internal static class JsonUtility
 			new DefaultJsonTypeInfoResolver()
 		).WithAddedModifier(SortPropertiesByName),
 		Converters = {
+			new DataMapperJsonConverter(),
 			new JsonStringEnumConverter(),
 			new ArrayFieldJsonConverter(),
 			new DictionaryFieldJsonConverter(),

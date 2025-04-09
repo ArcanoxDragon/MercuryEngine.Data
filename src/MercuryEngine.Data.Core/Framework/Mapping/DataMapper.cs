@@ -1,12 +1,7 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿namespace MercuryEngine.Data.Core.Framework.Mapping;
 
-namespace MercuryEngine.Data.Core.Framework.Mapping;
-
-[JsonConverter(typeof(JsonConverter))]
 public class DataMapper
 {
-	private readonly DataRange        rootRange   = new("Root", 0);
 	private readonly Stack<DataRange> rangeStack  = [];
 	private readonly Stack<ulong>     offsetStack = [];
 
@@ -14,8 +9,10 @@ public class DataMapper
 
 	public DataMapper()
 	{
-		this.rangeStack.Push(this.rootRange);
+		this.rangeStack.Push(RootRange);
 	}
+
+	internal DataRange RootRange { get; } = new("Root", 0);
 
 	private DataRange CurrentRange => this.rangeStack.Peek();
 
@@ -24,7 +21,7 @@ public class DataMapper
 		while (this.rangeStack.Count > 1)
 			this.rangeStack.Pop();
 
-		this.rootRange.InnerRanges.Clear();
+		RootRange.InnerRanges.Clear();
 	}
 
 	public void PushRange(string description, ulong start)
@@ -43,7 +40,7 @@ public class DataMapper
 		var adjustedEnd = AdjustOffset(end);
 
 		CurrentRange.End = adjustedEnd;
-		this.rootRange.End = adjustedEnd;
+		RootRange.End = adjustedEnd;
 		this.rangeStack.Pop();
 	}
 
@@ -55,7 +52,7 @@ public class DataMapper
 	}
 
 	public IEnumerable<DataRange> GetContainingRanges(ulong location)
-		=> FindContainingRanges(this.rootRange, location);
+		=> FindContainingRanges(RootRange, location);
 
 	private ulong AdjustOffset(ulong offset)
 		=> offset + this.currentOffset;
@@ -76,15 +73,6 @@ public class DataMapper
 		foreach (var innerRange in parentRange.InnerRanges)
 		foreach (var containingRange in FindContainingRanges(innerRange, location))
 			yield return containingRange;
-	}
-
-	private sealed class JsonConverter : JsonConverter<DataMapper>
-	{
-		public override DataMapper Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-			=> throw new NotSupportedException("Reading is not supported");
-
-		public override void Write(Utf8JsonWriter writer, DataMapper value, JsonSerializerOptions options)
-			=> JsonSerializer.Serialize(writer, value.rootRange, options);
 	}
 
 	private sealed class OffsetToken(DataMapper owner) : IDisposable

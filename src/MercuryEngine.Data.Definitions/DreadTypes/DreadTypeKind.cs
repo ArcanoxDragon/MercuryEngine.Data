@@ -1,8 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿namespace MercuryEngine.Data.Definitions.DreadTypes;
 
-namespace MercuryEngine.Data.Definitions.DreadTypes;
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DreadTypeKind
 {
 	Primitive,

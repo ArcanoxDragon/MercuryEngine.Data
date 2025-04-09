@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -10,13 +11,13 @@ internal static class ReflectionUtility
 {
 	public static NullabilityInfoContext NullabilityInfoContext { get; } = new();
 
-	public static Func<T> CreateFactoryFromDefaultConstructor<T>([CallerMemberName] string? callerMemberName = null)
+	public static Func<T> CreateFactoryFromDefaultConstructor<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		T
+	>([CallerMemberName] string? callerMemberName = null)
 	{
-		var defaultConstructor = typeof(T).GetConstructor([]);
-
-		if (defaultConstructor is null)
-			throw new MissingMethodException($"The type \"{typeof(T).FullName}\" must have a public parameterless constructor in order to be used in {callerMemberName}");
-
+		var defaultConstructor = typeof(T).GetConstructor([])
+								 ?? throw new MissingMethodException($"The type \"{typeof(T).FullName}\" must have a public parameterless constructor in order to be used in {callerMemberName}");
 		var newExpression = Expression.New(defaultConstructor); // new T()
 		var factoryLambda = Expression.Lambda<Func<T>>(newExpression, tailCall: true);
 
@@ -34,10 +35,19 @@ internal static class ReflectionUtility
 	#region Reflection JIT
 
 	[UsedImplicitly(ImplicitUseTargetFlags.Members)]
-	private record struct MemberCacheKey(Type ValueType, Type OwnerType, Type PropertyType, string MemberName)
+	private record struct MemberCacheKey(
+		Type ValueType,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+		Type OwnerType,
+		Type PropertyType,
+		string MemberName)
 	{
-		public MemberCacheKey(Type valueType, PropertyInfo propertyInfo)
-			: this(valueType, propertyInfo.DeclaringType!, propertyInfo.PropertyType, propertyInfo.Name) { }
+		public MemberCacheKey(
+			Type valueType,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+			Type ownerType,
+			PropertyInfo propertyInfo
+		) : this(valueType, ownerType, propertyInfo.PropertyType, propertyInfo.Name) { }
 	}
 
 	private sealed class MemberCacheKeyEqualityComparer : IEqualityComparer<MemberCacheKey>
@@ -57,47 +67,61 @@ internal static class ReflectionUtility
 	private static readonly ConcurrentDictionary<MemberCacheKey, Delegate> PropertyGetterCache = new(MemberCacheKeyEqualityComparer.Instance);
 	private static readonly ConcurrentDictionary<MemberCacheKey, Delegate> PropertySetterCache = new(MemberCacheKeyEqualityComparer.Instance);
 
-	public static Func<object, T> GetGetter<T>(PropertyInfo property)
+	public static Func<TOwner, T> GetGetter<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+		TOwner,
+		T
+	>(PropertyInfo property)
 	{
-		var key = new MemberCacheKey(typeof(T), property);
+		var key = new MemberCacheKey(typeof(T), typeof(TOwner), property);
 
-		return (Func<object, T>) PropertyGetterCache.GetOrAdd(key, _ => CompileGetter<T>(property));
+		return (Func<TOwner, T>) PropertyGetterCache.GetOrAdd(key, _ => CompileGetter<TOwner, T>(property));
 	}
 
-	public static Action<object, T> GetSetter<T>(PropertyInfo property)
+	public static Action<TOwner, T> GetSetter<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+		TOwner,
+		T
+	>(PropertyInfo property)
 	{
-		var key = new MemberCacheKey(typeof(T), property);
+		var key = new MemberCacheKey(typeof(T), typeof(TOwner), property);
 
-		return (Action<object, T>) PropertySetterCache.GetOrAdd(key, _ => CompileSetter<T>(property));
+		return (Action<TOwner, T>) PropertySetterCache.GetOrAdd(key, _ => CompileSetter<TOwner, T>(property));
 	}
 
-	private static Func<object, T> CompileGetter<T>(PropertyInfo property)
+	private static Func<TOwner, T> CompileGetter<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+		TOwner,
+		T
+	>(PropertyInfo property)
 	{
 		if (!property.PropertyType.IsAssignableTo(typeof(T)))
 			throw new ArgumentException($"{nameof(CompileGetter)} was called with type \"{typeof(T).FullName}\", which is not " +
 										$"compatible with the provided property's type \"{property.PropertyType.FullName}\"");
 
-		var ownerParameter = Expression.Parameter(typeof(object), "owner");
-		var ownerCastExpression = Expression.Convert(ownerParameter, property.DeclaringType!);
-		var propertyExpression = Expression.MakeMemberAccess(ownerCastExpression, property);
+		var ownerParameter = Expression.Parameter(typeof(TOwner), "owner");
+		var propertyExpression = Expression.MakeMemberAccess(ownerParameter, property);
 		Expression bodyExpression = propertyExpression;
 
 		if (property.PropertyType != typeof(T))
 			bodyExpression = Expression.Convert(bodyExpression, typeof(T));
 
-		return Expression.Lambda<Func<object, T>>(bodyExpression, tailCall: true, ownerParameter).Compile();
+		return Expression.Lambda<Func<TOwner, T>>(bodyExpression, tailCall: true, ownerParameter).Compile();
 	}
 
-	private static Action<object, T> CompileSetter<T>(PropertyInfo property)
+	private static Action<TOwner, T> CompileSetter<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+		TOwner,
+		T
+	>(PropertyInfo property)
 	{
 		if (!typeof(T).IsAssignableTo(property.PropertyType))
 			throw new ArgumentException($"{nameof(CompileSetter)} was called with type \"{typeof(T).FullName}\", which is " +
 										$"not assignable to the provided property's type \"{property.PropertyType.FullName}\"");
 
-		var ownerParameter = Expression.Parameter(typeof(object), "owner");
+		var ownerParameter = Expression.Parameter(typeof(TOwner), "owner");
 		var valueParameter = Expression.Parameter(typeof(T), "value");
-		var ownerCastExpression = Expression.Convert(ownerParameter, property.DeclaringType!);
-		var propertyExpression = Expression.MakeMemberAccess(ownerCastExpression, property);
+		var propertyExpression = Expression.MakeMemberAccess(ownerParameter, property);
 		Expression assignmentRightSideExpression = valueParameter;
 
 		if (property.PropertyType != typeof(T))
@@ -105,7 +129,7 @@ internal static class ReflectionUtility
 
 		var assignExpression = Expression.Assign(propertyExpression, assignmentRightSideExpression);
 
-		return Expression.Lambda<Action<object, T>>(assignExpression, ownerParameter, valueParameter).Compile();
+		return Expression.Lambda<Action<TOwner, T>>(assignExpression, ownerParameter, valueParameter).Compile();
 	}
 
 	#endregion

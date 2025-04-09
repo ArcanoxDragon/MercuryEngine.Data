@@ -1,12 +1,18 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields.Fluent;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 namespace MercuryEngine.Data.Types.Fields;
 
-public abstract class BaseDreadDataStructure<TSelf> : DataStructure<TSelf>
+[PublicAPI]
+public abstract class BaseDreadDataStructure<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	TSelf
+> : DataStructure<TSelf>
 where TSelf : BaseDreadDataStructure<TSelf>
 {
 	private static readonly ConcurrentDictionary<Type, MsePropertyBagField> PropertyBagPrototypes = [];

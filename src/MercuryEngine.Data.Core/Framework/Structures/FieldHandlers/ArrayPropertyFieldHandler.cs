@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Utility;
@@ -7,21 +8,25 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 
 /// <summary>
-/// Handles reading and writing a <see cref="IList{T}"/> property with items of type <typeparamref name="T"/> using an
+/// Handles reading and writing a <see cref="IList{T}"/> property with items of type <typeparamref name="TItem"/> using an
 /// <see cref="ArrayField{TItem}"/> with items of the same type.
 /// </summary>
-public class ArrayPropertyFieldHandler<T>(ArrayField<T> field, PropertyInfo property, bool activateWhenNull = false) : IFieldHandler
-where T : IBinaryField
+public class ArrayPropertyFieldHandler<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	TOwner,
+	TItem
+>(ArrayField<TItem> field, PropertyInfo property, bool activateWhenNull = false) : IFieldHandler
+where TItem : IBinaryField
 {
-	private readonly Func<object, IList<T>?> getter = ReflectionUtility.GetGetter<IList<T>?>(property);
+	private readonly Func<TOwner, IList<TItem>?> getter = ReflectionUtility.GetGetter<TOwner, IList<TItem>?>(property);
 
 	// Setter is lazy-initialized because it requires List<T> instead of IList<T>.
 	// IList<T> properties need to work as long as we don't need to activate null lists.
-	private Action<object, List<T>?>? setter;
+	private Action<TOwner, List<TItem>?>? setter;
 
 	public uint GetSize(IDataStructure dataStructure)
 	{
-		if (this.getter(dataStructure) is null)
+		if (this.getter((TOwner) dataStructure) is null)
 			return 0;
 
 		PrepareForWrite(dataStructure);
@@ -67,7 +72,7 @@ where T : IBinaryField
 
 		destination.Clear();
 
-		if (source is List<T> sourceList)
+		if (source is List<TItem> sourceList)
 		{
 			// Fast: copy using span
 			var sourceSpan = CollectionsMarshal.AsSpan(sourceList);
@@ -89,7 +94,7 @@ where T : IBinaryField
 
 		destination.Clear();
 
-		if (destination is List<T> destinationList)
+		if (destination is List<TItem> destinationList)
 		{
 			// Fast: copy using span
 			var sourceSpan = CollectionsMarshal.AsSpan(source);
@@ -104,19 +109,19 @@ where T : IBinaryField
 		}
 	}
 
-	private IList<T> GetListFromProperty(IDataStructure dataStructure)
+	private IList<TItem> GetListFromProperty(IDataStructure dataStructure)
 	{
-		var list = this.getter(dataStructure);
+		var list = this.getter((TOwner) dataStructure);
 
 		if (list is null)
 		{
 			if (!activateWhenNull)
 				throw new InvalidOperationException($"Property \"{property.Name}\" on {dataStructure.GetType().FullName} returned null while writing to an array field");
 
-			list = new List<T>();
+			list = new List<TItem>();
 
-			this.setter ??= ReflectionUtility.GetSetter<List<T>?>(property);
-			this.setter(dataStructure, (List<T>) list);
+			this.setter ??= ReflectionUtility.GetSetter<TOwner, List<TItem>?>(property);
+			this.setter((TOwner) dataStructure, (List<TItem>) list);
 		}
 
 		return list;

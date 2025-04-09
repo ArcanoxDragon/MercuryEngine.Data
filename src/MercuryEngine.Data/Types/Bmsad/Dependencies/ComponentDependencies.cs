@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
@@ -34,7 +35,10 @@ public abstract class ComponentDependencies : DataStructure<ComponentDependencie
 		});
 }
 
-public abstract class ComponentDependencies<TSelf> : ComponentDependencies
+public abstract class ComponentDependencies<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	TSelf
+> : ComponentDependencies
 where TSelf : ComponentDependencies
 {
 	protected sealed override void Describe(DataStructureBuilder<ComponentDependencies> builder)

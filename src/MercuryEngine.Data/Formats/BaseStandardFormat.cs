@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Core.Extensions;
+﻿using System.Diagnostics.CodeAnalysis;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
@@ -8,12 +9,16 @@ using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Formats;
 
-public abstract class BaseStandardFormat<TSelf, TRoot> : BinaryFormat<TSelf>
+public abstract class BaseStandardFormat<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	TSelf,
+	TRoot
+> : BinaryFormat<TSelf>
 where TSelf : BaseStandardFormat<TSelf, TRoot>, new()
 where TRoot : class, IBinaryField, new()
 {
-	public virtual string?      TypeName => default;
-	public virtual FileVersion? Version  => default;
+	public virtual string?      TypeName => null;
+	public virtual FileVersion? Version  => null;
 
 	public TRoot Root { get; set; } = new();
 

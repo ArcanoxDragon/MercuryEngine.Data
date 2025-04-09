@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Structures;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -6,7 +7,10 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Core.Framework;
 
 [PublicAPI]
-public abstract class BinaryFormat<T> : DataStructure<T>
+public abstract class BinaryFormat<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	T
+> : DataStructure<T>
 where T : BinaryFormat<T>, new()
 {
 	#region Static Factory
