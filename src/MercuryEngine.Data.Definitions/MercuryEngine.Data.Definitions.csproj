@@ -8,6 +8,9 @@
 		<EmbeddedResource Include="../../DataDefinitions/*.json">
 			<Link>DataDefinitions/%(RecursiveDir)%(Filename)%(Extension)</Link>
 		</EmbeddedResource>
+		<AdditionalFiles Include="../../DataDefinitions/*.json">
+			<Link>DataDefinitions/%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</AdditionalFiles>
 	</ItemGroup>
 
 	<ItemGroup>

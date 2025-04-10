@@ -1,8 +1,6 @@
 ﻿using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Tests.Utility;
-using NUnit.Framework.Interfaces;
-using NUnit.Framework.Internal;
 
 namespace MercuryEngine.Data.Tests.Formats;
 
@@ -12,19 +10,7 @@ public class BmscpTests : BaseTestFixture
 	private static IEnumerable<TestCaseData> GetTestFiles()
 	{
 		foreach (var testCase in GetTestCasesFromRomFs("bmscp"))
-		{
-			bool shouldSkip = testCase.TestName?.Contains("bossrushreport.bmscp", StringComparison.OrdinalIgnoreCase) == true ||
-							  testCase.TestName?.Contains("popupgeneric.bmscp", StringComparison.OrdinalIgnoreCase) == true;
-			TestCaseData newTestCase = new TestCaseData(testCase.Arguments[0], RomFsPath) {
-				TestName = testCase.TestName,
-				RunState = shouldSkip ? RunState.Skipped : RunState.Runnable,
-			};
-
-			if (shouldSkip)
-				newTestCase.Properties.Set(PropertyNames.SkipReason, "This file cannot be read due to missing 2.1.0 type information");
-
-			yield return newTestCase;
-		}
+			yield return new TestCaseData(testCase.Arguments[0], RomFsPath) { TestName = testCase.TestName };
 	}
 
 	[TestCaseSource(nameof(GetTestFiles)), Parallelizable]
