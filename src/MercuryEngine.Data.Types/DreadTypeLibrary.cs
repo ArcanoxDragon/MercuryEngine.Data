@@ -83,7 +83,7 @@ public static partial class DreadTypeLibrary
 		var factory = GetFieldFactoryForType(dreadType);
 
 		if (factory is null)
-			throw new InvalidOperationException($"No factory implementation registered for type \"{dreadType.GetType().FullName}\"");
+			throw new InvalidOperationException($"No factory implementation registered for type \"{dreadType.TypeName}\" of kind \"{dreadType.GetType().FullName}\"");
 
 		return factory.CreateField(dreadType);
 	}

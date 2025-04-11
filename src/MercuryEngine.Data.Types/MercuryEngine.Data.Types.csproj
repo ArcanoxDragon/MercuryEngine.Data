@@ -7,10 +7,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="$(IntermediateOutputPath)\generated\**\*.cs" Link="Generated\%(RecursiveDir)%(Filename)%(Extension)" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
 	</ItemGroup>
 
@@ -20,8 +16,19 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\MercuryEngine.Data.SourceGenerators\MercuryEngine.Data.SourceGenerators.csproj" OutputItemType="Analyzer"
+		<ProjectReference Include="..\MercuryEngine.Data.SourceGenerators\MercuryEngine.Data.SourceGenerators.csproj"
+						  OutputItemType="Analyzer"
 						  ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AdditionalFiles Include="../../DataDefinitions/*.json">
+			<Link>DataDefinitions/%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</AdditionalFiles>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="$(IntermediateOutputPath)\generated\**\*.cs" Link="Generated\%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
 </Project>

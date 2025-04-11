@@ -8,8 +8,7 @@
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-		<!-- TODO: Remove RS1035 and RS1042 suppressions when possible to convert to incremental generator -->
-		<NoWarn>RS1035;RS1042;RS2008</NoWarn>
+		<NoWarn>RS2008</NoWarn>
 		<IsTrimmable>false</IsTrimmable>
 	</PropertyGroup>
 
@@ -49,7 +48,7 @@
 			<TargetPathWithTargetPlatformMoniker Include="$(PKGSystem_Text_Encodings_Web)\lib\netstandard2.0\System.Text.Encodings.Web.dll" IncludeRuntimeDependency="false" />
 			<TargetPathWithTargetPlatformMoniker Include="$(PKGSystem_Memory)\lib\netstandard2.0\System.Memory.dll" IncludeRuntimeDependency="false" />
 			<TargetPathWithTargetPlatformMoniker Include="$(PKGSystem_Text_Json)\lib\netstandard2.0\System.Text.Json.dll" IncludeRuntimeDependency="false" />
-			<TargetPathWithTargetPlatformMoniker Include="..\MercuryEngine.Data.Definitions\bin\$(Configuration)\netstandard2.0\MercuryEngine.Data.Definitions.dll" IncludeRuntimeDependency="false" />
+			<TargetPathWithTargetPlatformMoniker Include="$(MSBuildThisFileDirectory)\..\MercuryEngine.Data.Definitions\bin\$(Configuration)\netstandard2.0\MercuryEngine.Data.Definitions.dll" IncludeRuntimeDependency="false" />
 		</ItemGroup>
 	</Target>
 

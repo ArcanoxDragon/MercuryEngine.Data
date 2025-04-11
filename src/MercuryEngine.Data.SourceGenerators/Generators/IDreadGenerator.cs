@@ -3,7 +3,8 @@ using Microsoft.CodeAnalysis;
 
 namespace MercuryEngine.Data.SourceGenerators.Generators;
 
-public interface IDreadGenerator
+internal interface IDreadGenerator
 {
-	string GenerateSource(IDreadType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext);
+	IEnumerable<GeneratedType> GetTypesToGenerate(IReadOnlyDictionary<string, BaseDreadType> dreadTypes);
+	string GenerateSource(GeneratedType generatedType, SourceProductionContext productionContext, GenerationContext generationContext);
 }

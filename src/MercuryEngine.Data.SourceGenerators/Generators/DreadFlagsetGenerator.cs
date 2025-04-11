@@ -5,13 +5,27 @@ using Microsoft.CodeAnalysis;
 
 namespace MercuryEngine.Data.SourceGenerators.Generators;
 
-public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
+internal class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 {
 	public static DreadFlagsetGenerator Instance { get; } = new();
 
-	protected override IEnumerable<string> GenerateSourceLines(DreadFlagsetType dreadType, GeneratorExecutionContext executionContext, GenerationContext generationContext)
+	public override IEnumerable<GeneratedType> GetTypesToGenerate(IReadOnlyDictionary<string, BaseDreadType> dreadTypes)
 	{
-		var typeName = dreadType.TypeName;
+		foreach (var (typeName, type) in dreadTypes)
+		{
+			if (Constants.ExcludedTypeNames.Contains(typeName) || type is not DreadFlagsetType)
+				continue;
+
+			var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName);
+			var csharpDataTypeName = $"DreadEnum<{typeEnumName}>";
+
+			yield return new GeneratedType(type, csharpDataTypeName, typeName);
+		}
+	}
+
+	protected override IEnumerable<string> GenerateSourceLines(GeneratedType generatedType, DreadFlagsetType dreadType, SourceProductionContext productionContext, GenerationContext generationContext)
+	{
+		var typeName = generatedType.DreadTypeName;
 		var typeEnumName = TypeNameUtility.SanitizeTypeName(typeName);
 		var enumTypeName = dreadType.Enum;
 
@@ -30,12 +44,11 @@ public class DreadFlagsetGenerator : BaseDreadGenerator<DreadFlagsetType>
 		yield return "{";
 
 		foreach (var (name, value) in enumType.Values)
+		{
+			productionContext.CancellationToken.ThrowIfCancellationRequested();
 			yield return $"\t{name} = {value},";
+		}
 
 		yield return "}";
-
-		var csharpDataTypeName = $"DreadEnum<{typeEnumName}>";
-
-		generationContext.GeneratedTypes.Add(new GeneratedType(csharpDataTypeName, typeName));
 	}
 }

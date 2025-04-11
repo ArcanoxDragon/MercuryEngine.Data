@@ -10,6 +10,8 @@ internal static class Constants
 	public const string DreadTypeLibraryNamespace        = "MercuryEngine.Data.Types";
 	public const string DreadTypeLibraryClassName        = "DreadTypeLibrary";
 
+	public static readonly List<string> ExcludedTypeNames = ["char", "double", "long", "realloc"];
+
 	public static class Diagnostics
 	{
 		public static readonly DiagnosticDescriptor PropertyTypeMismatchDescriptor = new(
@@ -35,5 +37,13 @@ internal static class Constants
 			"MercuryEngine.Data.DreadTypes",
 			DiagnosticSeverity.Error,
 			true);
+
+		public static readonly DiagnosticDescriptor CouldNotReadDreadTypesDiagnostic = new(
+			"MD1004",
+			"Failed to read dread_types.json",
+			"An exception was thrown while attempting to read the dread_types.json file: {0}",
+			nameof(MercuryEngine.Data.SourceGenerators),
+			DiagnosticSeverity.Error,
+			isEnabledByDefault: true);
 	}
 }

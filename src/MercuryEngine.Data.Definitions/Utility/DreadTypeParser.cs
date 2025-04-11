@@ -16,6 +16,12 @@ internal static class DreadTypeParser
 		using var fileStream = ResourceHelper.OpenResourceFile("DataDefinitions/dread_types.json");
 		using var reader = new StreamReader(fileStream, Encoding.UTF8);
 		var jsonText = reader.ReadToEnd();
+
+		return ParseDreadTypes(jsonText);
+	}
+
+	public static Dictionary<string, BaseDreadType> ParseDreadTypes(string jsonText)
+	{
 		var typesDictionary = (Dictionary<string, BaseDreadType>?) JsonSerializer.Deserialize(
 			jsonText,
 			typeof(Dictionary<string, BaseDreadType>), DreadTypesJsonContext.Default

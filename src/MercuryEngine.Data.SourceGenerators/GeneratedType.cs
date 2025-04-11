@@ -1,3 +1,5 @@
-﻿namespace MercuryEngine.Data.SourceGenerators;
+﻿using MercuryEngine.Data.Definitions.DreadTypes;
 
-public record GeneratedType(string CSharpTypeName, string DreadTypeName, string? ParentTypeName = null);
+namespace MercuryEngine.Data.SourceGenerators;
+
+internal record GeneratedType(BaseDreadType DreadType, string CSharpTypeName, string DreadTypeName, string? ParentTypeName = null);
