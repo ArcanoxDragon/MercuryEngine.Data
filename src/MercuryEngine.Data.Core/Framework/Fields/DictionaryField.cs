@@ -19,8 +19,8 @@ public class DictionaryField<
 where TKey : IBinaryField
 where TValue : IBinaryField
 {
-	private static readonly Func<TKey>   DefaultKeyFactory   = ReflectionUtility.CreateFactoryFromDefaultConstructor<TKey>();
-	private static readonly Func<TValue> DefaultValueFactory = ReflectionUtility.CreateFactoryFromDefaultConstructor<TValue>();
+	protected static readonly Func<TKey>   DefaultKeyFactory   = ReflectionUtility.CreateFactoryFromDefaultConstructor<TKey>();
+	protected static readonly Func<TValue> DefaultValueFactory = ReflectionUtility.CreateFactoryFromDefaultConstructor<TValue>();
 
 	private readonly Func<TKey>   keyFactory   = keyFactory;
 	private readonly Func<TValue> valueFactory = valueFactory;

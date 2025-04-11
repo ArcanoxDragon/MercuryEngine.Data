@@ -69,9 +69,6 @@ public partial class CBlackboard__CSection
 
 		IBinaryField? propertyValue = propertyData.Value;
 
-		if (propertyValue is TypedFieldWrapper wrapper)
-			propertyValue = wrapper.WrappedField;
-
 		if (propertyValue is not IBinaryField<T> numericData)
 			return false;
 
@@ -94,37 +91,47 @@ public partial class CBlackboard__CSection
 	private void PutPrimitiveValue<TValue>(DreadPrimitiveKind primitiveKind, string property, TValue value)
 	where TValue : notnull
 	{
-		BaseDreadType? primitiveType = null;
+		DreadPrimitiveType? primitiveType = null;
 
 		// See if the property already exists in the blackboard with a type implementing the same primitive kind as is being stored
 		if (Props.TryGetValue(property, out var existingValue))
 		{
+			if (existingValue is { Value: IBinaryField<TValue> fieldWithValue })
+			{
+				// We can reuse it!
+				fieldWithValue.Value = value;
+				return;
+			}
+
 			var candidateType = DreadTypeLibrary.FindType(existingValue.InnerTypeId);
 
 			if (candidateType is DreadPrimitiveType primitive && primitive.PrimitiveKind == primitiveKind)
-				primitiveType = candidateType;
+				primitiveType = primitive;
 		}
 
-		// If an existing type was not found, determine which type to use based solely on the primitive kind being stored
+		// If an existing value was not found, determine which type to use based solely on the primitive kind being stored
 		if (primitiveType == null)
 		{
+			BaseDreadType? candidateType;
+
 			if (BlackboardPrimitiveTypes.TryGetValue(primitiveKind, out string? typeName))
-				primitiveType = DreadTypeLibrary.FindType(typeName);
+				candidateType = DreadTypeLibrary.FindType(typeName);
 			else
-				primitiveType = DreadTypeLibrary.FindType(type => type is DreadPrimitiveType primitive && primitive.PrimitiveKind == primitiveKind);
+				candidateType = DreadTypeLibrary.FindType(type => type is DreadPrimitiveType p && p.PrimitiveKind == primitiveKind);
+
+			if (candidateType is not DreadPrimitiveType primitive)
+				throw new ArgumentOutOfRangeException(nameof(primitiveKind), $"Unsupported primitive kind \"{primitiveKind}\"");
+
+			primitiveType = primitive;
 		}
 
-		if (primitiveType is null)
-			throw new ArgumentOutOfRangeException(nameof(primitiveKind), $"Unsupported primitive kind \"{primitiveKind}\"");
+		var primitiveField = DreadTypeLibrary.CreateFieldForType(primitiveType);
 
-		var typedField = new TypedFieldWrapper(primitiveType);
+		if (primitiveField is not (ITypedDreadField and IBinaryField<TValue> primitiveWithValue))
+			throw new InvalidOperationException($"Primitive kind \"{primitiveKind}\" is associated with type \"{primitiveType.TypeName}\", which does not have Dread type information");
 
-		if (typedField.WrappedField is not IBinaryField<TValue> primitiveField)
-			throw new InvalidOperationException($"Primitive kind \"{primitiveKind}\" is associated with type \"{primitiveType.TypeName}\", which does not support values of type \"{typeof(TValue).Name}\"");
-
-		primitiveField.Value = value;
-
-		Props[property] = new DreadPointer<ITypedDreadField>(typedField);
+		primitiveWithValue.Value = value;
+		Props[property] = new DreadPointer<ITypedDreadField>((ITypedDreadField) primitiveWithValue);
 	}
 
 	#endregion

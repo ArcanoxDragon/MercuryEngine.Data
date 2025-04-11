@@ -7,7 +7,7 @@ namespace MercuryEngine.Data.Types.DreadTypes.Custom;
 
 public class OccluderVignettesDictionary : DataStructure<OccluderVignettesDictionary>, ITypedDreadField
 {
-	public string TypeName => "OccluderVignettesDictionary";
+	public string TypeName => "base::global::CRntSmallDictionary<base::global::CStrId, bool>";
 
 	public Dictionary<TerminatedStringField, BooleanField> Entries { get; } = [];
 

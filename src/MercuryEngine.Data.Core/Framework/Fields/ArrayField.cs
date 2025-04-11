@@ -16,7 +16,7 @@ public class ArrayField<
 >(Func<TItem> itemFactory, List<TItem> initialValue) : BaseBinaryField<List<TItem>>(initialValue)
 where TItem : IBinaryField
 {
-	private static readonly Func<TItem> DefaultItemFactory = ReflectionUtility.CreateFactoryFromDefaultConstructor<TItem>();
+	protected static readonly Func<TItem> DefaultItemFactory = ReflectionUtility.CreateFactoryFromDefaultConstructor<TItem>();
 
 	private readonly Func<TItem> itemFactory = itemFactory;
 

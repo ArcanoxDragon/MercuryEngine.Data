@@ -46,7 +46,7 @@ public static partial class DreadTypeLibrary
 		RegisterConcreteType<CMinimapManager_TCustomMarkerDataMap>();
 		RegisterConcreteType<CMinimapManager_TGlobalMapIcons>();
 		RegisterConcreteType<GUI_CMissionLog_TMissionLogEntries>();
-		RegisterConcreteType("base::global::CRntVector<EMapTutoType>", ArrayField.Create<EnumField<EMapTutoType>>);
+		RegisterConcreteType("base::global::CRntVector<EMapTutoType>", () => new DreadArrayField<EnumField<EMapTutoType>>("base::global::CRntVector<EMapTutoType>"));
 	}
 
 	static partial void RegisterGeneratedTypes();
@@ -72,8 +72,11 @@ public static partial class DreadTypeLibrary
 		var type = FindType(typeId);
 		var field = CreateFieldForType(type);
 
-		if (field is not ITypedDreadField typedField || typedField.TypeName != type.TypeName)
-			typedField = new TypedFieldWrapper(type.TypeName, field);
+		if (field is not ITypedDreadField typedField)
+			throw new ApplicationException($"The type named \"{type}\" does not support reading or writing with Dread type information");
+		if (typedField.TypeName != type.TypeName)
+			// Should *never* happen, but just in case
+			throw new ApplicationException($"Found field with incorrect type: wanted {type.TypeName} but got {typedField.TypeName}");
 
 		return typedField;
 	}

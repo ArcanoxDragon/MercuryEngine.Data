@@ -12,7 +12,7 @@ internal class ArrayFieldJsonConverter : JsonConverterFactory
 
 	public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
 	{
-		if (!typeToConvert.IsConstructedGenericType || typeToConvert.GetGenericTypeDefinition() != typeof(ArrayField<>))
+		if (!typeToConvert.IsConstructedGenericType || !typeToConvert.IsInstanceOfGeneric(typeof(ArrayField<>)))
 			return null;
 
 		var arrayItemType = typeToConvert.GetGenericArguments()[0];

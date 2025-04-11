@@ -1,13 +1,14 @@
 ﻿using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Definitions.DreadTypes;
+using MercuryEngine.Data.Types.DreadTypes;
 
 namespace MercuryEngine.Data.Types.DreadFieldFactories;
 
-public class DreadVectorFieldFactory : BaseDreadFieldFactory<DreadVectorType, ArrayField<IBinaryField>>
+public class DreadVectorFieldFactory : BaseDreadFieldFactory<DreadVectorType, DreadArrayField<IBinaryField>>
 {
 	public static DreadVectorFieldFactory Instance { get; } = new();
 
-	protected override ArrayField<IBinaryField> CreateField(DreadVectorType dreadType)
+	protected override DreadArrayField<IBinaryField> CreateField(DreadVectorType dreadType)
 	{
 		var typeName = dreadType.TypeName;
 		var valueTypeName = dreadType.ValueType;
@@ -18,6 +19,6 @@ public class DreadVectorFieldFactory : BaseDreadFieldFactory<DreadVectorType, Ar
 		if (!DreadTypeLibrary.TryFindType(valueTypeName, out var valueType))
 			throw new InvalidOperationException($"Vector type \"{typeName}\" has unknown value type \"{valueTypeName}\"");
 
-		return new ArrayField<IBinaryField>(() => DreadTypeLibrary.CreateFieldForType(valueType));
+		return new DreadArrayField<IBinaryField>(typeName, () => DreadTypeLibrary.CreateFieldForType(valueType));
 	}
 }

@@ -18,7 +18,7 @@ public partial class BmssvTests : BaseTestFixture
 		foreach (var profileDirectory in new[] { TestFreshProfile, TestHundoProfile, TestRandoProfile }.Select(GetTestProfilePath))
 		foreach (var file in Directory.EnumerateFiles(profileDirectory, "*.bmssv", SearchOption.AllDirectories))
 		{
-			if (Path.GetFileNameWithoutExtension(file).EndsWith("_out", StringComparison.OrdinalIgnoreCase))
+			if (Path.GetFileNameWithoutExtension(file).EndsWith(".out", StringComparison.OrdinalIgnoreCase))
 				continue;
 
 			yield return file;

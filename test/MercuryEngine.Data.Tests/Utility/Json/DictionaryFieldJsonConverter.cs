@@ -12,7 +12,7 @@ internal class DictionaryFieldJsonConverter : JsonConverterFactory
 
 	public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
 	{
-		if (!typeToConvert.IsConstructedGenericType || typeToConvert.GetGenericTypeDefinition() != typeof(DictionaryField<,>))
+		if (!typeToConvert.IsConstructedGenericType || !typeToConvert.IsInstanceOfGeneric(typeof(DictionaryField<,>)))
 			return null;
 
 		var genericArgs = typeToConvert.GetGenericArguments();

@@ -1,13 +1,16 @@
 ﻿using System.Collections.Immutable;
 using System.Text;
-using MercuryEngine.Data.Core.Extensions;
-using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.Definitions.Utility;
 using MercuryEngine.Data.SourceGenerators.Generators;
 using MercuryEngine.Data.SourceGenerators.Generators.Structs;
 using MercuryEngine.Data.SourceGenerators.Utility;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+#if DEBUG
+using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Definitions.Extensions;
+#endif
 
 namespace MercuryEngine.Data.SourceGenerators;
 
@@ -201,11 +204,13 @@ public class DreadTypesSourceGenerator : IIncrementalGenerator
 
 	private static void GenerateTypeNamesMappingSourceLines(SourceProductionContext productionContext, (string? Left, DreadTypesParseResult Right) valueTuple)
 	{
+		// ReSharper disable once UnusedVariable
 		var (projectDir, parseResult) = valueTuple;
 
 		if (parseResult.Exception is { } exception)
 		{
 			productionContext.ReportDiagnostic(Diagnostic.Create(Constants.Diagnostics.CouldNotReadDreadTypesDiagnostic, null, exception));
+			// ReSharper disable once RedundantJumpStatement
 			return;
 		}
 

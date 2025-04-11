@@ -7,7 +7,7 @@ namespace MercuryEngine.Data.Types.DreadTypes.Custom;
 
 public class LiquidVolumesDictionary : DataStructure<LiquidVolumesDictionary>, ITypedDreadField
 {
-	public string TypeName => "LiquidVolumesDictionary";
+	public string TypeName => "base::global::CRntSmallDictionary<base::global::CStrId, base::spatial::CAABox2D>";
 
 	public Dictionary<TerminatedStringField, base__spatial__CAABox2D> Entries { get; } = [];
 

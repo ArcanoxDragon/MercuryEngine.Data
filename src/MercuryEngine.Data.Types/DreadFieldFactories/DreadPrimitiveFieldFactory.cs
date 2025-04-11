@@ -11,13 +11,13 @@ public class DreadPrimitiveFieldFactory : BaseDreadFieldFactory<DreadPrimitiveTy
 
 	protected override IBinaryField CreateField(DreadPrimitiveType dreadType)
 		=> dreadType.PrimitiveKind switch {
-			DreadPrimitiveKind.Bool       => new BooleanField(),
-			DreadPrimitiveKind.Int        => new Int32Field(),
-			DreadPrimitiveKind.UInt       => new UInt32Field(),
-			DreadPrimitiveKind.UInt16     => new UInt16Field(),
-			DreadPrimitiveKind.UInt64     => new UInt64Field(),
-			DreadPrimitiveKind.Float      => new FloatField(),
-			DreadPrimitiveKind.String     => new TerminatedStringField(),
+			DreadPrimitiveKind.Bool       => new DreadNumberField<bool, BooleanField>(dreadType.TypeName),
+			DreadPrimitiveKind.Int        => new DreadNumberField<int, Int32Field>(dreadType.TypeName),
+			DreadPrimitiveKind.UInt       => new DreadNumberField<uint, UInt32Field>(dreadType.TypeName),
+			DreadPrimitiveKind.UInt16     => new DreadNumberField<ushort, UInt16Field>(dreadType.TypeName),
+			DreadPrimitiveKind.UInt64     => new DreadNumberField<ulong, UInt64Field>(dreadType.TypeName),
+			DreadPrimitiveKind.Float      => new DreadNumberField<float, FloatField>(dreadType.TypeName),
+			DreadPrimitiveKind.String     => new DreadStringField(dreadType.TypeName),
 			DreadPrimitiveKind.Property   => new TerminatedStringField(),
 			DreadPrimitiveKind.Bytes      => new DreadPointer<ITypedDreadField>(),
 			DreadPrimitiveKind.Float_Vec2 => new Vector2(),
