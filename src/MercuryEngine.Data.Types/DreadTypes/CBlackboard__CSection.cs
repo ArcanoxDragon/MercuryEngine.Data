@@ -24,11 +24,11 @@ public partial class CBlackboard__CSection
 		{ DreadPrimitiveKind.String, "base::global::TRntString256" },
 	};
 
-	private readonly DictionaryAdapter<TerminatedStringField, DreadTypePrefixedField, string, DreadTypePrefixedField> sectionsAdapter;
+	private readonly DictionaryAdapter<TerminatedStringField, DreadPointer<ITypedDreadField>, string, DreadPointer<ITypedDreadField>> sectionsAdapter;
 
 	public CBlackboard__CSection()
 	{
-		this.sectionsAdapter = new DictionaryAdapter<TerminatedStringField, DreadTypePrefixedField, string, DreadTypePrefixedField>(
+		this.sectionsAdapter = new DictionaryAdapter<TerminatedStringField, DreadPointer<ITypedDreadField>, string, DreadPointer<ITypedDreadField>>(
 			RawProps,
 			bK => bK.Value,
 			bV => bV,
@@ -37,11 +37,11 @@ public partial class CBlackboard__CSection
 		);
 	}
 
-	public IDictionary<string, DreadTypePrefixedField> Props => this.sectionsAdapter;
+	public IDictionary<string, DreadPointer<ITypedDreadField>> Props => this.sectionsAdapter;
 
 	[StructProperty("dctProps")]
-	private IDictionary<TerminatedStringField, DreadTypePrefixedField> RawProps
-		=> RawFields.Dictionary<TerminatedStringField, DreadTypePrefixedField>("dctProps");
+	private IDictionary<TerminatedStringField, DreadPointer<ITypedDreadField>> RawProps
+		=> RawFields.Dictionary<TerminatedStringField, DreadPointer<ITypedDreadField>>("dctProps");
 
 	#region Property Getters
 
@@ -67,7 +67,12 @@ public partial class CBlackboard__CSection
 		if (!Props.TryGetValue(property, out var propertyData))
 			return false;
 
-		if (propertyData.InnerData is not IBinaryField<T> numericData)
+		IBinaryField? propertyValue = propertyData.Value;
+
+		if (propertyValue is TypedFieldWrapper wrapper)
+			propertyValue = wrapper.WrappedField;
+
+		if (propertyValue is not IBinaryField<T> numericData)
 			return false;
 
 		value = numericData.Value;
@@ -119,7 +124,7 @@ public partial class CBlackboard__CSection
 
 		primitiveField.Value = value;
 
-		Props[property] = new DreadTypePrefixedField(typedField);
+		Props[property] = new DreadPointer<ITypedDreadField>(typedField);
 	}
 
 	#endregion

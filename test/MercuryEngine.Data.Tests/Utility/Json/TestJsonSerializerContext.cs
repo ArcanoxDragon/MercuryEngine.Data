@@ -12,7 +12,6 @@ namespace MercuryEngine.Data.Tests.Utility.Json;
 		typeof(DictionaryFieldJsonConverter),
 		typeof(DreadPointerJsonConverter),
 		typeof(DreadTypedFieldJsonConverter),
-		typeof(DreadTypePrefixedFieldJsonConverter),
 		typeof(EnumFieldJsonConverter),
 		typeof(FixedLengthStringFieldJsonConverter),
 		typeof(NumberFieldJsonConverter<BooleanField, bool>),

@@ -25,7 +25,6 @@ internal static class JsonUtility
 			new DictionaryFieldJsonConverter(),
 			new DreadPointerJsonConverter(),
 			new DreadTypedFieldJsonConverter(),
-			new DreadTypePrefixedFieldJsonConverter(),
 			new EnumFieldJsonConverter(),
 			new FixedLengthStringFieldJsonConverter(),
 			new NumberFieldJsonConverter<BooleanField, bool>(),

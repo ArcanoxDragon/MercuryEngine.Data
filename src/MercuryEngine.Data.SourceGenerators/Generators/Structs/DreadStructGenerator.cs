@@ -427,7 +427,7 @@ internal class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 			DreadPrimitiveKind.Float      => "FloatField",
 			DreadPrimitiveKind.String     => "TerminatedStringField",
 			DreadPrimitiveKind.Property   => "StrId",
-			DreadPrimitiveKind.Bytes      => "DreadTypePrefixedField",
+			DreadPrimitiveKind.Bytes      => "DreadPointer<ITypedDreadField>",
 			DreadPrimitiveKind.Float_Vec2 => "Vector2",
 			DreadPrimitiveKind.Float_Vec3 => "Vector3",
 			DreadPrimitiveKind.Float_Vec4 => "Vector4",

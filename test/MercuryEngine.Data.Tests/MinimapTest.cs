@@ -30,7 +30,7 @@ public partial class MinimapTest
 
 		foreach (var (sectionName, section) in bmssv.Sections)
 		{
-			if (section.Props.SingleOrDefault(p => p.Key == "MINIMAP_VISIBILITY") is not { Value.InnerData: minimapGrid_TMinimapVisMap minimapVisibility })
+			if (section.Props.SingleOrDefault(p => p.Key == "MINIMAP_VISIBILITY") is not { Value.Value: minimapGrid_TMinimapVisMap minimapVisibility })
 				continue;
 
 			var parsedMinimap = ParseMinimap(minimapVisibility);

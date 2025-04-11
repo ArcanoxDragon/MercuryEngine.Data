@@ -19,7 +19,7 @@ public class DreadPrimitiveFieldFactory : BaseDreadFieldFactory<DreadPrimitiveTy
 			DreadPrimitiveKind.Float      => new FloatField(),
 			DreadPrimitiveKind.String     => new TerminatedStringField(),
 			DreadPrimitiveKind.Property   => new TerminatedStringField(),
-			DreadPrimitiveKind.Bytes      => new DreadTypePrefixedField(),
+			DreadPrimitiveKind.Bytes      => new DreadPointer<ITypedDreadField>(),
 			DreadPrimitiveKind.Float_Vec2 => new Vector2(),
 			DreadPrimitiveKind.Float_Vec3 => new Vector3(),
 			DreadPrimitiveKind.Float_Vec4 => new Vector4(),
