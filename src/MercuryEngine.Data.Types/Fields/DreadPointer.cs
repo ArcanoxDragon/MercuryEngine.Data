@@ -7,7 +7,7 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 namespace MercuryEngine.Data.Types.Fields;
 
 [PublicAPI]
-public class DreadPointer<TField> : IResettableField, IDataMapperAware
+public class DreadPointer<TField> : IResettableField, IDataMapperAware, IEquatable<DreadPointer<TField>>
 where TField : class, ITypedDreadField
 {
 	private const ulong NullTypeId = 0UL;
@@ -122,4 +122,49 @@ where TField : class, ITypedDreadField
 			await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
 		}
 	}
+
+	#region Equality
+
+	public bool Equals(DreadPointer<TField>? other)
+	{
+		if (other is null)
+			return false;
+		if (ReferenceEquals(this, other))
+			return true;
+
+		return EqualityComparer<TField?>.Default.Equals(Value, other.Value);
+	}
+
+	public override bool Equals(object? obj)
+	{
+		if (obj is null)
+			return false;
+		if (ReferenceEquals(this, obj))
+			return true;
+		if (obj.GetType() != GetType())
+			return false;
+
+		return Equals((DreadPointer<TField>) obj);
+	}
+
+	public override int GetHashCode()
+		=> Value is null ? 0 : EqualityComparer<TField?>.Default.GetHashCode(Value);
+
+	public static bool operator ==(DreadPointer<TField>? left, DreadPointer<TField>? right)
+		=> Equals(left, right);
+
+	public static bool operator !=(DreadPointer<TField>? left, DreadPointer<TField>? right)
+		=> !Equals(left, right);
+
+	#endregion
+
+	#region Conversion
+
+	public static implicit operator DreadPointer<TField>(TField? field)
+		=> new(field);
+
+	public static explicit operator TField?(DreadPointer<TField> pointer)
+		=> pointer.Value;
+
+	#endregion
 }
