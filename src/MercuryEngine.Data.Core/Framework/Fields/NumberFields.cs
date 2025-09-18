@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
+// ReSharper disable PreferConcreteValueOverDefault
+
 namespace MercuryEngine.Data.Core.Framework.Fields;
 
 public abstract class NumberField<T>(T value) : BaseBinaryField<T>(value)

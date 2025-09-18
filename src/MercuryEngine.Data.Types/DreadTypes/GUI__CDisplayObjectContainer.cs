@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Types.Attributes;
@@ -16,6 +17,7 @@ public partial class GUI__CDisplayObjectContainer
 		=> RawFields.Array<DreadPointer<GUI__CDisplayObject>>("lstChildren");
 
 	[field: MaybeNull]
+	[JsonIgnore]
 	public IList<GUI__CDisplayObject?> Children
 		=> field ??= new ListAdapter<DreadPointer<GUI__CDisplayObject>, GUI__CDisplayObject?>(
 			RawChildren,
