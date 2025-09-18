@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 using Task = System.Threading.Tasks.Task;
 
@@ -23,25 +24,25 @@ where T : struct, Enum
 	[JsonIgnore]
 	public override uint Size => (uint) Unsafe.SizeOf<T>();
 
-	public override void Read(BinaryReader reader)
+	public override void Read(BinaryReader reader, ReadContext context)
 		=> Value = ReadFunction(reader);
 
-	public override void Write(BinaryWriter writer)
+	public override void Write(BinaryWriter writer, WriteContext context)
 		=> WriteFunction(writer, Value);
 
-	public override Task ReadAsync(AsyncBinaryReader asyncReader, CancellationToken cancellationToken = default)
+	public override Task ReadAsync(AsyncBinaryReader asyncReader, ReadContext context, CancellationToken cancellationToken = default)
 	{
 		// We don't have the facilities by which to create an async lambda method for reading,
 		// so we just have to read/write enums synchronously
 
 		using var reader = new BinaryReader(asyncReader.BaseStream, Encoding.Default, true);
 
-		Read(reader);
+		Read(reader, context);
 
 		return Task.CompletedTask;
 	}
 
-	public override async Task WriteAsync(AsyncBinaryWriter asyncWriter, CancellationToken cancellationToken = default)
+	public override async Task WriteAsync(AsyncBinaryWriter asyncWriter, WriteContext context, CancellationToken cancellationToken = default)
 	{
 		// We don't have the facilities by which to create an async lambda method for reading,
 		// so we just have to read/write enums synchronously
@@ -49,7 +50,7 @@ where T : struct, Enum
 		var stream = await asyncWriter.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
 		await using var writer = new BinaryWriter(stream, Encoding.Default, true);
 
-		Write(writer);
+		Write(writer, context);
 	}
 
 	#region Function Generation

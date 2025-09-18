@@ -288,6 +288,23 @@ where T : IDataStructure
 
 	#endregion
 
+	#region Pointer Properties
+
+	public DataStructureBuilder<T> Pointer<TField>(Expression<Func<T, TField?>> propertyExpression)
+	where TField : class, IBinaryField, new()
+		=> Pointer(propertyExpression, () => new TField());
+
+	public DataStructureBuilder<T> Pointer<TField>(Expression<Func<T, TField?>> propertyExpression, Func<TField> fieldFactory)
+	where TField : class, IBinaryField
+	{
+		var property = ReflectionUtility.GetProperty(propertyExpression);
+		var adapter = new PointerPropertyFieldHandler<T, TField>(property, fieldFactory);
+		var description = $"{property.Name}: {typeof(TField).Name}*";
+		return AddField(new DataStructureField(adapter, description));
+	}
+
+	#endregion
+
 	public DataStructureBuilder<T> AddField(DataStructureField field)
 	{
 		Fields.Add(field);

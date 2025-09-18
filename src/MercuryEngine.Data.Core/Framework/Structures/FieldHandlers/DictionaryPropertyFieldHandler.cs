@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -45,28 +46,28 @@ where TValue : IBinaryField
 	public void Reset(IDataStructure dataStructure)
 		=> GetDictionaryFromProperty(dataStructure).Clear();
 
-	public void HandleRead(IDataStructure dataStructure, BinaryReader reader)
+	public void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
 	{
-		field.Read(reader);
+		field.Read(reader, context);
 		PostProcessRead(dataStructure);
 	}
 
-	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer)
+	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer, WriteContext context)
 	{
 		PrepareForWrite(dataStructure);
-		field.Write(writer);
+		field.Write(writer, context);
 	}
 
-	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken)
+	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
 	{
-		await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+		await field.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 		PostProcessRead(dataStructure);
 	}
 
-	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
+	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken)
 	{
 		PrepareForWrite(dataStructure);
-		return field.WriteAsync(writer, cancellationToken);
+		return field.WriteAsync(writer, context, cancellationToken: cancellationToken);
 	}
 
 	private void PrepareForWrite(IDataStructure dataStructure)

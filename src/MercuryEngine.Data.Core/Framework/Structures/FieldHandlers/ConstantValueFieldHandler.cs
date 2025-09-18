@@ -1,4 +1,5 @@
 ﻿using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
@@ -22,26 +23,26 @@ where T : notnull
 	public void Reset(IDataStructure dataStructure)
 		=> field.Reset();
 
-	public void HandleRead(IDataStructure dataStructure, BinaryReader reader)
+	public void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
 	{
-		field.Read(reader);
+		field.Read(reader, context);
 
 		if (assertValueOnRead)
 			AssertValue();
 	}
 
-	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer) => field.Write(writer);
+	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer, WriteContext context) => field.Write(writer, context);
 
-	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken)
+	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
 	{
-		await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+		await field.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 
 		if (assertValueOnRead)
 			AssertValue();
 	}
 
-	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
-		=> field.WriteAsync(writer, cancellationToken);
+	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken)
+		=> field.WriteAsync(writer, context, cancellationToken: cancellationToken);
 
 	private void AssertValue()
 	{

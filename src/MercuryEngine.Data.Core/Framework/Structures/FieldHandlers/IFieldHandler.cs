@@ -1,5 +1,6 @@
 ﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
@@ -26,9 +27,9 @@ public interface IFieldHandler
 	/// </summary>
 	void Reset(IDataStructure dataStructure);
 
-	void HandleRead(IDataStructure dataStructure, BinaryReader reader);
-	void HandleWrite(IDataStructure dataStructure, BinaryWriter writer);
+	void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context);
+	void HandleWrite(IDataStructure dataStructure, BinaryWriter writer, WriteContext context);
 
-	Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken);
-	Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken);
+	Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken);
+	Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken);
 }

@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Fields;
@@ -19,22 +20,22 @@ public interface IBinaryField
 	/// <summary>
 	/// Loads this <see cref="IBinaryField"/> from the provided <paramref name="reader"/>.
 	/// </summary>
-	void Read(BinaryReader reader);
+	void Read(BinaryReader reader, ReadContext context);
 
 	/// <summary>
 	/// Stores this <see cref="IBinaryField"/> into the provided <paramref name="writer"/>.
 	/// </summary>
-	void Write(BinaryWriter writer);
+	void Write(BinaryWriter writer, WriteContext context);
 
 	/// <summary>
 	/// Asynchronously loads this <see cref="IBinaryField"/> from the provided <paramref name="reader"/>.
 	/// </summary>
-	Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default);
+	Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default);
 
 	/// <summary>
 	/// Asynchronously stores this <see cref="IBinaryField"/> into the provided <paramref name="writer"/>.
 	/// </summary>
-	Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default);
+	Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

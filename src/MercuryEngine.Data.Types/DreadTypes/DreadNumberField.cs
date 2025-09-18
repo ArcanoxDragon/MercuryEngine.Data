@@ -1,4 +1,5 @@
 ﻿using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Types.Fields;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -27,17 +28,17 @@ where TBaseField : NumberField<T>, new()
 
 	public uint Size => this.baseField.Size;
 
-	public void Read(BinaryReader reader)
-		=> this.baseField.Read(reader);
+	public void Read(BinaryReader reader, ReadContext context)
+		=> this.baseField.Read(reader, context);
 
-	public void Write(BinaryWriter writer)
-		=> this.baseField.Write(writer);
+	public void Write(BinaryWriter writer, WriteContext context)
+		=> this.baseField.Write(writer, context);
 
-	public Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
-		=> this.baseField.ReadAsync(reader, cancellationToken);
+	public Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
+		=> this.baseField.ReadAsync(reader, context, cancellationToken);
 
-	public Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
-		=> this.baseField.WriteAsync(writer, cancellationToken);
+	public Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
+		=> this.baseField.WriteAsync(writer, context, cancellationToken: cancellationToken);
 
 	public void Reset()
 		=> this.baseField.Reset();

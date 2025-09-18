@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -37,7 +38,7 @@ where TField : class, ITypedDreadField
 	public void Reset()
 		=> Value = null;
 
-	public void Read(BinaryReader reader)
+	public void Read(BinaryReader reader, ReadContext context)
 	{
 		var typeId = reader.ReadUInt64();
 
@@ -54,10 +55,10 @@ where TField : class, ITypedDreadField
 			throw new IOException($"Expected to read a {typeof(TField).FullName}, but the data indicated a type of {candidate.GetType().FullName}");
 
 		Value = field;
-		Value.Read(reader);
+		Value.Read(reader, context);
 	}
 
-	public void Write(BinaryWriter writer)
+	public void Write(BinaryWriter writer, WriteContext context)
 	{
 		try
 		{
@@ -72,7 +73,7 @@ where TField : class, ITypedDreadField
 
 			DataMapper.PushRange($"pointer: {Value.TypeName}", writer);
 			writer.Write(Value.TypeId);
-			Value.WriteWithDataMapper(writer, DataMapper);
+			Value.WriteWithDataMapper(writer, DataMapper, context);
 		}
 		finally
 		{
@@ -80,7 +81,7 @@ where TField : class, ITypedDreadField
 		}
 	}
 
-	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	public async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
 		var typeId = await reader.ReadUInt64Async(cancellationToken).ConfigureAwait(false);
 
@@ -97,10 +98,10 @@ where TField : class, ITypedDreadField
 			throw new IOException($"Expected to read a {typeof(TField).FullName}, but the data indicated a type of {candidate.GetType().FullName}");
 
 		Value = field;
-		await Value.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+		await Value.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 	}
 
-	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	public async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -115,7 +116,7 @@ where TField : class, ITypedDreadField
 
 			await DataMapper.PushRangeAsync($"pointer: {Value.TypeName}", writer, cancellationToken).ConfigureAwait(false);
 			await writer.WriteAsync(Value.TypeId, cancellationToken).ConfigureAwait(false);
-			await Value.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
+			await Value.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
 		}
 		finally
 		{

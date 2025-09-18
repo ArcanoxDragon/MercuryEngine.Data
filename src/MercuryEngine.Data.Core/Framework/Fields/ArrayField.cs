@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -33,7 +34,7 @@ where TItem : IBinaryField
 
 	public override void Reset() => Value.Clear();
 
-	public override void Read(BinaryReader reader)
+	public override void Read(BinaryReader reader, ReadContext context)
 	{
 		Value.Clear();
 
@@ -48,7 +49,7 @@ where TItem : IBinaryField
 
 			try
 			{
-				entry.Read(reader);
+				entry.Read(reader, context);
 			}
 			catch (Exception ex)
 			{
@@ -57,7 +58,7 @@ where TItem : IBinaryField
 		}
 	}
 
-	public override void Write(BinaryWriter writer)
+	public override void Write(BinaryWriter writer, WriteContext context)
 	{
 		DataMapper.PushRange(MappingDescription, writer);
 
@@ -68,7 +69,7 @@ where TItem : IBinaryField
 			try
 			{
 				DataMapper.PushRange(GetEntryMappingDescription(i, entry), writer);
-				entry.WriteWithDataMapper(writer, DataMapper);
+				entry.WriteWithDataMapper(writer, DataMapper, context);
 			}
 			catch (Exception ex)
 			{
@@ -83,7 +84,7 @@ where TItem : IBinaryField
 		DataMapper.PopRange(writer);
 	}
 
-	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	public override async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
 		Value.Clear();
 
@@ -98,7 +99,7 @@ where TItem : IBinaryField
 
 			try
 			{
-				await entry.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+				await entry.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 			}
 			catch (OperationCanceledException)
 			{
@@ -111,7 +112,7 @@ where TItem : IBinaryField
 		}
 	}
 
-	public override async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	public override async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
 		await DataMapper.PushRangeAsync(MappingDescription, writer, cancellationToken).ConfigureAwait(false);
 
@@ -122,7 +123,7 @@ where TItem : IBinaryField
 			try
 			{
 				await DataMapper.PushRangeAsync(GetEntryMappingDescription(i, entry), writer, cancellationToken).ConfigureAwait(false);
-				await entry.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
+				await entry.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
 			}
 			catch (OperationCanceledException)
 			{

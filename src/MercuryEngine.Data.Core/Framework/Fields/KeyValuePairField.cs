@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -31,32 +32,32 @@ where TValue : IBinaryField
 		DidReadKey = false;
 	}
 
-	public void Read(BinaryReader reader)
+	public void Read(BinaryReader reader, ReadContext context)
 	{
 		DidReadKey = false;
-		Key.Read(reader);
+		Key.Read(reader, context);
 		DidReadKey = true;
-		Value.Read(reader);
+		Value.Read(reader, context);
 	}
 
-	public void Write(BinaryWriter writer)
+	public void Write(BinaryWriter writer, WriteContext context)
 	{
-		Key.WriteWithDataMapper(writer, DataMapper);
-		Value.WriteWithDataMapper(writer, DataMapper);
+		Key.WriteWithDataMapper(writer, DataMapper, context);
+		Value.WriteWithDataMapper(writer, DataMapper, context);
 	}
 
-	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	public async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
 		DidReadKey = false;
-		await Key.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+		await Key.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 		DidReadKey = true;
-		await Value.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+		await Value.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 	}
 
-	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	public async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
-		await Key.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
-		await Value.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
+		await Key.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
+		await Value.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
 	}
 
 	public void Deconstruct(out TKey key, out TValue value)

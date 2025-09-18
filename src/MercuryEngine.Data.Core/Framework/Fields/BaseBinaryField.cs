@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -29,11 +30,11 @@ where T : notnull
 
 	public virtual void Reset() => Value = this.initialValue;
 
-	public abstract void Read(BinaryReader reader);
-	public abstract void Write(BinaryWriter writer);
+	public abstract void Read(BinaryReader reader, ReadContext context);
+	public abstract void Write(BinaryWriter writer, WriteContext context);
 
-	public abstract Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default);
-	public abstract Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default);
+	public abstract Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default);
+	public abstract Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default);
 
 	public override string? ToString() => Value.ToString();
 

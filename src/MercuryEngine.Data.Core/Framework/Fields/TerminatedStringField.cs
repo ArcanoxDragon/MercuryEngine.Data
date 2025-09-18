@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 #if DEBUG
@@ -54,22 +55,22 @@ public class TerminatedStringField(string initialValue) : BaseBinaryField<string
 
 	public override uint Size => (uint) Encoding.GetByteCount(Value) + 1;
 
-	public override void Read(BinaryReader reader)
+	public override void Read(BinaryReader reader, ReadContext context)
 	{
 		Value = reader.ReadTerminatedCString(Encoding, MaxLength);
 	}
 
-	public override void Write(BinaryWriter writer)
+	public override void Write(BinaryWriter writer, WriteContext context)
 	{
 		writer.WriteTerminatedCString(Encoding, Value);
 	}
 
-	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	public override async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
 		Value = await reader.ReadTerminatedCStringAsync(Encoding, MaxLength, cancellationToken).ConfigureAwait(false);
 	}
 
-	public override async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	public override async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
 		await writer.WriteTerminatedCStringAsync(Encoding, Value, cancellationToken).ConfigureAwait(false);
 	}

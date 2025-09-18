@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Fields;
@@ -13,25 +14,25 @@ where TField : IBinaryField
 	[JsonIgnore]
 	public uint Size => predicate() ? this.innerField.Size : 0;
 
-	public void Read(BinaryReader reader)
+	public void Read(BinaryReader reader, ReadContext context)
 	{
 		if (!predicate())
 			return;
 
-		this.innerField.Read(reader);
+		this.innerField.Read(reader, context);
 	}
 
-	public void Write(BinaryWriter writer)
+	public void Write(BinaryWriter writer, WriteContext context)
 	{
 		if (!predicate())
 			return;
 
-		this.innerField.Write(writer);
+		this.innerField.Write(writer, context);
 	}
 
-	public Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
-		=> predicate() ? this.innerField.ReadAsync(reader, cancellationToken) : Task.CompletedTask;
+	public Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
+		=> predicate() ? this.innerField.ReadAsync(reader, context, cancellationToken) : Task.CompletedTask;
 
-	public Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
-		=> predicate() ? this.innerField.WriteAsync(writer, cancellationToken) : Task.CompletedTask;
+	public Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
+		=> predicate() ? this.innerField.WriteAsync(writer, context, cancellationToken: cancellationToken) : Task.CompletedTask;
 }

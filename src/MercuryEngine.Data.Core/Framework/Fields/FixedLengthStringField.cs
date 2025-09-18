@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 #if DEBUG
@@ -62,7 +63,7 @@ public class FixedLengthStringField(int length, string initialValue) : BaseBinar
 
 	public override uint Size => (uint) Length;
 
-	public override void Read(BinaryReader reader)
+	public override void Read(BinaryReader reader, ReadContext context)
 	{
 		var buffer = new byte[BufferSize];
 		var builder = new StringBuilder();
@@ -95,7 +96,7 @@ public class FixedLengthStringField(int length, string initialValue) : BaseBinar
 		}
 	}
 
-	public override void Write(BinaryWriter writer)
+	public override void Write(BinaryWriter writer, WriteContext context)
 	{
 		using var textWriter = new StreamWriter(writer.BaseStream, Encoding, leaveOpen: true);
 
@@ -113,7 +114,7 @@ public class FixedLengthStringField(int length, string initialValue) : BaseBinar
 		}
 	}
 
-	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	public override async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
 		var buffer = new byte[BufferSize];
 		var builder = new StringBuilder();
@@ -149,7 +150,7 @@ public class FixedLengthStringField(int length, string initialValue) : BaseBinar
 		}
 	}
 
-	public override async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	public override async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
 		var stream = await writer.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
 		await using var textWriter = new StreamWriter(stream, Encoding, leaveOpen: true);

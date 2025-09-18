@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields.Fluent;
 using MercuryEngine.Data.Core.Framework.Fields.Internal;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -56,14 +57,14 @@ where TField : IBinaryField
 	public uint Size => EffectiveField.Size;
 
 	public void Reset() => ( EffectiveField as IResettableField )?.Reset();
-	public void Read(BinaryReader reader) => EffectiveField.Read(reader);
-	public void Write(BinaryWriter writer) => EffectiveField.Write(writer);
+	public void Read(BinaryReader reader, ReadContext context) => EffectiveField.Read(reader, context);
+	public void Write(BinaryWriter writer, WriteContext context) => EffectiveField.Write(writer, context);
 
-	public Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken)
-		=> EffectiveField.ReadAsync(reader, cancellationToken);
+	public Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
+		=> EffectiveField.ReadAsync(reader, context, cancellationToken);
 
-	public Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken)
-		=> EffectiveField.WriteAsync(writer, cancellationToken);
+	public Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken)
+		=> EffectiveField.WriteAsync(writer, context, cancellationToken: cancellationToken);
 }
 
 [PublicAPI]

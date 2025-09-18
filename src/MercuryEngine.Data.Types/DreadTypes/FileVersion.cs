@@ -1,4 +1,5 @@
 ﻿using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Types.DreadTypes;
@@ -20,28 +21,28 @@ public sealed class FileVersion : IBinaryField, IEquatable<FileVersion>
 
 	public uint Size => sizeof(ushort) + 2 * sizeof(byte);
 
-	public void Read(BinaryReader reader)
+	public void Read(BinaryReader reader, ReadContext context)
 	{
 		Major = reader.ReadUInt16();
 		Minor = reader.ReadByte();
 		Patch = reader.ReadByte();
 	}
 
-	public void Write(BinaryWriter writer)
+	public void Write(BinaryWriter writer, WriteContext context)
 	{
 		writer.Write(Major);
 		writer.Write(Minor);
 		writer.Write(Patch);
 	}
 
-	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	public async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
 		Major = await reader.ReadUInt16Async(cancellationToken).ConfigureAwait(false);
 		Minor = await reader.ReadByteAsync(cancellationToken).ConfigureAwait(false);
 		Patch = await reader.ReadByteAsync(cancellationToken).ConfigureAwait(false);
 	}
 
-	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	public async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
 		await writer.WriteAsync(Major, cancellationToken).ConfigureAwait(false);
 		await writer.WriteAsync(Minor, cancellationToken).ConfigureAwait(false);

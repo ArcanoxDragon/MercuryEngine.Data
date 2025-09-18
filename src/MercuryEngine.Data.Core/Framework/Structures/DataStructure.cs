@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -60,38 +61,51 @@ where T : DataStructure<T>
 
 	#region I/O
 
-	public void Read(BinaryReader reader)
+	public void Read(BinaryReader reader, ReadContext context)
 	{
 		BeforeRead();
 
+		ReadCore(reader, context);
+
+		AfterRead();
+	}
+
+	protected virtual void ReadCore(BinaryReader reader, ReadContext context)
+	{
 		foreach (var (i, field) in Fields.Pairs())
 		{
 			var startPosition = reader.BaseStream.GetRealPosition();
 
 			try
 			{
-				field.Handler.HandleRead(this, reader);
+				field.Handler.HandleRead(this, reader, context);
 			}
 			catch (Exception ex)
 			{
 				throw new IOException($"An exception occurred while reading field {i} ({field.Description}) of {GetType().Name} (position: {startPosition})", ex);
 			}
 		}
-
-		AfterRead();
 	}
 
-	public void Write(BinaryWriter writer)
+	public void Write(BinaryWriter writer, WriteContext context)
 	{
 		BeforeWrite();
 		DataMapper.PushRange($"Structure({this})", writer);
 
+		WriteCore(writer, context);
+
+		DataMapper.PopRange(writer);
+		AfterWrite();
+	}
+
+	protected virtual void WriteCore(BinaryWriter writer, WriteContext context)
+	{
 		foreach (var (i, field) in Fields.Pairs())
 		{
 			try
 			{
 				DataMapper.PushRange($"field: {field.Description}", writer);
-				field.WriteWithDataMapper(this, writer, DataMapper);
+				field.WriteWithDataMapper(this, writer, DataMapper, context);
 			}
 			catch (Exception ex)
 			{
@@ -102,22 +116,26 @@ where T : DataStructure<T>
 				DataMapper.PopRange(writer);
 			}
 		}
-
-		DataMapper.PopRange(writer);
-		AfterWrite();
 	}
 
-	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	public async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
 		BeforeRead();
 
+		await ReadAsyncCore(reader, context, cancellationToken).ConfigureAwait(false);
+
+		AfterRead();
+	}
+
+	protected virtual async Task ReadAsyncCore(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
+	{
 		foreach (var (i, field) in Fields.Pairs())
 		{
 			var startPosition = reader.BaseStream.GetRealPosition();
 
 			try
 			{
-				await field.Handler.HandleReadAsync(this, reader, cancellationToken).ConfigureAwait(false);
+				await field.Handler.HandleReadAsync(this, reader, context, cancellationToken).ConfigureAwait(false);
 			}
 			catch (OperationCanceledException)
 			{
@@ -128,21 +146,27 @@ where T : DataStructure<T>
 				throw new IOException($"An exception occurred while reading field {i} ({field.Description}) of {GetType().Name} (position: {startPosition})", ex);
 			}
 		}
-
-		AfterRead();
 	}
 
-	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	public async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
 		BeforeWrite();
 		await DataMapper.PushRangeAsync($"Structure({this})", writer, cancellationToken).ConfigureAwait(false);
 
+		await WriteAsyncCore(writer, context, cancellationToken).ConfigureAwait(false);
+
+		await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
+		AfterWrite();
+	}
+
+	protected virtual async Task WriteAsyncCore(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
+	{
 		foreach (var (i, field) in Fields.Pairs())
 		{
 			try
 			{
 				await DataMapper.PushRangeAsync($"field: {field.Description}", writer, cancellationToken).ConfigureAwait(false);
-				await field.WriteWithDataMapperAsync(this, writer, DataMapper, cancellationToken).ConfigureAwait(false);
+				await field.WriteWithDataMapperAsync(this, writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
 			}
 			catch (OperationCanceledException)
 			{
@@ -157,9 +181,6 @@ where T : DataStructure<T>
 				await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
 			}
 		}
-
-		await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
-		AfterWrite();
 	}
 
 	#endregion

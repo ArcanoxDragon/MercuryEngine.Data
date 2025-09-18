@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -31,7 +32,7 @@ where TField : IBinaryField
 	public void Reset(IDataStructure dataStructure)
 		=> SetField(dataStructure, default);
 
-	public void HandleRead(IDataStructure dataStructure, BinaryReader reader)
+	public void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
 	{
 		if (GetField(dataStructure) is not TField field)
 		{
@@ -39,13 +40,13 @@ where TField : IBinaryField
 			SetField(dataStructure, field);
 		}
 
-		field.Read(reader);
+		field.Read(reader, context);
 	}
 
-	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer)
-		=> GetField(dataStructure)?.Write(writer);
+	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer, WriteContext context)
+		=> GetField(dataStructure)?.Write(writer, context);
 
-	public Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, CancellationToken cancellationToken)
+	public Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
 	{
 		if (GetField(dataStructure) is not TField field)
 		{
@@ -53,9 +54,9 @@ where TField : IBinaryField
 			SetField(dataStructure, field);
 		}
 
-		return field.ReadAsync(reader, cancellationToken);
+		return field.ReadAsync(reader, context, cancellationToken);
 	}
 
-	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, CancellationToken cancellationToken)
-		=> GetField(dataStructure)?.WriteAsync(writer, cancellationToken) ?? Task.CompletedTask;
+	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken)
+		=> GetField(dataStructure)?.WriteAsync(writer, context, cancellationToken: cancellationToken) ?? Task.CompletedTask;
 }

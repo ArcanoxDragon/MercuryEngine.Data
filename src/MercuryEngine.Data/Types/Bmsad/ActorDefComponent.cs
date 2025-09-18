@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Linq.Expressions;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.Bmsad.Dependencies;
@@ -160,7 +161,7 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 			Object = null;
 		}
 
-		public void Read(BinaryReader reader)
+		public void Read(BinaryReader reader, ReadContext context)
 		{
 			// Read length prefix. Stream must always advance this exact amount after the read.
 			var length = reader.ReadUInt32();
@@ -173,26 +174,26 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 
 			var startPosition = reader.BaseStream.Position;
 
-			EmptyString.Read(reader);
-			Root.Read(reader);
-			Object?.Read(reader);
+			EmptyString.Read(reader, context);
+			Root.Read(reader, context);
+			Object?.Read(reader, context);
 
 			reader.BaseStream.Seek(startPosition + length, SeekOrigin.Begin);
 		}
 
-		public void Write(BinaryWriter writer)
+		public void Write(BinaryWriter writer, WriteContext context)
 		{
 			writer.Write(InnerSize);
 
 			if (Object is null)
 				return;
 
-			EmptyString.Write(writer);
-			Root.Write(writer);
-			Object.Write(writer);
+			EmptyString.Write(writer, context);
+			Root.Write(writer, context);
+			Object.Write(writer, context);
 		}
 
-		public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		public async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 		{
 			// Read length prefix. Stream must always advance this exact amount after the read.
 			var length = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
@@ -205,25 +206,25 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 
 			var startPosition = reader.BaseStream.Position;
 
-			await EmptyString.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
-			await Root.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+			await EmptyString.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
+			await Root.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 
 			if (Object != null)
-				await Object.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+				await Object.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 
 			reader.BaseStream.Seek(startPosition + length, SeekOrigin.Begin);
 		}
 
-		public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+		public async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 		{
 			await writer.WriteAsync(InnerSize, cancellationToken).ConfigureAwait(false);
 
 			if (Object is null)
 				return;
 
-			await EmptyString.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
-			await Root.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
-			await Object.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+			await EmptyString.WriteAsync(writer, context, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await Root.WriteAsync(writer, context, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await Object.WriteAsync(writer, context, cancellationToken: cancellationToken).ConfigureAwait(false);
 		}
 	}
 }

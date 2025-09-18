@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields.Fluent;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -152,7 +153,7 @@ where TPropertyKey : IBinaryField
 
 	#region I/O
 
-	public void Read(BinaryReader reader)
+	public void Read(BinaryReader reader, ReadContext context)
 	{
 		BeforeRead();
 
@@ -163,7 +164,7 @@ where TPropertyKey : IBinaryField
 		{
 			var startPosition = reader.BaseStream.GetRealPosition();
 
-			propertyKey.Read(reader);
+			propertyKey.Read(reader, context);
 
 			if (!this.propertyKeyReverseLookup.TryGetValue(propertyKey, out var propertyName) ||
 				!this.fieldDefinitions.TryGetValue(propertyName, out var fieldFactory))
@@ -175,7 +176,7 @@ where TPropertyKey : IBinaryField
 
 			try
 			{
-				field.Read(reader);
+				field.Read(reader, context);
 				this.values.Add(propertyName, field);
 			}
 			catch (Exception ex)
@@ -185,7 +186,7 @@ where TPropertyKey : IBinaryField
 		}
 	}
 
-	public void Write(BinaryWriter writer)
+	public void Write(BinaryWriter writer, WriteContext context)
 	{
 		try
 		{
@@ -198,12 +199,12 @@ where TPropertyKey : IBinaryField
 			{
 				var propertyKey = this.propertyKeyTranslator.TranslateKey(propertyName);
 
-				propertyKey.Write(writer);
+				propertyKey.Write(writer, context);
 
 				try
 				{
 					DataMapper.PushRange($"property: {propertyName}", writer);
-					field.WriteWithDataMapper(writer, DataMapper);
+					field.WriteWithDataMapper(writer, DataMapper, context);
 				}
 				catch (Exception ex)
 				{
@@ -223,7 +224,7 @@ where TPropertyKey : IBinaryField
 		}
 	}
 
-	public async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	public async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
 		BeforeRead();
 
@@ -234,7 +235,7 @@ where TPropertyKey : IBinaryField
 		{
 			var startPosition = reader.BaseStream.GetRealPosition();
 
-			await propertyKey.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+			await propertyKey.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 
 			if (!this.propertyKeyReverseLookup.TryGetValue(propertyKey, out var propertyName) ||
 				!this.fieldDefinitions.TryGetValue(propertyName, out var fieldFactory))
@@ -246,7 +247,7 @@ where TPropertyKey : IBinaryField
 
 			try
 			{
-				await field.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
+				await field.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 				this.values.Add(propertyName, field);
 			}
 			catch (OperationCanceledException)
@@ -260,7 +261,7 @@ where TPropertyKey : IBinaryField
 		}
 	}
 
-	public async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
+	public async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -273,12 +274,12 @@ where TPropertyKey : IBinaryField
 			{
 				var propertyKey = this.propertyKeyTranslator.TranslateKey(propertyName);
 
-				await propertyKey.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+				await propertyKey.WriteAsync(writer, context, cancellationToken: cancellationToken).ConfigureAwait(false);
 
 				try
 				{
 					await DataMapper.PushRangeAsync($"property: {propertyName}", writer, cancellationToken).ConfigureAwait(false);
-					await field.WriteWithDataMapperAsync(writer, DataMapper, cancellationToken).ConfigureAwait(false);
+					await field.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
 				}
 				catch (OperationCanceledException)
 				{
