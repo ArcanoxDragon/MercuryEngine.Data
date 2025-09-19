@@ -6,7 +6,7 @@ namespace MercuryEngine.Data.Types.Bcmdl;
 public class TextureParameters : DataStructure<TextureParameters>
 {
 	public ulong UnknownU64_0x00 { get; set; }
-	public uint  UnknownU32_0x08 { get; set; }
+	public int   UnknownI32_0x08 { get; set; }
 	public float UnknownS32_0x0C { get; set; }
 	public float UnknownS32_0x10 { get; set; }
 	public float UnknownS32_0x14 { get; set; }
@@ -21,7 +21,7 @@ public class TextureParameters : DataStructure<TextureParameters>
 	protected override void Describe(DataStructureBuilder<TextureParameters> builder)
 	{
 		builder.Property(m => m.UnknownU64_0x00);
-		builder.Property(m => m.UnknownU32_0x08);
+		builder.Property(m => m.UnknownI32_0x08);
 		builder.Property(m => m.UnknownS32_0x0C);
 		builder.Property(m => m.UnknownS32_0x10);
 		builder.Property(m => m.UnknownS32_0x14);
