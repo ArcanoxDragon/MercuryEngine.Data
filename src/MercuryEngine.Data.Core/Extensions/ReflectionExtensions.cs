@@ -2,8 +2,22 @@
 
 namespace MercuryEngine.Data.Core.Extensions;
 
-internal static class ReflectionExtensions
+public static class ReflectionExtensions
 {
+	public static string GetDisplayName(this Type type)
+	{
+		var nonGenericTypeName = type.Name.Split('`')[0]; // Any type args suffix, e.g. "`2", is ignored
+
+		if (type is { IsConstructedGenericType: true, GenericTypeArguments.Length: > 0 })
+		{
+			var typeArgumentNames = string.Join(", ", type.GenericTypeArguments.Select(t => t.GetDisplayName()));
+
+			return $"{nonGenericTypeName}<{typeArgumentNames}>";
+		}
+
+		return nonGenericTypeName;
+	}
+
 	public static IEnumerable<Type> GetAllInterfaces(
 		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
 		this Type type

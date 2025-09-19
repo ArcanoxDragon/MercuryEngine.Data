@@ -2,6 +2,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 using MercuryEngine.Data.Core.Utility;
@@ -188,7 +189,7 @@ where T : IDataStructure
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var adapter = new ValuePropertyFieldHandler<T, TProperty>(field, property);
-		var description = $"{property.Name}: {typeof(TProperty).Name}";
+		var description = $"{property.Name}: {typeof(TProperty).GetDisplayName()}";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
@@ -197,7 +198,7 @@ where T : IDataStructure
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var adapter = new ValuePropertyFieldHandler<T, TProperty>(field, property, nullable: true);
-		var description = $"{property.Name}: {typeof(TProperty).Name}?";
+		var description = $"{property.Name}: {typeof(TProperty).GetDisplayName()}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
@@ -206,7 +207,7 @@ where T : IDataStructure
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var adapter = new ValuePropertyFieldHandler<T, TProperty>(field, property, nullable: true);
-		var description = $"{property.Name}: {typeof(TProperty).Name}?";
+		var description = $"{property.Name}: {typeof(TProperty).GetDisplayName()}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
@@ -219,7 +220,7 @@ where T : IDataStructure
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var adapter = new DirectPropertyFieldHandler<T>(property);
-		var description = $"{property.Name}: {typeof(TField).Name}";
+		var description = $"{property.Name}: {typeof(TField).GetDisplayName()}";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
@@ -232,7 +233,7 @@ where T : IDataStructure
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var adapter = new NullableDirectPropertyFieldHandler<T, TField>(property, fieldFactory);
-		var description = $"{property.Name}: {typeof(TField).Name}?";
+		var description = $"{property.Name}: {typeof(TField).GetDisplayName()}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
@@ -256,7 +257,7 @@ where T : IDataStructure
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var field = new ArrayField<TItem>(itemFactory);
 		var adapter = new ArrayPropertyFieldHandler<T, TItem>(field, property);
-		var description = $"{property.Name}: {typeof(TItem).Name}[]";
+		var description = $"{property.Name}: {typeof(TItem).GetDisplayName()}[]";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
@@ -282,7 +283,7 @@ where T : IDataStructure
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var field = new DictionaryField<TKey, TValue>(keyFactory, valueFactory);
 		var adapter = new DictionaryPropertyFieldHandler<T, TKey, TValue>(field, property);
-		var description = $"{property.Name}: Dictionary<{typeof(TKey).Name}, {typeof(TValue).Name}>";
+		var description = $"{property.Name}: Dictionary<{typeof(TKey).GetDisplayName()}, {typeof(TValue).GetDisplayName()}>";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
@@ -299,7 +300,7 @@ where T : IDataStructure
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
 		var adapter = new PointerPropertyFieldHandler<T, TField>(property, fieldFactory);
-		var description = $"{property.Name}: {typeof(TField).Name}*";
+		var description = $"{property.Name}: {typeof(TField).GetDisplayName()}*";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
