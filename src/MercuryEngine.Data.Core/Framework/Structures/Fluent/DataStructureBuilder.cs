@@ -84,6 +84,9 @@ where T : IDataStructure
 	where TEnum : struct, Enum
 		=> AddConstantField(() => new EnumField<TEnum>(value), value, description, assertValueOnRead);
 
+	public DataStructureBuilder<T> Padding(uint length, byte paddingByte = 0)
+		=> AddConstantField(() => new PaddingField(length, paddingByte), $"<padding: {length} bytes>");
+
 	public DataStructureBuilder<T> AddConstantField(Func<IBinaryField> fieldFactory, string? description = null)
 		=> AddField(new DataStructureField(new ConstantValueFieldHandler(fieldFactory), description ?? $"<constant: {fieldFactory}>"));
 
