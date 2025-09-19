@@ -110,7 +110,7 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 		builder.RawProperty(RawDependenciesExpression);
 	}
 
-	protected override void BeforeWrite()
+	protected override void BeforeWrite(WriteContext context)
 	{
 		// Manually transfer ExtraFields to RawExtraFields
 
@@ -120,7 +120,7 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 			RawExtraFields.Value.Add(new TerminatedStringField(key), value);
 	}
 
-	protected override void AfterRead()
+	protected override void AfterRead(ReadContext context)
 	{
 		// Manually transfer RawExtraFields to ExtraFields
 

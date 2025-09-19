@@ -2,6 +2,7 @@
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.DreadTypes;
 using MercuryEngine.Data.Types.Extensions;
@@ -25,7 +26,7 @@ where TRoot : class, IBinaryField, new()
 	private StrId?       StoredTypeName { get; set; }
 	private FileVersion? StoredVersion  { get; set; }
 
-	protected override void BeforeWrite()
+	protected override void BeforeWrite(WriteContext context)
 	{
 		if (TypeName != null)
 			StoredTypeName ??= TypeName.GetCrc64();
@@ -33,7 +34,7 @@ where TRoot : class, IBinaryField, new()
 		StoredVersion ??= Version;
 	}
 
-	protected override void AfterRead()
+	protected override void AfterRead(ReadContext context)
 	{
 		if (TypeName != null && StoredTypeName != null && StoredTypeName.Value != TypeName.GetCrc64())
 			throw new IOException($"Type name mismatch in {GetType().Name}: Expected \"{TypeName}\", but found \"{StoredTypeName}\"");

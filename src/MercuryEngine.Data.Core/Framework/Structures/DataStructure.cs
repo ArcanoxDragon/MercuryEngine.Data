@@ -63,11 +63,11 @@ where T : DataStructure<T>
 
 	public void Read(BinaryReader reader, ReadContext context)
 	{
-		BeforeRead();
+		BeforeRead(context);
 
 		ReadCore(reader, context);
 
-		AfterRead();
+		AfterRead(context);
 	}
 
 	protected virtual void ReadCore(BinaryReader reader, ReadContext context)
@@ -89,13 +89,13 @@ where T : DataStructure<T>
 
 	public void Write(BinaryWriter writer, WriteContext context)
 	{
-		BeforeWrite();
+		BeforeWrite(context);
 		DataMapper.PushRange($"Structure({this})", writer);
 
 		WriteCore(writer, context);
 
 		DataMapper.PopRange(writer);
-		AfterWrite();
+		AfterWrite(context);
 	}
 
 	protected virtual void WriteCore(BinaryWriter writer, WriteContext context)
@@ -120,11 +120,11 @@ where T : DataStructure<T>
 
 	public async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
-		BeforeRead();
+		BeforeRead(context);
 
 		await ReadAsyncCore(reader, context, cancellationToken).ConfigureAwait(false);
 
-		AfterRead();
+		AfterRead(context);
 	}
 
 	protected virtual async Task ReadAsyncCore(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
@@ -150,13 +150,13 @@ where T : DataStructure<T>
 
 	public async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
-		BeforeWrite();
+		BeforeWrite(context);
 		await DataMapper.PushRangeAsync($"Structure({this})", writer, cancellationToken).ConfigureAwait(false);
 
 		await WriteAsyncCore(writer, context, cancellationToken).ConfigureAwait(false);
 
 		await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
-		AfterWrite();
+		AfterWrite(context);
 	}
 
 	protected virtual async Task WriteAsyncCore(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
@@ -187,11 +187,11 @@ where T : DataStructure<T>
 
 	#region Hooks
 
-	protected virtual void BeforeRead() { }
-	protected virtual void AfterRead() { }
+	protected virtual void BeforeRead(ReadContext context) { }
+	protected virtual void AfterRead(ReadContext context) { }
 
-	protected virtual void BeforeWrite() { }
-	protected virtual void AfterWrite() { }
+	protected virtual void BeforeWrite(WriteContext context) { }
+	protected virtual void AfterWrite(WriteContext context) { }
 
 	#endregion
 

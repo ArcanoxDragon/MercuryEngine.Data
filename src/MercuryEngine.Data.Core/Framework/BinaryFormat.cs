@@ -141,9 +141,9 @@ where T : BinaryFormat<T>, new()
 	// TODO: It's less than ideal that the "Size" property does not include the size of the heap data.
 	//  Is there a way we could make it include that?
 
-	protected override void BeforeWrite()
+	protected override void BeforeWrite(WriteContext context)
 	{
-		base.BeforeWrite();
+		base.BeforeWrite(context);
 
 		// Reset the heap manager, and set its starting address to the first byte after the structure's own fields
 		var nonHeapSize = Size;
