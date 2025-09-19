@@ -9,12 +9,24 @@ public class MaterialParameters : DataStructure<MaterialParameters>
 	public float Unknown0 { get; set; }
 	public uint  Unknown1 { get; set; } = 3;
 
-	public Vector3 Vec3Param0 { get; } = new(1f, 1f, 1f);
-	public Vector3 Vec3Param1 { get; } = new(1f, 1f, 1f);
-	public Vector3 Vec3Param2 { get; } = new(1f, 1f, 1f);
-	public Vector3 Vec3Param3 { get; } = new(1f, 1f, 1f);
-	public Vector3 Vec3Param4 { get; } = new(1f, 1f, 1f);
-	public Vector3 Vec3Param5 { get; } = new(1f, 1f, 1f);
+	public float FloatParam0  { get; set; } = 1f;
+	public float FloatParam1  { get; set; } = 1f;
+	public float FloatParam2  { get; set; } = 1f;
+	public float FloatParam3  { get; set; } = 1f;
+	public float FloatParam4  { get; set; } = 1f;
+	public float FloatParam5  { get; set; } = 1f;
+	public float FloatParam6  { get; set; } = 1f;
+	public float FloatParam7  { get; set; } = 1f;
+	public float FloatParam8  { get; set; } = 1f;
+	public float FloatParam9  { get; set; } = 1f;
+	public float FloatParam10 { get; set; } = 1f;
+	public float FloatParam11 { get; set; } = 1f;
+	public float FloatParam12 { get; set; } = 1f;
+	public float FloatParam13 { get; set; } = 1f;
+	public float FloatParam14 { get; set; } = 1f;
+	public float FloatParam15 { get; set; } = 1f;
+	public float FloatParam16 { get; set; } = 1f;
+	public float FloatParam17 { get; set; } = 1f;
 
 	public Vector4 Vec4Param0 { get; } = new(0f, 0f, 0f, 1f);
 	public Vector4 Vec4Param1 { get; } = new(0f, 0f, 0f, 1f);
@@ -43,12 +55,24 @@ public class MaterialParameters : DataStructure<MaterialParameters>
 		builder.Property(m => m.Unknown0);
 		builder.Property(m => m.Unknown1);
 
-		builder.RawProperty(m => m.Vec3Param0);
-		builder.RawProperty(m => m.Vec3Param1);
-		builder.RawProperty(m => m.Vec3Param2);
-		builder.RawProperty(m => m.Vec3Param3);
-		builder.RawProperty(m => m.Vec3Param4);
-		builder.RawProperty(m => m.Vec3Param5);
+		builder.Property(m => m.FloatParam0);
+		builder.Property(m => m.FloatParam1);
+		builder.Property(m => m.FloatParam2);
+		builder.Property(m => m.FloatParam3);
+		builder.Property(m => m.FloatParam4);
+		builder.Property(m => m.FloatParam5);
+		builder.Property(m => m.FloatParam6);
+		builder.Property(m => m.FloatParam7);
+		builder.Property(m => m.FloatParam8);
+		builder.Property(m => m.FloatParam9);
+		builder.Property(m => m.FloatParam10);
+		builder.Property(m => m.FloatParam11);
+		builder.Property(m => m.FloatParam12);
+		builder.Property(m => m.FloatParam13);
+		builder.Property(m => m.FloatParam14);
+		builder.Property(m => m.FloatParam15);
+		builder.Property(m => m.FloatParam16);
+		builder.Property(m => m.FloatParam17);
 
 		builder.RawProperty(m => m.Vec4Param0);
 		builder.RawProperty(m => m.Vec4Param1);
