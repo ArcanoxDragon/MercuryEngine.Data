@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
@@ -9,14 +10,20 @@ namespace MercuryEngine.Data.Core.Framework;
 
 public class HeapManager(ulong startingAddress = 0)
 {
-	private readonly Dictionary<IBinaryField, ulong> fieldAddresses  = [];
+	private readonly Dictionary<IBinaryField, ulong> fieldAddresses  = new(ReferenceEqualityComparer.Instance);
 	private readonly Dictionary<ulong, IBinaryField> fieldsByAddress = [];
-	private readonly List<IBinaryField>              allocatedFields = [];
+	private readonly List<Allocation>                allocations     = [];
+	private readonly Queue<Allocation>               writeQueue      = [];
 
 	private bool isWriting;
 
 	public ulong StartingAddress { get; private set; } = startingAddress;
 	public ulong TotalAllocated  { get; private set; }
+
+	/// <summary>
+	/// The byte value used when writing padding bytes between allocated blocks of data.
+	/// </summary>
+	public byte PaddingByte { get; set; }
 
 	public DataMapper? DataMapper { get; set; }
 
@@ -28,7 +35,7 @@ public class HeapManager(ulong startingAddress = 0)
 		CheckState();
 		this.fieldAddresses.Clear();
 		this.fieldsByAddress.Clear();
-		this.allocatedFields.Clear();
+		this.allocations.Clear();
 		TotalAllocated = 0;
 	}
 
@@ -45,32 +52,50 @@ public class HeapManager(ulong startingAddress = 0)
 	/// If an address has already been allocated for the provided <paramref name="field"/>, this method
 	/// returns that address. Otherwise, it allocates space on the heap and returns the new address.
 	/// </summary>
-	public ulong GetAddressOrAllocate(IBinaryField field)
+	public ulong GetAddressOrAllocate(IBinaryField field, uint startByteAlignment = 0, uint endByteAlignment = 0)
 	{
 		if (this.fieldAddresses.TryGetValue(field, out var address))
 			return address;
 
-		return Allocate(field);
+		return Allocate(field, startByteAlignment, endByteAlignment);
 	}
 
 	/// <summary>
 	/// Allocates a chunk of data on the heap large enough to hold the provided <paramref name="field"/>
 	/// and returns the address (relative to the start of the file, when saved).
 	/// </summary>
-	public ulong Allocate(IBinaryField field)
+	public ulong Allocate(IBinaryField field, uint startByteAlignment = 0, uint endByteAlignment = 0)
 	{
-		CheckState();
-
 		if (this.fieldAddresses.ContainsKey(field))
 			throw new InvalidOperationException("Space has already been allocated for the provided field");
 
 		var address = StartingAddress + TotalAllocated;
-		var size = field.Size;
+		var sizeWithPadding = field.Size;
+
+		if (startByteAlignment > 0)
+		{
+			var prePaddingNeeded = GetNeededPadding((long) address, startByteAlignment);
+
+			address += prePaddingNeeded;
+			sizeWithPadding += prePaddingNeeded;
+		}
+
+		if (endByteAlignment > 0)
+		{
+			var postPaddingNeeded = GetNeededPadding((long) ( address + field.Size ), endByteAlignment);
+
+			sizeWithPadding += postPaddingNeeded;
+		}
+
+		var allocation = new Allocation(address, field, endByteAlignment);
 
 		this.fieldAddresses.Add(field, address);
 		this.fieldsByAddress[address] = field;
-		this.allocatedFields.Add(field);
-		TotalAllocated += size;
+		this.allocations.Add(allocation);
+		TotalAllocated += sizeWithPadding;
+
+		if (this.isWriting)
+			this.writeQueue.Enqueue(allocation);
 
 		return address;
 	}
@@ -125,38 +150,119 @@ public class HeapManager(ulong startingAddress = 0)
 
 	public void WriteAllocatedFields(BinaryWriter writer, WriteContext context)
 	{
+		PrepareWriteQueue();
+
 		try
 		{
 			this.isWriting = true;
 			DataMapper.PushRange("Heap", writer);
 
-			foreach (var field in this.allocatedFields)
-				field.WriteWithDataMapper(writer, DataMapper, context);
+			while (this.writeQueue.TryDequeue(out var item))
+			{
+				var (address, field, endByteAlignment) = item;
+				var currentAddress = (ulong) writer.BaseStream.Position;
 
-			DataMapper.PopRange(writer);
+				if (address < currentAddress)
+					throw new IOException($"Tried to write a field allocated to address 0x{address:X16}, but the prior field wrote past that address!");
+
+				if (currentAddress < address)
+				{
+					// Write padding bytes until we get to the desired address
+					for (var i = currentAddress; i < address; i++)
+						writer.Write(PaddingByte);
+				}
+
+				try
+				{
+					DataMapper.PushRange($"Heap allocation at 0x{address:X16}: {field.GetType().GetDisplayName()}", writer);
+					field.WriteWithDataMapper(writer, DataMapper, context);
+				}
+				finally
+				{
+					DataMapper.PopRange(writer);
+				}
+
+				if (endByteAlignment > 0)
+				{
+					var paddingNeeded = GetNeededPadding(writer.BaseStream.Position, endByteAlignment);
+
+					for (var i = 0; i < paddingNeeded; i++)
+						writer.Write(PaddingByte);
+				}
+			}
 		}
 		finally
 		{
+			DataMapper.PopRange(writer);
 			this.isWriting = false;
+			this.writeQueue.Clear();
 		}
 	}
 
 	public async Task WriteAllocatedFieldsAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
+		PrepareWriteQueue();
+
 		try
 		{
 			this.isWriting = true;
 			await DataMapper.PushRangeAsync("Heap", writer, cancellationToken).ConfigureAwait(false);
 
-			foreach (var field in this.allocatedFields)
-				await field.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
+			var baseStream = await writer.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
+
+			while (this.writeQueue.TryDequeue(out var item))
+			{
+				var (address, field, endByteAlignment) = item;
+				var currentAddress = (ulong) baseStream.Position;
+
+				if (address < currentAddress)
+					throw new IOException($"Tried to write a field allocated to address 0x{address:X16}, but the prior field wrote past that address!");
+
+				if (currentAddress < address)
+				{
+					// Write padding bytes until we get to the desired address
+					for (var i = currentAddress; i < address; i++)
+						await writer.WriteAsync(PaddingByte, cancellationToken).ConfigureAwait(false);
+				}
+
+				try
+				{
+					await DataMapper.PushRangeAsync($"Heap allocation at 0x{address:X16}: {field.GetType().GetDisplayName()}", writer, cancellationToken).ConfigureAwait(false);
+					await field.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
+					await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+				}
+				finally
+				{
+					await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
+				}
+
+				if (endByteAlignment > 0)
+				{
+					var paddingNeeded = GetNeededPadding(baseStream.Position, endByteAlignment);
+
+					for (var i = 0; i < paddingNeeded; i++)
+						await writer.WriteAsync(PaddingByte, cancellationToken).ConfigureAwait(false);
+
+					if (paddingNeeded > 0)
+						await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+				}
+			}
 
 			await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
 		}
 		finally
 		{
 			this.isWriting = false;
+			this.writeQueue.Clear();
 		}
+	}
+
+	private void PrepareWriteQueue()
+	{
+		this.writeQueue.Clear();
+
+		foreach (var allocation in this.allocations)
+			this.writeQueue.Enqueue(allocation);
 	}
 
 	private void CheckState([CallerMemberName] string? callerName = null)
@@ -164,4 +270,13 @@ public class HeapManager(ulong startingAddress = 0)
 		if (this.isWriting)
 			throw new InvalidOperationException($"{callerName} cannot be called while writing allocated data");
 	}
+
+	private static uint GetNeededPadding(long currentPosition, uint byteAlignment)
+	{
+		var misalignment = currentPosition % byteAlignment;
+
+		return misalignment == 0 ? 0 : (uint) ( byteAlignment - misalignment );
+	}
+
+	private readonly record struct Allocation(ulong Address, IBinaryField Field, uint EndByteAlignment);
 }
