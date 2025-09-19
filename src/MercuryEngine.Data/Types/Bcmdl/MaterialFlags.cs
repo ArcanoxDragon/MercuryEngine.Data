@@ -5,15 +5,15 @@ namespace MercuryEngine.Data.Types.Bcmdl;
 
 public class MaterialFlags : DataStructure<MaterialFlags>
 {
-	public bool Flag0 { get; set; }
-	public bool Flag1 { get; set; }
-	public bool Flag2 { get; set; }
-	public bool Flag3 { get; set; }
-	public bool Flag4 { get; set; } = true;
-	public bool Flag5 { get; set; }
-	public bool Flag6 { get; set; } = true;
-	public bool Flag7 { get; set; } = true;
-	public bool Flag8 { get; set; }
+	public byte Flag0 { get; set; }
+	public byte Flag1 { get; set; }
+	public byte Flag2 { get; set; }
+	public byte Flag3 { get; set; }
+	public byte Flag4 { get; set; } = 1;
+	public byte Flag5 { get; set; }
+	public byte Flag6 { get; set; } = 1;
+	public byte Flag7 { get; set; } = 1;
+	public byte Flag8 { get; set; }
 
 	public uint Param0  { get; set; }
 	public uint Param1  { get; set; } = 4;
