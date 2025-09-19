@@ -14,7 +14,8 @@ public class NullableDirectPropertyFieldHandler<
 	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
 	TOwner,
 	TField
->(PropertyInfo property, Func<TField> fieldFactory) : IFieldHandler
+>(PropertyInfo property, Func<TOwner, TField> fieldFactory) : IFieldHandler
+where TOwner : IDataStructure
 where TField : IBinaryField
 {
 	private readonly Func<TOwner, TField?>   getter = ReflectionUtility.GetGetter<TOwner, TField?>(property);
@@ -36,7 +37,7 @@ where TField : IBinaryField
 	{
 		if (GetField(dataStructure) is not TField field)
 		{
-			field = fieldFactory();
+			field = fieldFactory((TOwner) dataStructure);
 			SetField(dataStructure, field);
 		}
 
@@ -50,7 +51,7 @@ where TField : IBinaryField
 	{
 		if (GetField(dataStructure) is not TField field)
 		{
-			field = fieldFactory();
+			field = fieldFactory((TOwner) dataStructure);
 			SetField(dataStructure, field);
 		}
 

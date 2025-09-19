@@ -1,52 +1,62 @@
-﻿using MercuryEngine.Data.Core.Framework.Fields;
+﻿using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
+
+public class ConstantValueFieldHandler(Func<IBinaryField> fieldFactory)
+	: FieldHandlerWithBackingField<IDataStructure>(_ => fieldFactory())
+{
+	public override uint GetSize(IDataStructure dataStructure)
+		=> GetField(dataStructure).Size;
+
+	public override void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
+		=> GetField(dataStructure).Read(reader, context);
+
+	public override void HandleWrite(IDataStructure dataStructure, BinaryWriter writer, WriteContext context)
+		=> GetField(dataStructure).Write(writer, context);
+
+	public override async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
+		=> await GetField(dataStructure).ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
+
+	public override Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken)
+		=> GetField(dataStructure).WriteAsync(writer, context, cancellationToken: cancellationToken);
+}
 
 /// <summary>
 /// A <see cref="IFieldHandler"/> that reads/writes directly from/to a <see cref="IBinaryField{T}"/>
 /// without having an associated property on a data structure. Can be used for constant/"magic"
 /// headers, padding, etc.
 /// </summary>
-public sealed class ConstantValueFieldHandler<T>(IBinaryField<T> field, bool assertValueOnRead = true) : IFieldHandler
+public sealed class ConstantValueFieldHandler<T>(Func<IBinaryField<T>> fieldFactory, T expectedValue, bool assertValueOnRead = true)
+	: ConstantValueFieldHandler(fieldFactory)
 where T : notnull
 {
-	private readonly T expectedValue = field.Value;
-
-	public uint GetSize(IDataStructure dataStructure)
-		=> field.Size;
-
-	public IBinaryField GetField(IDataStructure dataStructure)
-		=> field;
-
-	public void Reset(IDataStructure dataStructure)
-		=> field.Reset();
-
-	public void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
+	public override void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
 	{
-		field.Read(reader, context);
+		base.HandleRead(dataStructure, reader, context);
 
 		if (assertValueOnRead)
-			AssertValue();
+			AssertValue(dataStructure);
 	}
 
-	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer, WriteContext context) => field.Write(writer, context);
-
-	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
+	public override async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
 	{
-		await field.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
+		await base.HandleReadAsync(dataStructure, reader, context, cancellationToken).ConfigureAwait(false);
 
 		if (assertValueOnRead)
-			AssertValue();
+			AssertValue(dataStructure);
 	}
 
-	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken)
-		=> field.WriteAsync(writer, context, cancellationToken: cancellationToken);
-
-	private void AssertValue()
+	private void AssertValue(IDataStructure dataStructure)
 	{
-		if (!Equals(field.Value, this.expectedValue))
-			throw new IOException($"Expected constant value \"{this.expectedValue}\" but found \"{field.Value}\" instead");
+		var field = GetField(dataStructure);
+
+		if (field is not IBinaryField<T> typedField)
+			throw new IOException($"Expected constant field to be of type {typeof(IBinaryField<T>).GetDisplayName()}, but it was {field.GetType().GetDisplayName()} instead");
+
+		if (!Equals(typedField.Value, expectedValue))
+			throw new IOException($"Expected constant value \"{expectedValue}\" but found \"{typedField.Value}\" instead");
 	}
 }

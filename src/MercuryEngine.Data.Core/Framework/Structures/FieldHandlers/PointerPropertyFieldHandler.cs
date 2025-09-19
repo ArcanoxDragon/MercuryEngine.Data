@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.IO;
+using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -14,7 +16,7 @@ public class PointerPropertyFieldHandler<
 	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
 	TOwner,
 	TField
->(PropertyInfo property, Func<TField> fieldFactory) : IFieldHandler
+>(PropertyInfo property, Func<TOwner, TField> fieldFactory, uint startByteAlignment = 0, uint endByteAlignment = 0, bool unique = false) : IFieldHandler
 where TOwner : IDataStructure
 where TField : IBinaryField
 {
@@ -50,7 +52,7 @@ where TField : IBinaryField
 				if (!reader.BaseStream.CanSeek)
 					throw new NotSupportedException("Cannot read pointer field because the underlying stream does not support seeking");
 				if (address >= (ulong) reader.BaseStream.Length)
-					throw new IOException($"Target address of field was beyond the end of the stream");
+					throw new IOException("Target address of field was beyond the end of the stream");
 
 				// Read field from the appropriate address and then restore the stream position
 				var prevPosition = reader.BaseStream.Position;
@@ -70,8 +72,12 @@ where TField : IBinaryField
 	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer, WriteContext context)
 	{
 		var address = PrepareAddressForWrite(dataStructure, context);
+		var dataMapper = ( GetField(dataStructure) as IDataMapperAware )?.DataMapper;
+
+		dataMapper.PushRange($"Pointer to 0x{address:X16}", writer);
 		writer.Write(address);
 		// Field data will be written by HeapManager
+		dataMapper.PopRange(writer);
 	}
 
 	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
@@ -111,15 +117,19 @@ where TField : IBinaryField
 	public async Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken)
 	{
 		var address = PrepareAddressForWrite(dataStructure, context);
+		var dataMapper = ( GetField(dataStructure) as IDataMapperAware )?.DataMapper;
+
+		await dataMapper.PushRangeAsync($"Pointer to 0x{address:X16}", writer, cancellationToken).ConfigureAwait(false);
 		await writer.WriteAsync(address, cancellationToken).ConfigureAwait(false);
 		// Field data will be written by HeapManager
+		await dataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
 	}
 
 	private TField GetOrCreateField(IDataStructure dataStructure)
 	{
 		if (GetField(dataStructure) is not TField field)
 		{
-			field = fieldFactory();
+			field = fieldFactory((TOwner) dataStructure);
 			SetField(dataStructure, field);
 		}
 
@@ -135,6 +145,11 @@ where TField : IBinaryField
 			return 0;
 
 		// Allocate space for field data
-		return context.HeapManager.GetAddressOrAllocate(field);
+
+		if (unique)
+			// Always allocate
+			return context.HeapManager.Allocate(field, startByteAlignment, endByteAlignment);
+
+		return context.HeapManager.GetAddressOrAllocate(field, startByteAlignment, endByteAlignment);
 	}
 }

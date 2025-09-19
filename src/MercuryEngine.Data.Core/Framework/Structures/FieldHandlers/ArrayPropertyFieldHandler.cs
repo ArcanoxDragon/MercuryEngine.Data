@@ -15,8 +15,11 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 public class ArrayPropertyFieldHandler<
 	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
 	TOwner,
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
 	TItem
->(ArrayField<TItem> field, PropertyInfo property, bool activateWhenNull = false) : IFieldHandler
+>(Func<TOwner, ArrayField<TItem>> fieldFactory, PropertyInfo property, bool activateWhenNull = false)
+	: FieldHandlerWithBackingField<TOwner, ArrayField<TItem>>(fieldFactory)
+where TOwner : IDataStructure
 where TItem : IBinaryField
 {
 	private readonly Func<TOwner, IList<TItem>?> getter = ReflectionUtility.GetGetter<TOwner, IList<TItem>?>(property);
@@ -25,47 +28,50 @@ where TItem : IBinaryField
 	// IList<T> properties need to work as long as we don't need to activate null lists.
 	private Action<TOwner, List<TItem>?>? setter;
 
-	public uint GetSize(IDataStructure dataStructure)
+	public override uint GetSize(IDataStructure dataStructure)
 	{
 		if (this.getter((TOwner) dataStructure) is null)
 			return 0;
 
-		PrepareForWrite(dataStructure);
+		PrepareForWrite(dataStructure, out var field);
 		return field.Size;
 	}
 
-	public IBinaryField GetField(IDataStructure dataStructure)
-		=> field;
-
-	public void Reset(IDataStructure dataStructure)
+	public override void Reset(IDataStructure dataStructure)
 		=> GetListFromProperty(dataStructure).Clear();
 
-	public void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
+	public override void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
 	{
+		var field = GetField(dataStructure);
+
 		field.Read(reader, context);
-		PostProcessRead(dataStructure);
+		PostProcessRead(dataStructure, field);
 	}
 
-	public void HandleWrite(IDataStructure dataStructure, BinaryWriter writer, WriteContext context)
+	public override void HandleWrite(IDataStructure dataStructure, BinaryWriter writer, WriteContext context)
 	{
-		PrepareForWrite(dataStructure);
+		PrepareForWrite(dataStructure, out var field);
 		field.Write(writer, context);
 	}
 
-	public async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
+	public override async Task HandleReadAsync(IDataStructure dataStructure, AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
 	{
+		var field = GetField(dataStructure);
+
 		await field.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
-		PostProcessRead(dataStructure);
+		PostProcessRead(dataStructure, field);
 	}
 
-	public Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken)
+	public override Task HandleWriteAsync(IDataStructure dataStructure, AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken)
 	{
-		PrepareForWrite(dataStructure);
+		PrepareForWrite(dataStructure, out var field);
 		return field.WriteAsync(writer, context, cancellationToken: cancellationToken);
 	}
 
-	private void PrepareForWrite(IDataStructure dataStructure)
+	private void PrepareForWrite(IDataStructure dataStructure, out ArrayField<TItem> field)
 	{
+		field = GetField(dataStructure);
+
 		// Update the field list from the property
 
 		var source = GetListFromProperty(dataStructure);
@@ -87,7 +93,7 @@ where TItem : IBinaryField
 		}
 	}
 
-	private void PostProcessRead(IDataStructure dataStructure)
+	private void PostProcessRead(IDataStructure dataStructure, ArrayField<TItem> field)
 	{
 		// Update the list stored in the property
 		var source = field.Value;

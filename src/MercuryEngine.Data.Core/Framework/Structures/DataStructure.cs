@@ -31,6 +31,9 @@ where T : DataStructure<T>
 	public uint Size => (uint) Fields.Sum(f => f.Handler.GetSize(this));
 
 	[JsonIgnore]
+	public IDictionary<Guid, IBinaryField> BackingFields { get; } = new Dictionary<Guid, IBinaryField>();
+
+	[JsonIgnore]
 	public DataMapper? DataMapper { get; set; }
 
 	protected IEnumerable<DataStructureField> Fields => this.fieldsLazy.Value;
@@ -39,6 +42,9 @@ where T : DataStructure<T>
 	{
 		foreach (var field in Fields)
 			field.Handler.Reset(this);
+
+		foreach (var (_, field) in BackingFields)
+			( field as IResettableField )?.Reset();
 	}
 
 	#region Structure Building

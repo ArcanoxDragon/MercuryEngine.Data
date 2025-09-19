@@ -39,53 +39,57 @@ where T : IDataStructure
 
 	public DataStructureBuilder<T> Constant(string text, string? description = null, bool assertValueOnRead = true, bool terminated = true)
 	{
-		BaseBinaryField<string> field = terminated ? new TerminatedStringField(text) : new FixedLengthStringField(text);
-		return AddConstantField(field, description, assertValueOnRead);
+		return AddConstantField(() => {
+			return terminated ? new TerminatedStringField(text) : new FixedLengthStringField(text);
+		}, text, description, assertValueOnRead);
 	}
 
 	public DataStructureBuilder<T> Constant(bool value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new BooleanField(value), description, assertValueOnRead);
+		=> AddConstantField(() => new BooleanField(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(byte value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new ByteField(value), description, assertValueOnRead);
+		=> AddConstantField(() => new ByteField(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(char value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new CharField(value), description, assertValueOnRead);
+		=> AddConstantField(() => new CharField(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(short value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new Int16Field(value), description, assertValueOnRead);
+		=> AddConstantField(() => new Int16Field(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(ushort value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new UInt16Field(value), description, assertValueOnRead);
+		=> AddConstantField(() => new UInt16Field(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(int value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new Int32Field(value), description, assertValueOnRead);
+		=> AddConstantField(() => new Int32Field(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(uint value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new UInt32Field(value), description, assertValueOnRead);
+		=> AddConstantField(() => new UInt32Field(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(long value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new Int64Field(value), description, assertValueOnRead);
+		=> AddConstantField(() => new Int64Field(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(ulong value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new UInt64Field(value), description, assertValueOnRead);
+		=> AddConstantField(() => new UInt64Field(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(float value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new FloatField(value), description, assertValueOnRead);
+		=> AddConstantField(() => new FloatField(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(double value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new DoubleField(value), description, assertValueOnRead);
+		=> AddConstantField(() => new DoubleField(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant(decimal value, string? description = null, bool assertValueOnRead = true)
-		=> AddConstantField(new DecimalField(value), description, assertValueOnRead);
+		=> AddConstantField(() => new DecimalField(value), value, description, assertValueOnRead);
 
 	public DataStructureBuilder<T> Constant<TEnum>(TEnum value, string? description = null, bool assertValueOnRead = true)
 	where TEnum : struct, Enum
-		=> AddConstantField(new EnumField<TEnum>(value), description, assertValueOnRead);
+		=> AddConstantField(() => new EnumField<TEnum>(value), value, description, assertValueOnRead);
 
-	public DataStructureBuilder<T> AddConstantField<TValue>(IBinaryField<TValue> field, string? description = null, bool assertValueOnRead = true)
+	public DataStructureBuilder<T> AddConstantField(Func<IBinaryField> fieldFactory, string? description = null)
+		=> AddField(new DataStructureField(new ConstantValueFieldHandler(fieldFactory), description ?? $"<constant: {fieldFactory}>"));
+
+	public DataStructureBuilder<T> AddConstantField<TValue>(Func<IBinaryField<TValue>> fieldFactory, TValue expectedValue, string? description = null, bool assertValueOnRead = true)
 	where TValue : notnull
-		=> AddField(new DataStructureField(new ConstantValueFieldHandler<TValue>(field, assertValueOnRead), description ?? $"<constant: {field}>"));
+		=> AddField(new DataStructureField(new ConstantValueFieldHandler<TValue>(fieldFactory, expectedValue, assertValueOnRead), description ?? $"<constant: {fieldFactory}>"));
 
 	#endregion
 
@@ -99,114 +103,114 @@ where T : IDataStructure
 		if (nullabilityInfo.WriteState == NullabilityState.NotNull)
 			// Property is annotated as non-null, so we will use Property instead of NullableProperty
 			// to ensure that "null" is not written during reading
-			return Property(propertyExpression!, new TerminatedStringField());
+			return Property(propertyExpression!, _ => new TerminatedStringField());
 
-		return NullableProperty(propertyExpression, new TerminatedStringField());
+		return NullableProperty(propertyExpression, _ => new TerminatedStringField());
 	}
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, bool>> propertyExpression)
-		=> Property(propertyExpression, new BooleanField());
+		=> Property(propertyExpression, _ => new BooleanField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, bool?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new BooleanField());
+		=> NullableProperty(propertyExpression, _ => new BooleanField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, byte>> propertyExpression)
-		=> Property(propertyExpression, new ByteField());
+		=> Property(propertyExpression, _ => new ByteField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, byte?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new ByteField());
+		=> NullableProperty(propertyExpression, _ => new ByteField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, char>> propertyExpression)
-		=> Property(propertyExpression, new CharField());
+		=> Property(propertyExpression, _ => new CharField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, char?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new CharField());
+		=> NullableProperty(propertyExpression, _ => new CharField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, short>> propertyExpression)
-		=> Property(propertyExpression, new Int16Field());
+		=> Property(propertyExpression, _ => new Int16Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, short?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new Int16Field());
+		=> NullableProperty(propertyExpression, _ => new Int16Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, ushort>> propertyExpression)
-		=> Property(propertyExpression, new UInt16Field());
+		=> Property(propertyExpression, _ => new UInt16Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, ushort?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new UInt16Field());
+		=> NullableProperty(propertyExpression, _ => new UInt16Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, int>> propertyExpression)
-		=> Property(propertyExpression, new Int32Field());
+		=> Property(propertyExpression, _ => new Int32Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, int?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new Int32Field());
+		=> NullableProperty(propertyExpression, _ => new Int32Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, uint>> propertyExpression)
-		=> Property(propertyExpression, new UInt32Field());
+		=> Property(propertyExpression, _ => new UInt32Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, uint?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new UInt32Field());
+		=> NullableProperty(propertyExpression, _ => new UInt32Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, long>> propertyExpression)
-		=> Property(propertyExpression, new Int64Field());
+		=> Property(propertyExpression, _ => new Int64Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, long?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new Int64Field());
+		=> NullableProperty(propertyExpression, _ => new Int64Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, ulong>> propertyExpression)
-		=> Property(propertyExpression, new UInt64Field());
+		=> Property(propertyExpression, _ => new UInt64Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, ulong?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new UInt64Field());
+		=> NullableProperty(propertyExpression, _ => new UInt64Field());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, float>> propertyExpression)
-		=> Property(propertyExpression, new FloatField());
+		=> Property(propertyExpression, _ => new FloatField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, float?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new FloatField());
+		=> NullableProperty(propertyExpression, _ => new FloatField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, double>> propertyExpression)
-		=> Property(propertyExpression, new DoubleField());
+		=> Property(propertyExpression, _ => new DoubleField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, double?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new DoubleField());
+		=> NullableProperty(propertyExpression, _ => new DoubleField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, decimal>> propertyExpression)
-		=> Property(propertyExpression, new DecimalField());
+		=> Property(propertyExpression, _ => new DecimalField());
 
 	public DataStructureBuilder<T> Property(Expression<Func<T, decimal?>> propertyExpression)
-		=> NullableProperty(propertyExpression, new DecimalField());
+		=> NullableProperty(propertyExpression, _ => new DecimalField());
 
 	public DataStructureBuilder<T> Property<TEnum>(Expression<Func<T, TEnum>> propertyExpression)
 	where TEnum : struct, Enum
-		=> Property(propertyExpression, new EnumField<TEnum>());
+		=> Property(propertyExpression, _ => new EnumField<TEnum>());
 
 	public DataStructureBuilder<T> Property<TEnum>(Expression<Func<T, TEnum?>> propertyExpression)
 	where TEnum : struct, Enum
-		=> NullableProperty(propertyExpression, new EnumField<TEnum>());
+		=> NullableProperty(propertyExpression, _ => new EnumField<TEnum>());
 
-	public DataStructureBuilder<T> Property<TProperty>(Expression<Func<T, TProperty>> propertyExpression, IBinaryField<TProperty> field)
+	public DataStructureBuilder<T> Property<TProperty>(Expression<Func<T, TProperty>> propertyExpression, Func<T, IBinaryField<TProperty>> fieldFactory)
 	where TProperty : notnull
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ValuePropertyFieldHandler<T, TProperty>(field, property);
+		var adapter = new ValuePropertyFieldHandler<T, TProperty>(fieldFactory, property);
 		var description = $"{property.Name}: {typeof(TProperty).GetDisplayName()}";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
-	public DataStructureBuilder<T> NullableProperty<TProperty>(Expression<Func<T, TProperty?>> propertyExpression, IBinaryField<TProperty> field)
+	public DataStructureBuilder<T> NullableProperty<TProperty>(Expression<Func<T, TProperty?>> propertyExpression, Func<T, IBinaryField<TProperty>> fieldFactory)
 	where TProperty : class
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ValuePropertyFieldHandler<T, TProperty>(field, property, nullable: true);
+		var adapter = new ValuePropertyFieldHandler<T, TProperty>(fieldFactory, property, nullable: true);
 		var description = $"{property.Name}: {typeof(TProperty).GetDisplayName()}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
 
-	public DataStructureBuilder<T> NullableProperty<TProperty>(Expression<Func<T, TProperty?>> propertyExpression, IBinaryField<TProperty> field)
+	public DataStructureBuilder<T> NullableProperty<TProperty>(Expression<Func<T, TProperty?>> propertyExpression, Func<T, IBinaryField<TProperty>> fieldFactory)
 	where TProperty : struct
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ValuePropertyFieldHandler<T, TProperty>(field, property, nullable: true);
+		var adapter = new ValuePropertyFieldHandler<T, TProperty>(fieldFactory, property, nullable: true);
 		var description = $"{property.Name}: {typeof(TProperty).GetDisplayName()}?";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -226,9 +230,9 @@ where T : IDataStructure
 
 	public DataStructureBuilder<T> NullableRawProperty<TField>(Expression<Func<T, TField?>> propertyExpression)
 	where TField : class, IBinaryField, new()
-		=> NullableRawProperty(propertyExpression, () => new TField());
+		=> NullableRawProperty(propertyExpression, _ => new TField());
 
-	public DataStructureBuilder<T> NullableRawProperty<TField>(Expression<Func<T, TField?>> propertyExpression, Func<TField> fieldFactory)
+	public DataStructureBuilder<T> NullableRawProperty<TField>(Expression<Func<T, TField?>> propertyExpression, Func<T, TField> fieldFactory)
 	where TField : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
@@ -246,17 +250,16 @@ where T : IDataStructure
 		TItem
 	>(Expression<Func<T, IList<TItem>>> propertyExpression)
 	where TItem : class, IBinaryField, new()
-		=> Array(propertyExpression, () => new TItem());
+		=> Array(propertyExpression, _ => new TItem());
 
 	public DataStructureBuilder<T> Array<
 		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
 		TItem
-	>(Expression<Func<T, IList<TItem>>> propertyExpression, Func<TItem> itemFactory)
+	>(Expression<Func<T, IList<TItem>>> propertyExpression, Func<T, TItem> itemFactory)
 	where TItem : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var field = new ArrayField<TItem>(itemFactory);
-		var adapter = new ArrayPropertyFieldHandler<T, TItem>(field, property);
+		var adapter = new ArrayPropertyFieldHandler<T, TItem>(owner => new ArrayField<TItem>(() => itemFactory(owner)), property);
 		var description = $"{property.Name}: {typeof(TItem).GetDisplayName()}[]";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -269,20 +272,21 @@ where T : IDataStructure
 	>(Expression<Func<T, IDictionary<TKey, TValue>>> propertyExpression)
 	where TKey : class, IBinaryField, new()
 	where TValue : class, IBinaryField, new()
-		=> Dictionary(propertyExpression, () => new TKey(), () => new TValue());
+		=> Dictionary(propertyExpression, _ => new TKey(), _ => new TValue());
 
 	public DataStructureBuilder<T> Dictionary<
 		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
 		TKey,
 		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
 		TValue
-	>(Expression<Func<T, IDictionary<TKey, TValue>>> propertyExpression, Func<TKey> keyFactory, Func<TValue> valueFactory)
+	>(Expression<Func<T, IDictionary<TKey, TValue>>> propertyExpression, Func<T, TKey> keyFactory, Func<T, TValue> valueFactory)
 	where TKey : class, IBinaryField
 	where TValue : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var field = new DictionaryField<TKey, TValue>(keyFactory, valueFactory);
-		var adapter = new DictionaryPropertyFieldHandler<T, TKey, TValue>(field, property);
+		var adapter = new DictionaryPropertyFieldHandler<T, TKey, TValue>(
+			owner => new DictionaryField<TKey, TValue>(() => keyFactory(owner), () => valueFactory(owner)),
+			property);
 		var description = $"{property.Name}: Dictionary<{typeof(TKey).GetDisplayName()}, {typeof(TValue).GetDisplayName()}>";
 		return AddField(new DataStructureField(adapter, description));
 	}
@@ -291,15 +295,15 @@ where T : IDataStructure
 
 	#region Pointer Properties
 
-	public DataStructureBuilder<T> Pointer<TField>(Expression<Func<T, TField?>> propertyExpression)
+	public DataStructureBuilder<T> Pointer<TField>(Expression<Func<T, TField?>> propertyExpression, uint startByteAlignment = 0, uint endByteAlignment = 0, bool unique = false)
 	where TField : class, IBinaryField, new()
-		=> Pointer(propertyExpression, () => new TField());
+		=> Pointer(propertyExpression, _ => new TField(), startByteAlignment, endByteAlignment, unique);
 
-	public DataStructureBuilder<T> Pointer<TField>(Expression<Func<T, TField?>> propertyExpression, Func<TField> fieldFactory)
+	public DataStructureBuilder<T> Pointer<TField>(Expression<Func<T, TField?>> propertyExpression, Func<T, TField> fieldFactory, uint startByteAlignment = 0, uint endByteAlignment = 0, bool unique = false)
 	where TField : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new PointerPropertyFieldHandler<T, TField>(property, fieldFactory);
+		var adapter = new PointerPropertyFieldHandler<T, TField>(property, fieldFactory, startByteAlignment, endByteAlignment, unique);
 		var description = $"{property.Name}: {typeof(TField).GetDisplayName()}*";
 		return AddField(new DataStructureField(adapter, description));
 	}
