@@ -2,7 +2,7 @@
 
 namespace MercuryEngine.Data.Core.Extensions;
 
-internal static class StreamExtensions
+public static class StreamExtensions
 {
 	/// <summary>
 	/// Returns whether or not the provided <paramref name="stream"/> has at least
@@ -24,6 +24,28 @@ internal static class StreamExtensions
 			throw new IOException($"Expected to read {count} bytes, but only got {read}");
 
 		return buffer;
+	}
+
+	/// <summary>
+	/// Reads exactly <paramref name="count"/> bytes from the provided <paramref name="stream"/>,
+	/// and restores the <see cref="Stream.Position"/> property to the position before the read
+	/// occurred..
+	/// </summary>
+	public static byte[] Peek(this Stream stream, long count)
+	{
+		if (!stream.CanSeek)
+			throw new InvalidOperationException($"Stream must support seeking to use {nameof(Peek)}");
+
+		var originalPosition = stream.Position;
+
+		try
+		{
+			return stream.Read(count);
+		}
+		finally
+		{
+			stream.Position = originalPosition;
+		}
 	}
 
 	public static long GetRealPosition(this Stream stream)
