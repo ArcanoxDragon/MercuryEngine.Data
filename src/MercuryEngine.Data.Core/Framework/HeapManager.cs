@@ -17,8 +17,9 @@ public class HeapManager(ulong startingAddress = 0)
 
 	private bool isWriting;
 
-	public ulong StartingAddress { get; private set; } = startingAddress;
-	public ulong TotalAllocated  { get; private set; }
+	public ulong StartingAddress    { get; private set; } = startingAddress;
+	public ulong TotalAllocated     { get; private set; }
+	public ulong HighestReadAddress { get; private set; }
 
 	/// <summary>
 	/// The byte value used when writing padding bytes between allocated blocks of data.
@@ -105,10 +106,23 @@ public class HeapManager(ulong startingAddress = 0)
 	/// <paramref name="address"/>. Future references to the same address can retrieve this
 	/// same instance for later.
 	/// </summary>
-	public void Register(ulong address, IBinaryField field)
+	public void Register(ulong address, IBinaryField field, uint endByteAlignment = 0)
 	{
 		this.fieldAddresses[field] = address;
 		this.fieldsByAddress[address] = field;
+
+		var allocationSize = field.Size;
+		var endAddress = address + allocationSize;
+
+		if (endByteAlignment > 0)
+		{
+			var paddingNeeded = GetNeededPadding((long) endAddress, endByteAlignment);
+
+			allocationSize += paddingNeeded;
+			endAddress += paddingNeeded;
+		}
+
+		HighestReadAddress = Math.Max(HighestReadAddress, endAddress);
 	}
 
 	/// <summary>

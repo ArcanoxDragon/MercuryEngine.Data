@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
@@ -59,7 +58,7 @@ where TField : IBinaryField
 
 				reader.BaseStream.Seek((long) address, SeekOrigin.Begin);
 				field.Read(reader, context);
-				context.HeapManager.Register(address, field);
+				context.HeapManager.Register(address, field, endByteAlignment);
 				reader.BaseStream.Position = prevPosition;
 			}
 		}
@@ -104,7 +103,7 @@ where TField : IBinaryField
 
 				reader.BaseStream.Seek((long) address, SeekOrigin.Begin);
 				await field.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
-				context.HeapManager.Register(address, field);
+				context.HeapManager.Register(address, field, endByteAlignment);
 				reader.BaseStream.Position = prevPosition;
 			}
 		}

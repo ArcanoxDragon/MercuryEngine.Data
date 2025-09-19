@@ -88,8 +88,7 @@ where T : BinaryFormat<T>, new()
 
 		base.Read(reader, context);
 
-		if (stream.Position != stream.Length)
-			throw new IOException($"There were {stream.Length - stream.Position} bytes left to be read after reading {DisplayName} data.");
+		ValidateReadSize(stream, context);
 	}
 
 	public void Write(Stream stream)
@@ -116,8 +115,7 @@ where T : BinaryFormat<T>, new()
 
 		await ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 
-		if (stream.Position != stream.Length)
-			throw new IOException($"There were {stream.Length - stream.Position} bytes left to be read after reading {DisplayName} data.");
+		ValidateReadSize(stream, context);
 	}
 
 	public Task WriteAsync(Stream stream, CancellationToken cancellationToken = default)
@@ -134,9 +132,6 @@ where T : BinaryFormat<T>, new()
 	}
 
 	#region Heap-related overrides
-
-	// TODO: It's less than ideal that the "Size" property does not include the size of the heap data.
-	//  Is there a way we could make it include that?
 
 	protected override void BeforeWrite(WriteContext context)
 	{
@@ -168,4 +163,13 @@ where T : BinaryFormat<T>, new()
 	}
 
 	#endregion
+
+	private void ValidateReadSize(Stream stream, ReadContext context)
+	{
+		var highestReadAddress = Math.Max((ulong) stream.Position, context.HeapManager.HighestReadAddress);
+		var endAddress = (ulong) stream.Length;
+
+		if (highestReadAddress < endAddress)
+			throw new IOException($"There were {endAddress - highestReadAddress} bytes left to be read after reading {DisplayName} data.");
+	}
 }
