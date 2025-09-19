@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
@@ -78,19 +77,14 @@ where T : BinaryFormat<T>, new()
 	/// </summary>
 	public abstract string DisplayName { get; }
 
-	/// <summary>
-	/// Gets the <see cref="Framework.HeapManager"/> instance responsible for managing allocations to heap data within a binary file.
-	/// </summary>
-	[JsonIgnore]
-	public HeapManager HeapManager { get; } = new();
-
 	public void Read(Stream stream)
 		=> Read(stream, DefaultEncoding);
 
 	public void Read(Stream stream, Encoding encoding)
 	{
 		using var reader = new BinaryReader(stream, encoding, true);
-		var context = new ReadContext(HeapManager);
+		var heapManager = new HeapManager { DataMapper = DataMapper };
+		var context = new ReadContext(this, heapManager);
 
 		base.Read(reader, context);
 
@@ -104,7 +98,8 @@ where T : BinaryFormat<T>, new()
 	public void Write(Stream stream, Encoding encoding)
 	{
 		using var writer = new BinaryWriter(stream, encoding, true);
-		var context = new WriteContext(HeapManager);
+		var heapManager = new HeapManager { DataMapper = DataMapper };
+		var context = new WriteContext(this, heapManager);
 
 		DataMapper?.Reset();
 		base.Write(writer, context);
@@ -116,7 +111,8 @@ where T : BinaryFormat<T>, new()
 	public async Task ReadAsync(Stream stream, Encoding encoding, CancellationToken cancellationToken = default)
 	{
 		using var reader = new AsyncBinaryReader(stream, encoding, true);
-		var context = new ReadContext(HeapManager);
+		var heapManager = new HeapManager { DataMapper = DataMapper };
+		var context = new ReadContext(this, heapManager);
 
 		await ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 
@@ -130,7 +126,8 @@ where T : BinaryFormat<T>, new()
 	public async Task WriteAsync(Stream stream, Encoding encoding, CancellationToken cancellationToken = default)
 	{
 		using var writer = new AsyncBinaryWriter(stream, encoding, true);
-		var context = new WriteContext(HeapManager);
+		var heapManager = new HeapManager { DataMapper = DataMapper };
+		var context = new WriteContext(this, heapManager);
 
 		DataMapper?.Reset();
 		await base.WriteAsync(writer, context, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -145,34 +142,29 @@ where T : BinaryFormat<T>, new()
 	{
 		base.BeforeWrite(context);
 
-		// Reset the heap manager, and set its starting address to the first byte after the structure's own fields
-		var nonHeapSize = Size;
+		if (ReferenceEquals(context.Root, this))
+		{
+			// Reset the heap manager, and set its starting address to the first byte after the structure's own fields
+			var nonHeapSize = Size;
 
-		HeapManager.Reset(nonHeapSize);
-		HeapManager.DataMapper = DataMapper;
-	}
-
-	protected override void AfterWrite()
-	{
-		base.AfterWrite();
-
-		HeapManager.DataMapper = null; // Don't keep a reference longer than we need
+			context.HeapManager.Reset(nonHeapSize);
+		}
 	}
 
 	protected override void WriteCore(BinaryWriter writer, WriteContext context)
 	{
 		base.WriteCore(writer, context);
 
-		if (HeapManager.TotalAllocated > 0)
-			HeapManager.WriteAllocatedFields(writer, context);
+		if (context.HeapManager.TotalAllocated > 0)
+			context.HeapManager.WriteAllocatedFields(writer, context);
 	}
 
 	protected override async Task WriteAsyncCore(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 	{
 		await base.WriteAsyncCore(writer, context, cancellationToken).ConfigureAwait(false);
 
-		if (HeapManager.TotalAllocated > 0)
-			await HeapManager.WriteAllocatedFieldsAsync(writer, context, cancellationToken).ConfigureAwait(false);
+		if (context.HeapManager.TotalAllocated > 0)
+			await context.HeapManager.WriteAllocatedFieldsAsync(writer, context, cancellationToken).ConfigureAwait(false);
 	}
 
 	#endregion

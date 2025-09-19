@@ -1,6 +1,9 @@
-﻿namespace MercuryEngine.Data.Core.Framework.IO;
+﻿using MercuryEngine.Data.Core.Framework.Structures;
 
-public sealed class ReadContext(HeapManager heapManager)
+namespace MercuryEngine.Data.Core.Framework.IO;
+
+public sealed class ReadContext(IDataStructure root, HeapManager heapManager)
 {
-	public HeapManager HeapManager { get; } = heapManager;
+	public IDataStructure Root        { get; } = root;
+	public HeapManager    HeapManager { get; } = heapManager;
 }
