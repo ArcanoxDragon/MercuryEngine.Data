@@ -56,7 +56,7 @@ public abstract class BaseTestFixture
 
 		// Read structure and dump to JSON
 		dataStructure.Read(fileStream);
-		DataUtilities.DumpDataStructure(dataStructure, sourceFilePath, relativeTo);
+		DataUtilities.DumpDataStructure(dataStructure, sourceFilePath, relativeTo, print: !quiet);
 
 		using var tempStream = new MemoryStream();
 

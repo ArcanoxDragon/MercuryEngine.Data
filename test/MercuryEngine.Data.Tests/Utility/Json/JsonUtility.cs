@@ -12,7 +12,7 @@ internal static class JsonUtility
 	public static readonly JsonSerializerOptions JsonOptions = new() {
 		WriteIndented = true,
 		MaxDepth = 256,
-		ReferenceHandler = ReferenceHandler.IgnoreCycles,
+		ReferenceHandler = ReferenceHandler.Preserve,
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 		TypeInfoResolver = JsonTypeInfoResolver.Combine(
 			TestJsonSerializerContext.Default,
