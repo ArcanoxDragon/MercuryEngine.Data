@@ -4,6 +4,7 @@
 		<TargetFramework>$(MainTargetFramework)</TargetFramework>
 		<LangVersion>preview</LangVersion>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
