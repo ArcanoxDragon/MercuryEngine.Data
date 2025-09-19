@@ -6,6 +6,15 @@ namespace MercuryEngine.Data.Types.DreadTypes;
 
 public class Vector3 : DataStructure<Vector3>, ITypedDreadField
 {
+	public Vector3() { }
+
+	public Vector3(float x, float y, float z)
+	{
+		X = x;
+		Y = y;
+		Z = z;
+	}
+
 	public string TypeName => "base::math::CVector3D";
 
 	public float X { get; set; }
