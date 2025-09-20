@@ -1,6 +1,7 @@
 ﻿using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Tests.Utility;
+using MercuryEngine.Data.Types.Pkg;
 
 namespace MercuryEngine.Data.Tests.Formats;
 
@@ -11,28 +12,30 @@ public class BptdefTests : BaseTestFixture
 		=> GetTestCasesFromPackages("bptdef");
 
 	[TestCaseSource(nameof(GetTestFiles)), Parallelizable]
-	public void TestLoadBptdef(string inFile)
+	public void TestLoadBptdef(string packageFilePath, PackageFile packageFile)
 	{
-		TestContext.Progress.WriteLine("Loading BPTDEF file: {0}", inFile);
+		var fileName = packageFile.Name.ToString();
 
-		using var fileStream = File.Open(inFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+		TestContext.Progress.WriteLine("Loading BPTDEF file: {0}", fileName);
+
+		using var stream = OpenPackageFile(packageFilePath, packageFile);
 		var bptdef = new Bptdef();
 
 		try
 		{
-			bptdef.Read(fileStream);
+			bptdef.Read(stream);
 		}
 		finally
 		{
-			DataUtilities.DumpDataStructure(bptdef, inFile, PackagesPath);
+			DataUtilities.DumpDataStructure(bptdef, fileName);
 		}
 
 		Assert.That(bptdef.CheckpointDefs, Is.Not.Null);
 
 		// Write a CSV of all checkpoints
-		var relativePath = Path.GetDirectoryName(Path.GetRelativePath(PackagesPath, inFile))!;
+		var relativePath = Path.GetDirectoryName(fileName)!;
 		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", bptdef.DisplayName, relativePath);
-		var csvFileName = Path.GetFileNameWithoutExtension(inFile) + ".csv";
+		var csvFileName = Path.GetFileNameWithoutExtension(fileName) + ".csv";
 		var csvFilePath = Path.Combine(outFileDir, csvFileName);
 
 		using var csvStream = File.Open(csvFilePath, FileMode.Create, FileAccess.Write);
@@ -52,6 +55,6 @@ public class BptdefTests : BaseTestFixture
 	}
 
 	[TestCaseSource(nameof(GetTestFiles)), Parallelizable]
-	public void TestCompareBptdef(string inFile)
-		=> ReadWriteAndCompare<Bptdef>(inFile, PackagesPath);
+	public void TestCompareBptdef(string packageFilePath, PackageFile packageFile)
+		=> ReadWriteAndCompare<Bptdef>(packageFilePath, packageFile);
 }

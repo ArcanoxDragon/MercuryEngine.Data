@@ -29,9 +29,11 @@ public class PackageFile : DataStructure<PackageFile>
 	/// </summary>
 	public int Length => DataField.Data.Length;
 
+	internal bool ReadFileData { get; set; } = true;
+
 	#region Private Data
 
-	private PackageFileData DataField { get; }
+	internal PackageFileData DataField { get; }
 
 	#endregion
 

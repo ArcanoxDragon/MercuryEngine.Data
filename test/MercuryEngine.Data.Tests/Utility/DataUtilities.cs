@@ -8,14 +8,15 @@ namespace MercuryEngine.Data.Tests.Utility;
 
 internal static class DataUtilities
 {
-	public static void DumpDataStructure<T>(T dataStructure, string sourceFilePath, string relativeTo, bool print = true)
+	public static void DumpDataStructure<T>(T dataStructure, string sourceFilePath, string? relativeTo = null, bool print = true)
 	where T : BinaryFormat<T>, new()
 	{
 		var formatName = dataStructure.DisplayName;
 		var jsonDump = JsonSerializer.Serialize(dataStructure, JsonUtility.JsonOptions);
 
-		var relativePath = Path.GetDirectoryName(Path.GetRelativePath(relativeTo, sourceFilePath))!;
-		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataStructure.DisplayName, relativePath);
+		var relativePath = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
+		var relativeDirectory = Path.GetDirectoryName(relativePath)!;
+		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataStructure.DisplayName, relativeDirectory);
 		var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".json";
 		var outFilePath = Path.Combine(outFileDir, outFileName);
 

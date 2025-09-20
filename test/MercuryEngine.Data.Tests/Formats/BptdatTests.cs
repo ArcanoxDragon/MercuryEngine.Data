@@ -1,6 +1,7 @@
 ﻿using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Tests.Utility;
+using MercuryEngine.Data.Types.Pkg;
 
 namespace MercuryEngine.Data.Tests.Formats;
 
@@ -11,24 +12,26 @@ public class BptdatTests : BaseTestFixture
 		=> GetTestCasesFromPackages("bptdat");
 
 	[TestCaseSource(nameof(GetTestFiles)), Parallelizable]
-	public void TestLoadBptdat(string inFile)
+	public void TestLoadBptdat(string packageFilePath, PackageFile packageFile)
 	{
-		TestContext.Progress.WriteLine("Loading BPTDAT file: {0}", inFile);
+		var fileName = packageFile.Name.ToString();
 
-		using var fileStream = File.Open(inFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+		TestContext.Progress.WriteLine("Loading BPTDAT file: {0}", fileName);
+
+		using var stream = OpenPackageFile(packageFilePath, packageFile);
 		var bptdat = new Bptdat();
 
 		try
 		{
-			bptdat.Read(fileStream);
+			bptdat.Read(stream);
 		}
 		finally
 		{
-			DataUtilities.DumpDataStructure(bptdat, inFile, PackagesPath);
+			DataUtilities.DumpDataStructure(bptdat, fileName);
 		}
 	}
 
 	[TestCaseSource(nameof(GetTestFiles)), Parallelizable]
-	public void TestCompareBptdat(string inFile)
-		=> ReadWriteAndCompare<Bptdat>(inFile, PackagesPath);
+	public void TestCompareBptdat(string packageFilePath, PackageFile packageFile)
+		=> ReadWriteAndCompare<Bptdat>(packageFilePath, packageFile);
 }

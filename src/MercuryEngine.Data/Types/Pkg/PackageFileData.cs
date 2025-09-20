@@ -33,6 +33,9 @@ internal class PackageFileData : DataStructure<PackageFileData>
 	{
 		base.ReadCore(reader, context);
 
+		if (!Owner.ReadFileData)
+			return;
+
 		// Read the file's data
 		var currentPosition = reader.BaseStream.Position;
 
@@ -56,6 +59,9 @@ internal class PackageFileData : DataStructure<PackageFileData>
 	protected override async Task ReadAsyncCore(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken)
 	{
 		await base.ReadAsyncCore(reader, context, cancellationToken).ConfigureAwait(false);
+
+		if (!Owner.ReadFileData)
+			return;
 
 		// Read the file's data
 		var currentPosition = reader.BaseStream.Position;

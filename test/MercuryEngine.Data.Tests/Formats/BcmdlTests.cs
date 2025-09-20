@@ -1,6 +1,7 @@
 ﻿using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Tests.Utility;
+using MercuryEngine.Data.Types.Pkg;
 
 namespace MercuryEngine.Data.Tests.Formats;
 
@@ -12,45 +13,42 @@ public class BcmdlTests : BaseTestFixture
 	/// They also do not appear to be used by Dread (the game seems to work fine with them zeroed-out),
 	/// so it's possible they are accidental leftovers from Metroid: Samus Returns.
 	/// </summary>
-	private static readonly HashSet<string> BcmdlTestsToSkip = [
-		"packs/system/system/system/engine/models/immune.bcmdl",
-		"packs/system/system/system/engine/models/sedisolve.bcmdl",
-		"packs/system/system/system/engine/models/sedisolver.bcmdl",
-		"packs/system/system/system/engine/models/selected_hi.bcmdl",
-		"packs/system/system/system/engine/models/selected_lo.bcmdl",
+	internal static readonly HashSet<string> FilesToSkip = [
+		"system/engine/models/immune.bcmdl",
+		"system/engine/models/sedisolve.bcmdl",
+		"system/engine/models/sedisolver.bcmdl",
+		"system/engine/models/selected_hi.bcmdl",
+		"system/engine/models/selected_lo.bcmdl",
 	];
 
 	private static IEnumerable<TestCaseData> GetTestFiles()
-	{
-		foreach (var testCase in GetTestCasesFromPackages("bcmdl"))
-			yield return new TestCaseData(testCase.Arguments[0], PackagesPath) { TestName = testCase.TestName };
-	}
+		=> GetTestCasesFromPackages("bcmdl");
 
 	[TestCaseSource(nameof(GetTestFiles))]
-	public void TestLoadBcmdl(string inFile, string relativeTo)
+	public void TestLoadBcmdl(string packageFilePath, PackageFile packageFile)
 	{
-		string normalizedPath = Path.GetRelativePath(relativeTo, inFile).Replace('\\', '/').Trim('/');
+		var fileName = packageFile.Name.ToString();
 
-		if (BcmdlTestsToSkip.Contains(normalizedPath))
+		if (FilesToSkip.Contains(fileName))
 		{
 			Assert.Ignore("Model with invalid UnknownMaterialParams data is ignored");
 			return;
 		}
 
-		TestContext.Progress.WriteLine("Loading BCMDL file: {0}", inFile);
+		TestContext.Progress.WriteLine("Loading BCMDL file: {0}", fileName);
 
-		using var fileStream = File.Open(inFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+		var stream = OpenPackageFile(packageFilePath, packageFile);
 		var bcmdl = new Bcmdl();
 
 		try
 		{
-			bcmdl.Read(fileStream);
+			bcmdl.Read(stream);
 		}
 		finally
 		{
 			try
 			{
-				DataUtilities.DumpDataStructure(bcmdl, inFile, relativeTo, print: false);
+				DataUtilities.DumpDataStructure(bcmdl, fileName, print: false);
 			}
 			catch (Exception ex)
 			{
@@ -61,18 +59,18 @@ public class BcmdlTests : BaseTestFixture
 	}
 
 	[TestCaseSource(nameof(GetTestFiles))]
-	public void TestCompareBcmdl(string inFile, string relativeTo)
+	public void TestCompareBcmdl(string packageFilePath, PackageFile packageFile)
 	{
-		string normalizedPath = Path.GetRelativePath(relativeTo, inFile).Replace('\\', '/').Trim('/');
+		var fileName = packageFile.Name.ToString();
 
-		if (BcmdlTestsToSkip.Contains(normalizedPath))
+		if (FilesToSkip.Contains(fileName))
 		{
 			Assert.Ignore("Model with invalid UnknownMaterialParams data is ignored");
 			return;
 		}
 
-		TestContext.Progress.WriteLine("Loading BCMDL file: {0}", inFile);
+		TestContext.Progress.WriteLine("Loading BCMDL file: {0}", fileName);
 
-		ReadWriteAndCompare<Bcmdl>(inFile, relativeTo, quiet: true);
+		ReadWriteAndCompare<Bcmdl>(packageFilePath, packageFile, quiet: true);
 	}
 }

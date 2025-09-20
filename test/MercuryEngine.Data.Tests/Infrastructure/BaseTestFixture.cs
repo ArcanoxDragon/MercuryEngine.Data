@@ -1,23 +1,28 @@
 ﻿using System.Runtime.InteropServices;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.Mapping;
+using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Tests.Utility;
+using MercuryEngine.Data.Types.Pkg;
 
 namespace MercuryEngine.Data.Tests.Infrastructure;
 
 public abstract class BaseTestFixture
 {
-	// Store these in fields for faster access
-	protected static readonly string PackagesPath = Configuration.PackagesPath;
-	protected static readonly string RomFsPath    = Configuration.RomFsPath;
+	// Store this in a field for faster access
+	protected static readonly string RomFsPath = Configuration.RomFsPath;
 
 	private static readonly EnumerationOptions EnumerationOptions = new() {
 		MatchCasing = MatchCasing.CaseInsensitive,
 		RecurseSubdirectories = true,
 	};
 
-	private static string GetTestName(string basePath, string filePath)
-		=> Path.GetRelativePath(basePath, filePath).Replace('\\', '$').Replace('/', '$');
+	private static string GetTestName(string? basePath, string filePath)
+	{
+		var relativePath = basePath is null ? filePath : Path.GetRelativePath(basePath, filePath);
+
+		return relativePath.Replace('\\', '$').Replace('/', '$');
+	}
 
 	protected static IEnumerable<TestCaseData> GetTestCasesFromRomFs(string fileFormat, string? subDirectory = null)
 	{
@@ -29,17 +34,51 @@ public abstract class BaseTestFixture
 			});
 	}
 
-	protected static IEnumerable<TestCaseData> GetTestCasesFromPackages(string fileFormat, string? subDirectory = null)
+	protected static IEnumerable<TestCaseData> GetTestCasesFromPackages(string fileFormat)
 	{
-		var searchPath = Path.Join(PackagesPath, subDirectory);
+		foreach (var packageFilePath in Directory.EnumerateFiles(RomFsPath, "*.pkg", EnumerationOptions))
+		{
+			using var fileStream = File.Open(packageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-		return Directory.EnumerateFiles(searchPath, $"*.{fileFormat}", EnumerationOptions)
-			.Select(file => new TestCaseData(file) {
-				TestName = $"pkg:{GetTestName(PackagesPath, file)}",
-			});
+			foreach (var file in Pkg.EnumeratePackageFiles(fileStream))
+			{
+				var name = file.Name.ToString();
+
+				if (!name.EndsWith($".{fileFormat}", StringComparison.OrdinalIgnoreCase))
+					// Wrong kind of file
+					continue;
+
+				yield return new TestCaseData(packageFilePath, file) {
+					TestName = $"pkg:{GetTestName(null, name)}",
+				};
+			}
+		}
 	}
 
-	protected static T ReadWriteAndCompare<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
+	protected static Stream OpenPackageFile(string packageFilePath, PackageFile file)
+	{
+		var fileStream = File.Open(packageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+		return Pkg.OpenPackageFile(fileStream, file);
+	}
+
+	protected static T ReadWriteAndCompare<T>(string sourceFilePath, string? relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
+	where T : BinaryFormat<T>, new()
+	{
+		using var fileStream = File.Open(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+		return ReadWriteAndCompareCore<T>(fileStream, sourceFilePath, relativeTo, quiet, preCompareAction);
+	}
+
+	protected static T ReadWriteAndCompare<T>(string packageFilePath, PackageFile packageFile, string? relativeTo = null, bool quiet = false, Func<bool>? preCompareAction = null)
+	where T : BinaryFormat<T>, new()
+	{
+		using var dataStream = OpenPackageFile(packageFilePath, packageFile);
+
+		return ReadWriteAndCompareCore<T>(dataStream, packageFile.Name.ToString(), relativeTo, quiet, preCompareAction);
+	}
+
+	private static T ReadWriteAndCompareCore<T>(Stream dataStream, string sourceFilePath, string? relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
 		var dataMapper = new DataMapper();
@@ -49,14 +88,13 @@ public abstract class BaseTestFixture
 		if (!quiet)
 			TestContext.Progress.WriteLine($"Parsing {dataFormatName} file: {sourceFilePath}");
 
-		using var fileStream = File.Open(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-		using var reader = new BinaryReader(fileStream);
-		var originalBuffer = reader.ReadBytes((int) fileStream.Length);
+		using var reader = new BinaryReader(dataStream);
+		var originalBuffer = reader.ReadBytes((int) dataStream.Length);
 
-		fileStream.Seek(0, SeekOrigin.Begin);
+		dataStream.Seek(0, SeekOrigin.Begin);
 
 		// Read structure and dump to JSON
-		dataStructure.Read(fileStream);
+		dataStructure.Read(dataStream);
 		DataUtilities.DumpDataStructure(dataStructure, sourceFilePath, relativeTo, print: !quiet);
 
 		using var tempStream = new MemoryStream();
@@ -66,8 +104,9 @@ public abstract class BaseTestFixture
 		tempStream.Seek(0, SeekOrigin.Begin);
 
 		// Write a copy of the data file back out
-		var relativePath = Path.GetDirectoryName(Path.GetRelativePath(relativeTo, sourceFilePath))!;
-		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativePath);
+		var relativePath = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
+		var relativeDirectory = Path.GetDirectoryName(relativePath)!;
+		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativeDirectory);
 		var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".out" + Path.GetExtension(sourceFilePath);
 		var outFilePath = Path.Combine(outFileDir, outFileName);
 
@@ -89,7 +128,23 @@ public abstract class BaseTestFixture
 		return dataStructure;
 	}
 
-	protected static async Task<T> ReadWriteAndCompareAsync<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
+	protected static async Task<T> ReadWriteAndCompareAsync<T>(string sourceFilePath, string? relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
+	where T : BinaryFormat<T>, new()
+	{
+		await using var fileStream = File.Open(sourceFilePath, FileMode.Open, FileAccess.Read);
+
+		return await ReadWriteAndCompareAsyncCore<T>(fileStream, sourceFilePath, relativeTo, quiet, preCompareAction);
+	}
+
+	protected static async Task<T> ReadWriteAndCompareAsync<T>(string packageFilePath, PackageFile packageFile, string? relativeTo = null, bool quiet = false, Func<bool>? preCompareAction = null)
+	where T : BinaryFormat<T>, new()
+	{
+		await using var dataStream = OpenPackageFile(packageFilePath, packageFile);
+
+		return await ReadWriteAndCompareAsyncCore<T>(dataStream, packageFile.Name.ToString(), relativeTo, quiet, preCompareAction);
+	}
+
+	private static async Task<T> ReadWriteAndCompareAsyncCore<T>(Stream dataStream, string sourceFilePath, string? relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
 		var dataMapper = new DataMapper();
@@ -99,14 +154,13 @@ public abstract class BaseTestFixture
 		if (!quiet)
 			await TestContext.Progress.WriteLineAsync($"Parsing {dataFormatName} file: {sourceFilePath}");
 
-		await using var fileStream = File.Open(sourceFilePath, FileMode.Open, FileAccess.Read);
-		using var reader = new BinaryReader(fileStream);
-		var originalBuffer = reader.ReadBytes((int) fileStream.Length);
+		using var reader = new BinaryReader(dataStream);
+		var originalBuffer = reader.ReadBytes((int) dataStream.Length);
 
-		fileStream.Seek(0, SeekOrigin.Begin);
+		dataStream.Seek(0, SeekOrigin.Begin);
 
 		// Read structure and dump to JSON
-		await dataStructure.ReadAsync(fileStream);
+		await dataStructure.ReadAsync(dataStream);
 		DataUtilities.DumpDataStructure(dataStructure, sourceFilePath, relativeTo);
 
 		using var tempStream = new MemoryStream();
@@ -116,8 +170,9 @@ public abstract class BaseTestFixture
 		tempStream.Seek(0, SeekOrigin.Begin);
 
 		// Write a copy of the data file back out
-		var relativePath = Path.GetDirectoryName(Path.GetRelativePath(relativeTo, sourceFilePath))!;
-		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativePath);
+		var relativePath = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
+		var relativeDirectory = Path.GetDirectoryName(relativePath)!;
+		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativeDirectory);
 		var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".out" + Path.GetExtension(sourceFilePath);
 		var outFilePath = Path.Combine(outFileDir, outFileName);
 

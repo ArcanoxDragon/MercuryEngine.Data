@@ -7,7 +7,7 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Formats;
 
-public class Pkg : BinaryFormat<Pkg>
+public partial class Pkg : BinaryFormat<Pkg>
 {
 	internal const int DataSectionStartAlignment = 128;
 

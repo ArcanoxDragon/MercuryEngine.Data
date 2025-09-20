@@ -3,8 +3,9 @@
 public class SlicedStream : Stream
 {
 	private readonly long basePosition;
+	private readonly bool disposeInner;
 
-	public SlicedStream(Stream baseStream, long start, long length)
+	public SlicedStream(Stream baseStream, long start, long length, bool keepOpen = true)
 	{
 		if (!baseStream.CanRead)
 			throw new ArgumentException("Base stream must be readable", nameof(baseStream));
@@ -19,6 +20,7 @@ public class SlicedStream : Stream
 		BaseStream = baseStream;
 
 		this.basePosition = start;
+		this.disposeInner = !keepOpen;
 	}
 
 	public override long Length { get; }
@@ -38,7 +40,12 @@ public class SlicedStream : Stream
 	public override void Flush() { }
 
 	public override int Read(byte[] buffer, int offset, int count)
-		=> BaseStream.Read(buffer, offset, (int) Math.Min(count, Length - Position));
+	{
+		if (Position < 0)
+			throw new InvalidOperationException($"Cannot read before the start of a {nameof(SlicedStream)}");
+
+		return BaseStream.Read(buffer, offset, (int) Math.Min(count, Length - Position));
+	}
 
 	public override long Seek(long offset, SeekOrigin origin)
 	{
@@ -54,4 +61,18 @@ public class SlicedStream : Stream
 	public override void SetLength(long value) => throw new NotSupportedException();
 
 	public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+	protected override void Dispose(bool disposing)
+	{
+		base.Dispose(disposing);
+
+		if (disposing && this.disposeInner)
+			BaseStream.Dispose();
+	}
+
+	public override ValueTask DisposeAsync()
+	{
+		GC.SuppressFinalize(this);
+		return this.disposeInner ? BaseStream.DisposeAsync() : base.DisposeAsync();
+	}
 }
