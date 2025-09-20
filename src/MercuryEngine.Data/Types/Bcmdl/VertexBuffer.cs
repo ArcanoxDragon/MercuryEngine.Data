@@ -3,6 +3,7 @@ using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Types.Bcmdl.Wrappers;
 using MercuryEngine.Data.Utility;
 
 namespace MercuryEngine.Data.Types.Bcmdl;
@@ -21,6 +22,37 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 
 	public byte[] UncompressedData { get; private set; } = [];
 	public bool   IsCompressed     { get; set; }
+
+	/// <summary>
+	/// Deconstructs the raw vertex buffer data into an array of <see cref="VertexData"/> objects
+	/// that can be used to more easily read vertex information.
+	/// </summary>
+	public VertexData[] GetVertexData()
+	{
+		var stride = VertexInfoSlots.Sum(slot => slot.Count * sizeof(float)); // All components are expected to be float-based vectors for Dread
+
+		if (UncompressedData.Length != ( stride * VertexCount ))
+			throw new InvalidOperationException($"Vertex buffer data must be {stride * VertexCount} bytes ({VertexCount} vertices * {stride} bytes per vertex), but it was {UncompressedData.Length}");
+
+		var dataSpan = UncompressedData.AsSpan();
+		var vertices = new VertexData[VertexCount];
+		var firstSlot = true;
+
+		foreach (var infoSlot in VertexInfoSlots)
+		{
+			for (var i = 0u; i < VertexCount; i++)
+			{
+				if (firstSlot)
+					vertices[i] = new VertexData();
+
+				vertices[i].ReadFromVertexBuffer(dataSpan, infoSlot, i);
+			}
+
+			firstSlot = false;
+		}
+
+		return vertices;
+	}
 
 	#region Private Data
 

@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Core.Framework;
+﻿using System.Text.Json.Serialization;
+using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types;
@@ -8,10 +9,12 @@ namespace MercuryEngine.Data.Formats;
 
 public class Bcmdl : BinaryFormat<Bcmdl>
 {
+	[JsonIgnore]
 	public override string DisplayName => "BCMDL";
 
 	#region Public Properties
 
+	[JsonPropertyOrder(1)]
 	public IList<VertexBuffer?> VertexBuffers
 	{
 		get
@@ -21,6 +24,7 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		}
 	}
 
+	[JsonPropertyOrder(2)]
 	public IList<IndexBuffer?> IndexBuffers
 	{
 		get
@@ -30,6 +34,7 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		}
 	}
 
+	[JsonPropertyOrder(3)]
 	public IList<Submesh?> Submeshes
 	{
 		get
@@ -39,6 +44,7 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		}
 	}
 
+	[JsonPropertyOrder(4)]
 	public IList<Material?> Materials
 	{
 		get
@@ -48,6 +54,7 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		}
 	}
 
+	[JsonPropertyOrder(5)]
 	public IList<Mesh?> Meshes
 	{
 		get
@@ -57,6 +64,7 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		}
 	}
 
+	[JsonPropertyOrder(6)]
 	public IList<MeshId?> MeshIds
 	{
 		get
@@ -66,6 +74,7 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		}
 	}
 
+	[JsonPropertyOrder(7)]
 	public IList<Transform?> Transforms
 	{
 		get
@@ -75,8 +84,10 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		}
 	}
 
+	[JsonPropertyOrder(8)]
 	public JointsInfo? JointsInfo { get; set; }
 
+	[JsonPropertyOrder(9)]
 	public IList<SpecializationValue?> SpecializationValues
 	{
 		get
@@ -86,18 +97,29 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		}
 	}
 
+	[JsonPropertyOrder(10)]
+	public IList<UnknownMaterialParams?> UnknownMaterialParams
+	{
+		get
+		{
+			UnknownMaterialParamsField ??= LinkedListField.Create<UnknownMaterialParams>();
+			return UnknownMaterialParamsField.Entries;
+		}
+	}
+
 	#endregion
 
 	#region Private Data
 
-	private LinkedListField<VertexBuffer>?        VertexBuffersField        { get; set; }
-	private LinkedListField<IndexBuffer>?         IndexBuffersField         { get; set; }
-	private LinkedListField<Submesh>?             SubmeshesField            { get; set; }
-	private LinkedListField<Material>?            MaterialsField            { get; set; }
-	private LinkedListField<Mesh>?                MeshesField               { get; set; }
-	private LinkedListField<MeshId>?              MeshIdsField              { get; set; }
-	private LinkedListField<Transform>?           TransformsField           { get; set; }
-	private LinkedListField<SpecializationValue>? SpecializationValuesField { get; set; }
+	private LinkedListField<VertexBuffer>?          VertexBuffersField         { get; set; }
+	private LinkedListField<IndexBuffer>?           IndexBuffersField          { get; set; }
+	private LinkedListField<Submesh>?               SubmeshesField             { get; set; }
+	private LinkedListField<Material>?              MaterialsField             { get; set; }
+	private LinkedListField<Mesh>?                  MeshesField                { get; set; }
+	private LinkedListField<MeshId>?                MeshIdsField               { get; set; }
+	private LinkedListField<Transform>?             TransformsField            { get; set; }
+	private LinkedListField<SpecializationValue>?   SpecializationValuesField  { get; set; }
+	private LinkedListField<UnknownMaterialParams>? UnknownMaterialParamsField { get; set; }
 
 	#endregion
 
@@ -125,8 +147,6 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		builder.Pointer(m => m.TransformsField, _ => LinkedListField.Create<Transform>());
 		builder.Pointer(m => m.JointsInfo);
 		builder.Pointer(m => m.SpecializationValuesField, _ => LinkedListField.Create<SpecializationValue>());
-
-		// TODO: "Struct9" pointer!
-		builder.Constant((ulong) 0);
+		builder.Pointer(m => m.UnknownMaterialParamsField, _ => LinkedListField.Create<UnknownMaterialParams>());
 	}
 }

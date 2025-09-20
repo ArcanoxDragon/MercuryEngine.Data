@@ -38,7 +38,7 @@ public abstract class BaseTestFixture
 			});
 	}
 
-	protected static void ReadWriteAndCompare<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
+	protected static T ReadWriteAndCompare<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
 		var dataMapper = new DataMapper();
@@ -82,14 +82,13 @@ public abstract class BaseTestFixture
 		// Compare the input and output data
 		var newBuffer = tempStream.ToArray();
 
-		if (preCompareAction?.Invoke() is false)
-			// Skip comparison
-			return;
+		if (preCompareAction?.Invoke() is not false)
+			CompareBuffers(originalBuffer, newBuffer, dataMapper);
 
-		CompareBuffers(originalBuffer, newBuffer, dataMapper);
+		return dataStructure;
 	}
 
-	protected static async Task ReadWriteAndCompareAsync<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
+	protected static async Task<T> ReadWriteAndCompareAsync<T>(string sourceFilePath, string relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
 		var dataMapper = new DataMapper();
@@ -133,11 +132,10 @@ public abstract class BaseTestFixture
 		// Compare the input and output data
 		var newBuffer = tempStream.ToArray();
 
-		if (preCompareAction?.Invoke() is false)
-			// Skip comparison
-			return;
+		if (preCompareAction?.Invoke() is not false)
+			CompareBuffers(originalBuffer, newBuffer, dataMapper);
 
-		CompareBuffers(originalBuffer, newBuffer, dataMapper);
+		return dataStructure;
 	}
 
 	protected static void CompareBuffers(byte[] originalBuffer, byte[] newBuffer, DataMapper? dataMapper = null)

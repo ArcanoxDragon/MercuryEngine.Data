@@ -4,6 +4,8 @@ using System.Text.Json;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Definitions.Utility;
 
+[assembly: LevelOfParallelism(16)]
+
 namespace MercuryEngine.Data.Tests;
 
 [SetUpFixture]
