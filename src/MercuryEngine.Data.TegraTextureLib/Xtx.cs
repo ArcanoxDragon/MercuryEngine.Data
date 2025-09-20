@@ -1,6 +1,6 @@
 ﻿using System.Text;
-using Overby.Extensions.AsyncBinaryReaderWriter;
 using MercuryEngine.Data.TegraTextureLib.Extensions;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.TegraTextureLib;
 
@@ -17,13 +17,59 @@ public class Xtx : BaseDataFormat
 
 	public List<TegraTexture> Textures { get; } = [];
 
+	public override void Read(BinaryReader reader)
+	{
+		Textures.Clear();
+
+		var signature = reader.ReadBytes(4);
+
+		if (Encoding.ASCII.GetString(signature) != Signature)
+			throw new IOException("Signature mismatch: not a valid XTX file");
+
+		HeaderSize = reader.ReadUInt32();
+		MajorVersion = reader.ReadUInt32();
+		MinorVersion = reader.ReadUInt32();
+
+		reader.BaseStream.Seek(HeaderSize, SeekOrigin.Begin);
+
+		// Read all data blocks
+		var blocks = new List<DataBlock>();
+		var textureDatas = new List<byte[]>();
+
+		while (reader.BaseStream.Position < reader.BaseStream.Length)
+		{
+			var block = new DataBlock();
+
+			block.Read(reader);
+			blocks.Add(block);
+
+			if (block.BlockType == BlockTypeTextureData)
+				textureDatas.Add(block.Data);
+		}
+
+		// Read TextureInfo block datas
+		foreach (var (i, textureInfoBlock) in blocks.Where(b => b.BlockType == BlockTypeTextureInfo).Pairs())
+		{
+			if (i >= textureDatas.Count)
+				throw new InvalidDataException($"No texture data block found for texture {i}");
+
+			using var textureInfoStream = new MemoryStream(textureInfoBlock.Data);
+			var textureInfo = new TextureInfo();
+			var textureData = textureDatas[i];
+
+			textureInfo.Read(textureInfoStream);
+
+			Textures.Add(new TegraTexture(textureInfo, textureData));
+		}
+	}
+
 	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
 	{
 		Textures.Clear();
 
 		var signature = await reader.ReadBytesAsync(4, cancellationToken).ConfigureAwait(false);
 
-		if (Encoding.ASCII.GetString((byte[]) signature) != Signature)
+		if (Encoding.ASCII.GetString(signature) != Signature)
 			throw new IOException("Signature mismatch: not a valid XTX file");
 
 		HeaderSize = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
@@ -76,13 +122,31 @@ public class Xtx : BaseDataFormat
 
 		public byte[] Data { get; private set; } = [];
 
+		public override void Read(BinaryReader reader)
+		{
+			var startPosition = reader.BaseStream.Position;
+			var signature = reader.ReadBytes(4);
+
+			if (Encoding.ASCII.GetString(signature) != Signature)
+				throw new IOException("Signature mismatch: not a valid XTX data block");
+
+			BlockSize = reader.ReadUInt32();
+			DataSize = reader.ReadUInt64();
+			DataOffset = reader.ReadInt64();
+			BlockType = reader.ReadUInt32();
+			GlobalBlockIndex = reader.ReadUInt32();
+			IncBlockTypeIndex = reader.ReadUInt32();
+
+			reader.BaseStream.Seek(startPosition + DataOffset, SeekOrigin.Begin);
+			Data = reader.ReadBytes((int) DataSize);
+		}
+
 		public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
 		{
 			var startPosition = reader.BaseStream.Position;
-
 			var signature = await reader.ReadBytesAsync(4, cancellationToken).ConfigureAwait(false);
 
-			if (Encoding.ASCII.GetString((byte[]) signature) != Signature)
+			if (Encoding.ASCII.GetString(signature) != Signature)
 				throw new IOException("Signature mismatch: not a valid XTX data block");
 
 			BlockSize = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
@@ -114,6 +178,27 @@ public class Xtx : BaseDataFormat
 		public uint           Unknown1       { get; private set; }
 
 		public uint ArrayCount => (uint) ( DataSize / SliceSize );
+
+		public override void Read(BinaryReader reader)
+		{
+			DataSize = reader.ReadUInt64();
+			Alignment = reader.ReadUInt32();
+			Width = reader.ReadUInt32();
+			Height = reader.ReadUInt32();
+			Depth = reader.ReadUInt32();
+			Target = reader.ReadUInt32();
+			ImageFormat = (XtxImageFormat) reader.ReadUInt32();
+			MipCount = reader.ReadUInt32();
+			SliceSize = reader.ReadUInt32();
+			MipOffsets = new uint[17];
+
+			for (var i = 0; i < MipOffsets.Length; i++)
+				MipOffsets[i] = reader.ReadUInt32();
+
+			TextureLayout1 = reader.ReadUInt32();
+			TextureLayout2 = reader.ReadUInt32();
+			Unknown1 = reader.ReadUInt32();
+		}
 
 		public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
 		{

@@ -2,8 +2,8 @@
 using System.Text;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Utility;
-using Overby.Extensions.AsyncBinaryReaderWriter;
 using MercuryEngine.Data.TegraTextureLib.Extensions;
+using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.TegraTextureLib;
 
@@ -34,11 +34,61 @@ public class Bctex : BaseDataFormat
 
 	#endregion
 
+	public override void Read(BinaryReader reader)
+	{
+		var signature = reader.ReadBytes(4);
+
+		if (Encoding.ASCII.GetString(signature) != Signature)
+			throw new IOException("Signature mismatch: not a valid BCTEX/MTXT file");
+
+		HeaderFlags = reader.ReadUInt32();
+
+		// Read the rest of the stream into memory, store a copy, and then inflate it
+		using var compressedStream = new MemoryStream();
+
+		reader.BaseStream.CopyTo(compressedStream);
+		CompressedData = compressedStream.ToArray();
+		compressedStream.Seek(0, SeekOrigin.Begin);
+
+		using var decompressedStream = new MemoryStream();
+
+		using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Decompress))
+			gzipStream.CopyTo(decompressedStream);
+
+		decompressedStream.Seek(0, SeekOrigin.Begin);
+
+		using var innerReader = new BinaryReader(decompressedStream, Encoding.UTF8);
+
+		Unknown1 = innerReader.ReadUInt64();
+		Width = innerReader.ReadUInt32();
+		Height = innerReader.ReadUInt32();
+		MipCount = innerReader.ReadUInt32();
+		Unknown2 = innerReader.ReadInt32();
+		NameOffset = innerReader.ReadUInt32();
+		Unknown3 = innerReader.ReadUInt32();
+		TextureOffset = innerReader.ReadUInt32();
+		Unknown4 = innerReader.ReadUInt32();
+		TextureSize = innerReader.ReadUInt32();
+
+		using (decompressedStream.TemporarySeek(NameOffset - 8)) // -8 for header
+			TextureName = innerReader.ReadTerminatedCString();
+
+		decompressedStream.Seek(TextureOffset - 8, SeekOrigin.Begin); // -8 for header
+		RawData = decompressedStream.ToArray();
+
+		using var textureStream = new SlicedStream(decompressedStream, TextureOffset - 8, TextureSize);
+		var xtx = new Xtx();
+
+		xtx.Read(textureStream);
+
+		Textures.AddRange(xtx.Textures);
+	}
+
 	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
 	{
 		var signature = await reader.ReadBytesAsync(4, cancellationToken).ConfigureAwait(false);
 
-		if (Encoding.ASCII.GetString((byte[]) signature) != Signature)
+		if (Encoding.ASCII.GetString(signature) != Signature)
 			throw new IOException("Signature mismatch: not a valid BCTEX/MTXT file");
 
 		HeaderFlags = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
