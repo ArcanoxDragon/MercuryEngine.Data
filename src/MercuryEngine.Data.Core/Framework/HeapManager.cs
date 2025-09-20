@@ -53,19 +53,19 @@ public class HeapManager(ulong startingAddress = 0)
 	/// If an address has already been allocated for the provided <paramref name="field"/>, this method
 	/// returns that address. Otherwise, it allocates space on the heap and returns the new address.
 	/// </summary>
-	public ulong GetAddressOrAllocate(IBinaryField field, uint startByteAlignment = 0, uint endByteAlignment = 0)
+	public ulong GetAddressOrAllocate(IBinaryField field, uint startByteAlignment = 0, uint endByteAlignment = 0, string? description = null)
 	{
 		if (this.fieldAddresses.TryGetValue(field, out var address))
 			return address;
 
-		return Allocate(field, startByteAlignment, endByteAlignment);
+		return Allocate(field, startByteAlignment, endByteAlignment, description);
 	}
 
 	/// <summary>
 	/// Allocates a chunk of data on the heap large enough to hold the provided <paramref name="field"/>
 	/// and returns the address (relative to the start of the file, when saved).
 	/// </summary>
-	public ulong Allocate(IBinaryField field, uint startByteAlignment = 0, uint endByteAlignment = 0)
+	public ulong Allocate(IBinaryField field, uint startByteAlignment = 0, uint endByteAlignment = 0, string? description = null)
 	{
 		if (this.fieldAddresses.ContainsKey(field))
 			throw new InvalidOperationException("Space has already been allocated for the provided field");
@@ -88,7 +88,7 @@ public class HeapManager(ulong startingAddress = 0)
 			sizeWithPadding += postPaddingNeeded;
 		}
 
-		var allocation = new Allocation(address, field, endByteAlignment);
+		var allocation = new Allocation(address, field, endByteAlignment, description);
 
 		this.fieldAddresses.Add(field, address);
 		this.fieldsByAddress[address] = field;
@@ -173,7 +173,7 @@ public class HeapManager(ulong startingAddress = 0)
 
 			while (this.writeQueue.TryDequeue(out var item))
 			{
-				var (address, field, endByteAlignment) = item;
+				var (address, field, endByteAlignment, description) = item;
 				var currentAddress = (ulong) writer.BaseStream.Position;
 
 				if (address < currentAddress)
@@ -188,7 +188,7 @@ public class HeapManager(ulong startingAddress = 0)
 
 				try
 				{
-					DataMapper.PushRange($"Heap allocation at 0x{address:X16}: {field.GetType().GetDisplayName()}", writer);
+					DataMapper.PushRange($"Heap allocation at 0x{address:X16}: {description ?? field.GetType().GetDisplayName()}", writer);
 					field.WriteWithDataMapper(writer, DataMapper, context);
 				}
 				finally
@@ -226,7 +226,7 @@ public class HeapManager(ulong startingAddress = 0)
 
 			while (this.writeQueue.TryDequeue(out var item))
 			{
-				var (address, field, endByteAlignment) = item;
+				var (address, field, endByteAlignment, description) = item;
 				var currentAddress = (ulong) baseStream.Position;
 
 				if (address < currentAddress)
@@ -241,7 +241,7 @@ public class HeapManager(ulong startingAddress = 0)
 
 				try
 				{
-					await DataMapper.PushRangeAsync($"Heap allocation at 0x{address:X16}: {field.GetType().GetDisplayName()}", writer, cancellationToken).ConfigureAwait(false);
+					await DataMapper.PushRangeAsync($"Heap allocation at 0x{address:X16}: {description ?? field.GetType().GetDisplayName()}", writer, cancellationToken).ConfigureAwait(false);
 					await field.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
 					await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 				}
@@ -292,5 +292,5 @@ public class HeapManager(ulong startingAddress = 0)
 		return misalignment == 0 ? 0 : (uint) ( byteAlignment - misalignment );
 	}
 
-	private readonly record struct Allocation(ulong Address, IBinaryField Field, uint EndByteAlignment);
+	private readonly record struct Allocation(ulong Address, IBinaryField Field, uint EndByteAlignment, string? Description);
 }
