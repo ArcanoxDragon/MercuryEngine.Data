@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Core.Framework;
+﻿using System.Runtime.InteropServices;
+using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Tests.Utility;
 
@@ -138,11 +139,42 @@ public abstract class BaseTestFixture
 		return dataStructure;
 	}
 
-	protected static void CompareBuffers(byte[] originalBuffer, byte[] newBuffer, DataMapper? dataMapper = null)
+	protected internal static void CompareBuffers(byte[] originalBuffer, byte[] newBuffer, DataMapper? dataMapper = null)
 	{
 		Assert.That(newBuffer, Has.Length.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
 
-		for (var i = 0; i < newBuffer.Length; i++)
+		var originalSpan = originalBuffer.AsSpan();
+		var newSpan = newBuffer.AsSpan();
+		var slowCompareStart = 0;
+
+		if (originalSpan.Length >= sizeof(ulong))
+		{
+			// Fast comparison by going 8 bytes at a time
+			var numChunks = originalSpan.Length / sizeof(ulong);
+			var chunkAlignedSize = numChunks * sizeof(ulong);
+			var originalSpanAligned = originalSpan[..chunkAlignedSize];
+			var newSpanAligned = newSpan[..chunkAlignedSize];
+
+			var originalSpanU64 = MemoryMarshal.Cast<byte, ulong>(originalSpanAligned);
+			var newSpanU64 = MemoryMarshal.Cast<byte, ulong>(newSpanAligned);
+
+			// Set "slowCompareStart" to the end of the U64-aligned chunks, in case
+			// there are extra bytes at the end (i.e. length not an even multiple of 8).
+			// This might get overwritten if there is a mismatch via fast comparison.
+			slowCompareStart = chunkAlignedSize;
+
+			for (var i = 0; i < numChunks; i++)
+			{
+				if (originalSpanU64[i] != newSpanU64[i])
+				{
+					// Mismatch via fast method - we need to do a byte-by-byte comparison to get the exact offset of the mismatch
+					slowCompareStart = i * sizeof(ulong);
+					break;
+				}
+			}
+		}
+
+		for (var i = slowCompareStart; i < newBuffer.Length; i++)
 		{
 			try
 			{
