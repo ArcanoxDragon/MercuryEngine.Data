@@ -98,6 +98,9 @@ internal static class XtxImageFormatExtensions
 			XtxImageFormat.Astc12x10Srgb      => FormatTable.TextureFormat.Astc2D12x10UnormSrgb,
 			XtxImageFormat.Astc12x12Srgb      => FormatTable.TextureFormat.Astc2D12x12UnormSrgb,
 
+			// TODO: Unsure of these
+			XtxImageFormat.BGRA8 => FormatTable.TextureFormat.B8G8R8A8,
+
 			_ => throw new ArgumentException($"Unrecognized XtxImageFormat: {xtxFormat}", nameof(xtxFormat)),
 		};
 }

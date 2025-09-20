@@ -245,6 +245,11 @@ internal static class FormatTable
 		Astc2D12x10UnormSrgb             = Astc2D12x10 | RUnorm | GUnorm | BUnorm | AUnorm | Srgb, // 0xa4954
 		Astc2D12x12UnormSrgb             = Astc2D12x12 | RUnorm | GUnorm | BUnorm | AUnorm | Srgb, // 0xa4946
 		A5B5G5R1Unorm                    = A5B5G5R1 | RUnorm | GUnorm | BUnorm | AUnorm,           // 0x24913
+
+		// TODO: These are "synthetic" formats, created only to allow enum mappings for formats that don't seem to have a corresponding "real" entry.
+		//  I'm not sure what encoding format this enum came from, and it's possible there are other "real" formats not recorded here.
+		SyntheticEncodings = 1 << 24,
+		B8G8R8A8           = SyntheticEncodings | 1,
 	}
 
 	[SuppressMessage("Design", "CA1069: Enums values should not be duplicated")]
@@ -470,6 +475,9 @@ internal static class FormatTable
 		{ TextureFormat.Astc2D12x10UnormSrgb, new FormatInfo(TextureImageFormat.Astc12x10Srgb, 12, 10, 16, 4) },
 		{ TextureFormat.Astc2D12x12UnormSrgb, new FormatInfo(TextureImageFormat.Astc12x12Srgb, 12, 12, 16, 4) },
 		{ TextureFormat.A5B5G5R1Unorm, new FormatInfo(TextureImageFormat.A1B5G5R5Unorm, 1, 1, 2, 4) },
+
+		// Custom/synthetic format mappings
+		{ TextureFormat.B8G8R8A8, new FormatInfo(TextureImageFormat.B8G8R8A8Unorm, 1, 1, 4, 4) },
 	};
 
 	private static readonly Dictionary<VertexAttributeFormat, TextureImageFormat> _attribFormats = new() {

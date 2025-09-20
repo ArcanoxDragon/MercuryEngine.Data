@@ -5,12 +5,15 @@ namespace MercuryEngine.Data.TegraTextureLib;
 internal static class SwizzleUtility
 {
 	public static byte[] DeswizzleTextureData(TegraTexture texture, int arrayLevel, int mipLevel)
+		=> DeswizzleTextureData(texture, arrayLevel, mipLevel, out _);
+
+	public static byte[] DeswizzleTextureData(TegraTexture texture, int arrayLevel, int mipLevel, out FormatInfo formatInfo)
 	{
 		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(arrayLevel, (int) texture.Info.ArrayCount);
 
 		var textureFormat = texture.Info.ImageFormat.ToTextureFormat();
 
-		if (!FormatTable.TryGetTextureFormatInfo(textureFormat, out var formatInfo))
+		if (!FormatTable.TryGetTextureFormatInfo(textureFormat, out formatInfo))
 			throw new NotSupportedException($"Unsupported texture format: {textureFormat}");
 
 		var blockDim = new BlockDim {
