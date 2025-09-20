@@ -45,26 +45,43 @@ public sealed record TegraTexture(Xtx.TextureInfo Info, byte[] Data)
 			bitmapData = deswizzledData;
 		}
 
-		SKBitmap bitmap;
+		SKBitmap bitmap = null!;
 
 		using (memoryOwner)
 		{
 			// First, load the data into a source bitmap with a color type corresponding to the source data
 			var sourceColorType = GetColorType(textureFormatInfo);
-			using var sourceBitmap = new SKBitmap((int) Info.Width, (int) Info.Height, sourceColorType, SKAlphaType.Unpremul);
+			SKBitmap? sourceBitmap = null;
 
-			unsafe
+			try
 			{
-				var bitmapPixels = sourceBitmap.GetPixels();
-				var pixelsSpan = new Span<byte>(bitmapPixels.ToPointer(), sourceBitmap.ByteCount);
+				sourceBitmap = new SKBitmap((int) Info.Width, (int) Info.Height, sourceColorType, SKAlphaType.Unpremul);
 
-				bitmapData.CopyTo(pixelsSpan);
+				unsafe
+				{
+					var bitmapPixels = sourceBitmap.GetPixels();
+					var pixelsSpan = new Span<byte>(bitmapPixels.ToPointer(), sourceBitmap.ByteCount);
+
+					bitmapData.CopyTo(pixelsSpan);
+				}
+
+				if (sourceColorType is SKColorType.Rgb888x or SKColorType.Rgba8888)
+				{
+					// Can use the source bitmap directly
+					bitmap = sourceBitmap;
+				}
+				else
+				{
+					// If necessary, copy the data to a new bitmap using a standard "Rgb888x" format that is more widely supported than the ones with fewer than 3 components
+					bitmap = new SKBitmap((int) Info.Width, (int) Info.Height, SKColorType.Rgb888x, SKAlphaType.Unpremul);
+					sourceBitmap.CopyTo(bitmap, bitmap.ColorType);
+				}
 			}
-
-			// Next, copy the data to a new bitmap using a standard "Rgb888x" or "Rgba8888" format that is more widely supported
-			var targetColorType = sourceColorType == SKColorType.Rgba8888 ? SKColorType.Rgba8888 : SKColorType.Rgb888x;
-
-			bitmap = sourceBitmap.Copy(targetColorType);
+			finally
+			{
+				if (!ReferenceEquals(bitmap, sourceBitmap))
+					sourceBitmap?.Dispose();
+			}
 		}
 
 		GC.Collect();
