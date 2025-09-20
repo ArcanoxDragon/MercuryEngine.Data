@@ -15,7 +15,8 @@ public class RawBytes(Func<Stream, int> getSizeForReading) : BaseBinaryField<byt
 	{
 		var bytesToRead = getSizeForReading(reader.BaseStream);
 
-		Value = new byte[bytesToRead];
+		if (Value.Length != bytesToRead)
+			Value = new byte[bytesToRead];
 
 		var bytesRead = reader.Read(Value, 0, bytesToRead);
 
@@ -32,7 +33,8 @@ public class RawBytes(Func<Stream, int> getSizeForReading) : BaseBinaryField<byt
 	{
 		var bytesToRead = getSizeForReading(reader.BaseStream);
 
-		Value = new byte[bytesToRead];
+		if (Value.Length != bytesToRead)
+			Value = new byte[bytesToRead];
 
 		var bytesRead = await reader.ReadAsync(Value, 0, bytesToRead, cancellationToken).ConfigureAwait(false);
 
