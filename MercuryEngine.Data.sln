@@ -27,6 +27,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MercuryEngine.Data.TegraTextureLib", "src\MercuryEngine.Data.TegraTextureLib\MercuryEngine.Data.TegraTextureLib.csproj", "{6CF6B0D2-AA28-3ADF-9FB8-E8CF7730D4EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MercuryEngine.Data.TegraTextureLib.Tests", "test\MercuryEngine.Data.TegraTextureLib.Tests\MercuryEngine.Data.TegraTextureLib.Tests.csproj", "{AEC60EB3-1451-3947-17F1-E545FE80CED3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +65,14 @@ Global
 		{9A5D1E9B-92DF-4537-8CB0-C6168F5F0689}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A5D1E9B-92DF-4537-8CB0-C6168F5F0689}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A5D1E9B-92DF-4537-8CB0-C6168F5F0689}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CF6B0D2-AA28-3ADF-9FB8-E8CF7730D4EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CF6B0D2-AA28-3ADF-9FB8-E8CF7730D4EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CF6B0D2-AA28-3ADF-9FB8-E8CF7730D4EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CF6B0D2-AA28-3ADF-9FB8-E8CF7730D4EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEC60EB3-1451-3947-17F1-E545FE80CED3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEC60EB3-1451-3947-17F1-E545FE80CED3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEC60EB3-1451-3947-17F1-E545FE80CED3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEC60EB3-1451-3947-17F1-E545FE80CED3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -68,6 +80,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{D0B8CB57-D7F7-4C2A-B219-F7ECA82A6312} = {0D081BBD-7AE2-41FA-8B38-9E01A0096653}
 		{9A5D1E9B-92DF-4537-8CB0-C6168F5F0689} = {0D081BBD-7AE2-41FA-8B38-9E01A0096653}
+		{AEC60EB3-1451-3947-17F1-E545FE80CED3} = {0D081BBD-7AE2-41FA-8B38-9E01A0096653}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4E92A522-D5BC-4856-B5BF-D3D5585051DE}

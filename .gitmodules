@@ -1,3 +1,6 @@
 [submodule "DataDefinitions"]
 	path = DataDefinitions
 	url = https://github.com/ArcanoxDragon/mercury-engine-data-structures.git
+[submodule "src/MercuryEngine.Data.TegraTextureLib/tegra_swizzle"]
+	path = src/MercuryEngine.Data.TegraTextureLib/tegra_swizzle
+	url = https://github.com/ScanMountGoat/tegra_swizzle.git

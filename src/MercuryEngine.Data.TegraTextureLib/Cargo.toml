@@ -1,0 +1,14 @@
+[package]
+name = "mercuryenginedata_tegra_swizzle"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+# path = "./tegra_swizzle/src/lib.rs"
+
+[build-dependencies]
+csbindgen = "1.9.3"
+
+[dependencies]
+tegra_swizzle = { version = "0.4.0", path = "tegra_swizzle", features = ["ffi", "std"] }
