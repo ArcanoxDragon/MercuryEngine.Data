@@ -37,6 +37,8 @@ public class SlicedStream : Stream
 
 	internal Stream BaseStream { get; }
 
+	internal bool HideRealPosition { get; set; }
+
 	public override void Flush() { }
 
 	public override int Read(byte[] buffer, int offset, int count)

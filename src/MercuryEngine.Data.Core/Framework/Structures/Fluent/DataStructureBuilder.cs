@@ -87,12 +87,13 @@ where T : IDataStructure
 	public DataStructureBuilder<T> Padding(uint length, byte paddingByte = 0)
 		=> AddConstantField(() => new PaddingField(length, paddingByte), $"<padding: {length} bytes>");
 
-	public DataStructureBuilder<T> AddConstantField(Func<IBinaryField> fieldFactory, string? description = null)
-		=> AddField(new DataStructureField(new ConstantValueFieldHandler(fieldFactory), description ?? $"<constant: {fieldFactory}>"));
+	public DataStructureBuilder<T> AddConstantField<TField>(Func<TField> fieldFactory, string? description = null)
+	where TField : IBinaryField
+		=> AddField(new DataStructureField(new ConstantValueFieldHandler(() => fieldFactory()), description ?? $"<constant: {typeof(TField).GetDisplayName()}>"));
 
 	public DataStructureBuilder<T> AddConstantField<TValue>(Func<IBinaryField<TValue>> fieldFactory, TValue expectedValue, string? description = null, bool assertValueOnRead = true)
 	where TValue : notnull
-		=> AddField(new DataStructureField(new ConstantValueFieldHandler<TValue>(fieldFactory, expectedValue, assertValueOnRead), description ?? $"<constant: {fieldFactory}>"));
+		=> AddField(new DataStructureField(new ConstantValueFieldHandler<TValue>(fieldFactory, expectedValue, assertValueOnRead), description ?? $"<constant: {typeof(TValue).GetDisplayName()} = {expectedValue}>"));
 
 	#endregion
 

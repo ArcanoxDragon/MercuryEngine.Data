@@ -74,7 +74,9 @@ public partial class Pkg
 	public static Stream OpenPackageFile(Stream pkgStream, PackageFile file, bool keepOpen = false)
 	{
 		var fileLength = (int) ( file.DataField.EndAddress - file.DataField.StartAddress );
-		var slicedStream = new SlicedStream(pkgStream, file.DataField.StartAddress, fileLength, keepOpen);
+		var slicedStream = new SlicedStream(pkgStream, file.DataField.StartAddress, fileLength, keepOpen) {
+			HideRealPosition = true,
+		};
 
 		// Move the underlying stream to the start of the SlicedStream, so that reads immediately start at the file's data block
 		slicedStream.Position = 0;

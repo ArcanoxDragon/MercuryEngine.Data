@@ -50,7 +50,9 @@ public static class StreamExtensions
 
 	public static long GetRealPosition(this Stream stream)
 		=> stream switch {
-			SlicedStream slicedStream => slicedStream.BaseStream.GetRealPosition(),
-			_                         => stream.Position,
+			SlicedStream { HideRealPosition: false } slicedStream
+				=> slicedStream.BaseStream.GetRealPosition(),
+
+			_ => stream.Position,
 		};
 }
