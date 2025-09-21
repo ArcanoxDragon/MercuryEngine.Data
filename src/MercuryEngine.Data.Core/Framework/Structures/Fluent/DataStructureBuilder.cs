@@ -102,7 +102,10 @@ where T : IDataStructure
 	public DataStructureBuilder<T> Property(Expression<Func<T, string?>> propertyExpression)
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var nullabilityInfo = ReflectionUtility.NullabilityInfoContext.Create(property);
+		NullabilityInfo nullabilityInfo;
+
+		lock (ReflectionUtility.NullabilityInfoContext) // NullabilityInfoContext is not concurrency-safe
+			nullabilityInfo = ReflectionUtility.NullabilityInfoContext.Create(property);
 
 		if (nullabilityInfo.WriteState == NullabilityState.NotNull)
 			// Property is annotated as non-null, so we will use Property instead of NullableProperty
