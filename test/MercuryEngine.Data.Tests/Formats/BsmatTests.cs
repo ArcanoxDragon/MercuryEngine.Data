@@ -18,8 +18,8 @@ public class BsmatTests : BaseTestFixture
 
 		TestContext.Progress.WriteLine("Loading BSMAT file: {0}", fileName);
 
-		var stream = OpenPackageFile(packageFilePath, packageFile);
 		var bsmat = new Bsmat();
+		var stream = OpenPackageFile(packageFilePath, packageFile, bsmat.DisplayName);
 
 		try
 		{

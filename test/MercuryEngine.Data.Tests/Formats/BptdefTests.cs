@@ -18,8 +18,8 @@ public class BptdefTests : BaseTestFixture
 
 		TestContext.Progress.WriteLine("Loading BPTDEF file: {0}", fileName);
 
-		using var stream = OpenPackageFile(packageFilePath, packageFile);
 		var bptdef = new Bptdef();
+		using var stream = OpenPackageFile(packageFilePath, packageFile, bptdef.DisplayName);
 
 		try
 		{

@@ -37,8 +37,8 @@ public class BcmdlTests : BaseTestFixture
 
 		TestContext.Progress.WriteLine("Loading BCMDL file: {0}", fileName);
 
-		var stream = OpenPackageFile(packageFilePath, packageFile);
 		var bcmdl = new Bcmdl();
+		var stream = OpenPackageFile(packageFilePath, packageFile, bcmdl.DisplayName);
 
 		try
 		{

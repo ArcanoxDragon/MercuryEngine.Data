@@ -32,8 +32,8 @@ public partial class BmsadTests
 		if (!quiet)
 			await TestContext.Progress.WriteLineAsync($"Loading BMSAD file: {fileName}");
 
-		await using var stream = OpenPackageFile(packageFilePath, packageFile);
 		var bmsad = new Bmsad();
+		await using var stream = OpenPackageFile(packageFilePath, packageFile, bmsad.DisplayName);
 
 		try
 		{

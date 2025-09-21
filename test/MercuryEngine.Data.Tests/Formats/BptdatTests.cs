@@ -18,8 +18,8 @@ public class BptdatTests : BaseTestFixture
 
 		TestContext.Progress.WriteLine("Loading BPTDAT file: {0}", fileName);
 
-		using var stream = OpenPackageFile(packageFilePath, packageFile);
 		var bptdat = new Bptdat();
+		using var stream = OpenPackageFile(packageFilePath, packageFile, bptdat.DisplayName);
 
 		try
 		{

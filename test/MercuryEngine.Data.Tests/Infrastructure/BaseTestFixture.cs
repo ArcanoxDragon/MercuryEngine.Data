@@ -61,11 +61,26 @@ public abstract class BaseTestFixture
 		}
 	}
 
-	protected static Stream OpenPackageFile(string packageFilePath, PackageFile file)
+	protected static Stream OpenPackageFile(string packageFilePath, PackageFile file, string dataFormatName, bool writeOriginal = true)
 	{
-		var fileStream = File.Open(packageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+		var pkgStream = File.Open(packageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+		var fileStream = Pkg.OpenPackageFile(pkgStream, file);
 
-		return Pkg.OpenPackageFile(fileStream, file);
+		if (writeOriginal)
+		{
+			var relativeFileName = file.Name.ToString();
+			var relativeDirectory = Path.GetDirectoryName(relativeFileName)!;
+			var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativeDirectory);
+			var outFileName = Path.GetFileName(relativeFileName);
+			var outFilePath = Path.Combine(outFileDir, outFileName);
+			using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+
+			fileStream.CopyTo(outFileStream);
+			outFileStream.Flush();
+			fileStream.Seek(0, SeekOrigin.Begin);
+		}
+
+		return fileStream;
 	}
 
 	protected static T ReadWriteAndCompare<T>(string sourceFilePath, string? relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
@@ -79,7 +94,8 @@ public abstract class BaseTestFixture
 	protected static T ReadWriteAndCompare<T>(string packageFilePath, PackageFile packageFile, string? relativeTo = null, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
-		using var dataStream = OpenPackageFile(packageFilePath, packageFile);
+		var dataFormatName = new T().DisplayName;
+		using var dataStream = OpenPackageFile(packageFilePath, packageFile, dataFormatName);
 
 		return ReadWriteAndCompareCore<T>(dataStream, packageFile.Name.ToString(), relativeTo, quiet, preCompareAction);
 	}
@@ -145,7 +161,8 @@ public abstract class BaseTestFixture
 	protected static async Task<T> ReadWriteAndCompareAsync<T>(string packageFilePath, PackageFile packageFile, string? relativeTo = null, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
-		await using var dataStream = OpenPackageFile(packageFilePath, packageFile);
+		var dataFormatName = new T().DisplayName;
+		await using var dataStream = OpenPackageFile(packageFilePath, packageFile, dataFormatName);
 
 		return await ReadWriteAndCompareAsyncCore<T>(dataStream, packageFile.Name.ToString(), relativeTo, quiet, preCompareAction);
 	}

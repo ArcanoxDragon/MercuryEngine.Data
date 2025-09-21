@@ -27,14 +27,13 @@ public class BtundaTests : BaseTestFixture
 	{
 		TestContext.Progress.WriteLine("Loading BTUNDA file: {0}", fileName);
 
+		var btunda = new Btunda();
 		Stream stream;
 
 		if (packageFile != null)
-			stream = OpenPackageFile(packageFilePath!, packageFile);
+			stream = OpenPackageFile(packageFilePath!, packageFile, btunda.DisplayName);
 		else
 			stream = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-		var btunda = new Btunda();
 
 		try
 		{

@@ -25,13 +25,10 @@ public class GltfExporterTests : BaseTestFixture
 
 		TestContext.Progress.WriteLine("Converting BCMDL file to GLB: {0}", fileName);
 
-		Bcmdl bcmdl;
+		var bcmdl = new Bcmdl();
 
-		using (var stream = OpenPackageFile(packageFilePath, packageFile))
-		{
-			bcmdl = new Bcmdl();
+		using (var stream = OpenPackageFile(packageFilePath, packageFile, bcmdl.DisplayName))
 			bcmdl.Read(stream);
-		}
 
 		var relativeDirectory = Path.GetDirectoryName(fileName)!;
 		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", bcmdl.DisplayName, relativeDirectory);

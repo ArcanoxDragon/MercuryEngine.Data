@@ -39,8 +39,8 @@ public partial class BmsadTests : BaseTestFixture
 		if (!quiet)
 			TestContext.Progress.WriteLine("Loading BMSAD file: {0}", fileName);
 
-		using var stream = OpenPackageFile(packageFilePath, packageFile);
 		var bmsad = new Bmsad();
+		using var stream = OpenPackageFile(packageFilePath, packageFile, bmsad.DisplayName);
 
 		try
 		{
