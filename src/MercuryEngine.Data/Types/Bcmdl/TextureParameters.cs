@@ -3,17 +3,22 @@ using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 namespace MercuryEngine.Data.Types.Bcmdl;
 
+/// <summary>
+/// These are seemingly unused by Dread - they differ from the defaults only on a few models,
+/// and restoring them to the defaults on those models does not seem to cause any change to
+/// how the model renders in-game.
+/// </summary>
 public class TextureParameters : DataStructure<TextureParameters>
 {
 	public ulong UnknownU64_0x00 { get; set; }
 	public int   UnknownI32_0x08 { get; set; }
-	public float UnknownS32_0x0C { get; set; }
-	public float UnknownS32_0x10 { get; set; }
+	public float UnknownS32_0x0C { get; set; } = 1f;
+	public float UnknownS32_0x10 { get; set; } = 1f;
 	public float UnknownS32_0x14 { get; set; }
 	public float UnknownS32_0x18 { get; set; }
 	public float UnknownS32_0x1C { get; set; }
-	public uint  UnknownU32_0x20 { get; set; }
-	public uint  UnknownU32_0x24 { get; set; }
+	public uint  UnknownU32_0x20 { get; set; } = 2;
+	public uint  UnknownU32_0x24 { get; set; } = 2;
 	public ulong UnknownU64_0x28 { get; set; }
 	public ulong UnknownU64_0x30 { get; set; }
 	public ulong UnknownU64_0x38 { get; set; }
