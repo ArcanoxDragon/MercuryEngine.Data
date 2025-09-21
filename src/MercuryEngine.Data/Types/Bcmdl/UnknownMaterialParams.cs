@@ -1,5 +1,4 @@
-﻿using MercuryEngine.Data.Core.Framework.Fields;
-using MercuryEngine.Data.Core.Framework.Structures;
+﻿using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 namespace MercuryEngine.Data.Types.Bcmdl;
@@ -18,10 +17,6 @@ public class UnknownMaterialParams : DataStructure<UnknownMaterialParams>
 	public Inner2? Inner2_1 { get; set; }
 	public Inner1? Inner1_2 { get; set; }
 
-	// public Ref<Inner1>  Inner1_1        { get; } = new();
-	// public Ref<Inner2>  Inner2_1        { get; } = new();
-	// public Ref<Inner1>  Inner1_2        { get; } = new();
-
 	protected override void Describe(DataStructureBuilder<UnknownMaterialParams> builder)
 	{
 		builder.Pointer(m => m.Material);
@@ -35,9 +30,6 @@ public class UnknownMaterialParams : DataStructure<UnknownMaterialParams>
 		builder.Pointer(m => m.Inner1_1, startByteAlignment: 8);
 		builder.Pointer(m => m.Inner2_1, startByteAlignment: 8);
 		builder.Pointer(m => m.Inner1_2, startByteAlignment: 8);
-		// builder.RawProperty(m => m.Inner1_1Conditional);
-		// builder.RawProperty(m => m.Inner2_1Conditional);
-		// builder.RawProperty(m => m.Inner1_2Conditional);
 	}
 
 	public sealed class UnknownFlag : DataStructure<UnknownFlag>
@@ -47,17 +39,6 @@ public class UnknownMaterialParams : DataStructure<UnknownMaterialParams>
 		protected override void Describe(DataStructureBuilder<UnknownFlag> builder)
 		{
 			builder.Property(m => m.Flag);
-		}
-	}
-
-	public sealed class Ref<T> : DataStructure<Ref<T>>
-	where T : class, IBinaryField, new()
-	{
-		public T? Target { get; set; }
-
-		protected override void Describe(DataStructureBuilder<Ref<T>> builder)
-		{
-			builder.Pointer(m => m.Target);
 		}
 	}
 
@@ -91,7 +72,7 @@ public class UnknownMaterialParams : DataStructure<UnknownMaterialParams>
 		public uint  Unk1       { get; set; }
 		public float Unk2       { get; set; }
 
-		private byte[] BufferData
+		public byte[] BufferData
 		{
 			get => BufferDataField?.Value ?? [];
 			set
