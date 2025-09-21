@@ -6,7 +6,7 @@ using MercuryEngine.Data.Types.DreadTypes;
 
 namespace MercuryEngine.Data.Formats;
 
-internal class Bsmat : BinaryFormat<Bsmat>
+public class Bsmat : BinaryFormat<Bsmat>
 {
 	[JsonIgnore]
 	public override string DisplayName => "BSMAT";

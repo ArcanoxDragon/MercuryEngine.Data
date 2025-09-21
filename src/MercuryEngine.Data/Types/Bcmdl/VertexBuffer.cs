@@ -27,7 +27,7 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 	/// Deconstructs the raw vertex buffer data into an array of <see cref="VertexData"/> objects
 	/// that can be used to more easily read vertex information.
 	/// </summary>
-	public VertexData[] GetVertexData()
+	public VertexData[] GetVertices()
 	{
 		var stride = VertexInfoSlots.Sum(slot => slot.Count * sizeof(float)); // All components are expected to be float-based vectors for Dread
 

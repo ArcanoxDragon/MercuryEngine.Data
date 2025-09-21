@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using System.Runtime.InteropServices;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
@@ -12,10 +13,21 @@ public class IndexBuffer : DataStructure<IndexBuffer>
 	private bool dataChanged;
 
 	public ulong  UnknownPointer   { get; set; }
-	public uint   IndexCount       { get; set; }
-	public uint   CompressedSize   { get; set; }
+	public uint   IndexCount       { get; private set; }
+	public uint   CompressedSize   { get; private set; }
 	public byte[] UncompressedData { get; private set; } = [];
-	public bool   IsCompressed     { get; set; }
+	public bool   IsCompressed     { get; private set; }
+
+	public ushort[] GetIndices()
+	{
+		var indices = new ushort[IndexCount];
+		var sourceBytes = UncompressedData.AsSpan();
+		var destBytes = MemoryMarshal.Cast<ushort, byte>(indices);
+
+		sourceBytes.CopyTo(destBytes);
+
+		return indices;
+	}
 
 	#region Private Data
 
