@@ -28,6 +28,7 @@ namespace MercuryEngine.Data.Tests.Utility.Json;
 		typeof(NumberFieldJsonConverter<DecimalField, decimal>),
 		typeof(StrIdJsonConverter),
 		typeof(TerminatedStringFieldJsonConverter),
+		typeof(UniformParameterJsonConverter),
 	]
 )]
 [JsonSerializable(typeof(Bmsad))]

@@ -41,6 +41,7 @@ internal static class JsonUtility
 			new NumberFieldJsonConverter<DecimalField, decimal>(),
 			new StrIdJsonConverter(),
 			new TerminatedStringFieldJsonConverter(),
+			new UniformParameterJsonConverter(),
 		},
 	};
 
