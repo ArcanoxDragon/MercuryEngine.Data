@@ -6,6 +6,7 @@ namespace MercuryEngine.Data.Tests.Utility.Json;
 
 [JsonSourceGenerationOptions(
 	WriteIndented = true,
+	IncludeFields = true,
 	Converters = [
 		typeof(JsonStringEnumConverter),
 		typeof(ArrayFieldJsonConverter),
