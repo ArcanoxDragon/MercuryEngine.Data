@@ -36,20 +36,26 @@ public abstract class BaseTestFixture
 
 	protected static IEnumerable<TestCaseData> GetTestCasesFromPackages(string fileFormat)
 	{
+		var seenFileNames = new HashSet<string>();
+
 		foreach (var packageFilePath in Directory.EnumerateFiles(RomFsPath, "*.pkg", EnumerationOptions))
 		{
 			using var fileStream = File.Open(packageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
 			foreach (var file in Pkg.EnumeratePackageFiles(fileStream))
 			{
-				var name = file.Name.ToString();
+				var fileName = file.Name.ToString();
 
-				if (!name.EndsWith($".{fileFormat}", StringComparison.OrdinalIgnoreCase))
+				if (!seenFileNames.Add(fileName))
+					// Already saw this file from another package
+					continue;
+
+				if (!fileName.EndsWith($".{fileFormat}", StringComparison.OrdinalIgnoreCase))
 					// Wrong kind of file
 					continue;
 
 				yield return new TestCaseData(packageFilePath, file) {
-					TestName = $"pkg:{GetTestName(null, name)}",
+					TestName = $"pkg:{GetTestName(null, fileName)}",
 				};
 			}
 		}
