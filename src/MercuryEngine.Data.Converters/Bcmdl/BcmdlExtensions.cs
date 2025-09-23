@@ -1,7 +1,6 @@
-﻿using MercuryEngine.Data.Converters.Bcmdl;
-using MercuryEngine.Data.Types.Bcmdl;
+﻿using MercuryEngine.Data.Types.Bcmdl;
 
-namespace MercuryEngine.Data.Extensions;
+namespace MercuryEngine.Data.Converters.Bcmdl;
 
 public static class BcmdlExtensions
 {
@@ -39,6 +38,6 @@ public static class BcmdlExtensions
 		if (material is { Tex1Name: not null, Tex1Parameters: not null })
 			return BcmdlMaterialType.Color1Texture1;
 
-		return BcmdlMaterialType.Unknown;
+		return BcmdlMaterialType.Color1;
 	}
 }

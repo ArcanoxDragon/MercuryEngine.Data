@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using MercuryEngine.Data.Extensions;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
 using MercuryEngine.Data.Types.Bsmat;
@@ -34,6 +33,10 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 				continue;
 
 			var meshBuilder = BuildMesh(mesh);
+
+			if (meshBuilder is null)
+				continue;
+
 			var nodeBuilder = new NodeBuilder(mesh.Id?.Name);
 			var localMatrix = Matrix4x4.Identity;
 
@@ -153,28 +156,34 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		return ( geometryType, materialType, isSkinned ) switch {
 			// Non-skinned
 			//   Position-only vertices
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1, false)         => new MeshBuilder<VertexPosition, VertexColor1>(name),
 			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture1, false) => new MeshBuilder<VertexPosition, VertexColor1Texture1>(name),
 			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture2, false) => new MeshBuilder<VertexPosition, VertexColor1Texture2>(name),
 			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture3, false) => new MeshBuilder<VertexPosition, VertexColor1Texture3>(name),
 			//   Position-Normal vertices
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1, false)         => new MeshBuilder<VertexPositionNormal, VertexColor1>(name),
 			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture1, false) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture1>(name),
 			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture2, false) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture2>(name),
 			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture3, false) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture3>(name),
 			//   Position-Normal-Tangent vertices
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1, false)         => new MeshBuilder<VertexPositionNormalTangent, VertexColor1>(name),
 			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture1, false) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture1>(name),
 			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture2, false) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture2>(name),
 			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture3, false) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture3>(name),
 
 			// Skinned
 			//   Position-only vertices
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1, true)         => new MeshBuilder<VertexPosition, VertexColor1, VertexJoints4>(name),
 			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture1, true) => new MeshBuilder<VertexPosition, VertexColor1Texture1, VertexJoints4>(name),
 			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture2, true) => new MeshBuilder<VertexPosition, VertexColor1Texture2, VertexJoints4>(name),
 			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture3, true) => new MeshBuilder<VertexPosition, VertexColor1Texture3, VertexJoints4>(name),
 			//   Position-Normal vertices
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1, true)         => new MeshBuilder<VertexPositionNormal, VertexColor1, VertexJoints4>(name),
 			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture1, true) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>(name),
 			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture2, true) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture2, VertexJoints4>(name),
 			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture3, true) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture3, VertexJoints4>(name),
 			//   Position-Normal-Tangent vertices
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1, true)         => new MeshBuilder<VertexPositionNormalTangent, VertexColor1, VertexJoints4>(name),
 			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture1, true) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture1, VertexJoints4>(name),
 			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture2, true) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture2, VertexJoints4>(name),
 			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture3, true) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture3, VertexJoints4>(name),

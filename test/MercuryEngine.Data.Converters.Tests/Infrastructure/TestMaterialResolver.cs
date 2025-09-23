@@ -6,7 +6,7 @@ using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Types.Pkg;
 using SkiaSharp;
 
-namespace MercuryEngine.Data.Tests.Converters;
+namespace MercuryEngine.Data.Converters.Tests.Infrastructure;
 
 public class TestMaterialResolver : IMaterialResolver
 {

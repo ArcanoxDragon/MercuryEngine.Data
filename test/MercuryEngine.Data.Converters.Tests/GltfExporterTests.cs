@@ -1,10 +1,10 @@
 ﻿using MercuryEngine.Data.Converters.Bcmdl;
-using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.Converters.Tests.Infrastructure;
 using MercuryEngine.Data.Tests.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Types.Pkg;
 
-namespace MercuryEngine.Data.Tests.Converters;
+namespace MercuryEngine.Data.Converters.Tests;
 
 [TestFixture]
 public class GltfExporterTests : BaseTestFixture
@@ -25,7 +25,7 @@ public class GltfExporterTests : BaseTestFixture
 
 		TestContext.Progress.WriteLine("Converting BCMDL file to GLB: {0}", fileName);
 
-		var bcmdl = new Bcmdl();
+		var bcmdl = new Formats.Bcmdl();
 
 		using (var stream = OpenPackageFile(packageFilePath, packageFile, bcmdl.DisplayName))
 			bcmdl.Read(stream);
