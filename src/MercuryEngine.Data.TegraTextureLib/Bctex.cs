@@ -11,30 +11,57 @@ public class Bctex : BaseDataFormat
 {
 	private const string Signature = "MTXT";
 
+	public string? TextureName { get; private set; }
+	public uint    Width       { get; private set; }
+	public uint    Height      { get; private set; }
+	public uint    MipCount    { get; private set; }
+
 	public List<TegraTexture> Textures { get; } = [];
 
 	public byte[] RawData { get; private set; } = [];
 
 	#region Data Fields
 
-	private uint    HeaderFlags   { get; set; }
-	private ulong   Unknown1      { get; set; }
-	public  uint    Width         { get; private set; }
-	public  uint    Height        { get; private set; }
-	public  uint    MipCount      { get; private set; }
-	private int     Unknown2      { get; set; }
-	private uint    NameOffset    { get; set; }
-	private uint    Unknown3      { get; set; }
-	private uint    TextureOffset { get; set; }
-	private uint    Unknown4      { get; set; }
-	private uint    TextureSize   { get; set; }
-	public  string? TextureName   { get; private set; }
+	private uint  HeaderFlags   { get; set; }
+	private ulong Unknown1      { get; set; }
+	private int   Unknown2      { get; set; }
+	private uint  NameOffset    { get; set; }
+	private uint  Unknown3      { get; set; }
+	private uint  TextureOffset { get; set; }
+	private uint  Unknown4      { get; set; }
+	private uint  TextureSize   { get; set; }
 
 	private byte[] CompressedData { get; set; } = [];
 
 	#endregion
 
+	/// <summary>
+	/// Reads a BCTEX file from the provided <paramref name="stream"/>.
+	/// </summary>
+	/// <param name="stream">A <see cref="Stream"/> from which the file data will be read.</param>
+	/// <param name="headerOnly">
+	/// If <see langword="true"/>, the actual texture data will not be read (<see cref="RawData"/> will be empty).
+	/// </param>
+	/// <exception cref="IOException">Invalid data is encountered while reading the texture</exception>
+	public void Read(Stream stream, bool headerOnly)
+	{
+		using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
+
+		Read(reader, headerOnly);
+	}
+
 	public override void Read(BinaryReader reader)
+		=> Read(reader, headerOnly: false);
+
+	/// <summary>
+	/// Reads a BCTEX file using the provided <paramref name="reader"/>.
+	/// </summary>
+	/// <param name="reader">A <see cref="BinaryReader"/> that will be used to read the file.</param>
+	/// <param name="headerOnly">
+	/// If <see langword="true"/>, the actual texture data will not be read (<see cref="RawData"/> will be empty).
+	/// </param>
+	/// <exception cref="IOException">Invalid data is encountered while reading the texture</exception>
+	public void Read(BinaryReader reader, bool headerOnly)
 	{
 		var signature = reader.ReadBytes(4);
 
@@ -84,7 +111,35 @@ public class Bctex : BaseDataFormat
 		Textures.AddRange(xtx.Textures);
 	}
 
-	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+	/// <summary>
+	/// Asynchronously reads a BCTEX file from the provided <paramref name="stream"/>.
+	/// </summary>
+	/// <param name="stream">A <see cref="Stream"/> from which the file data will be read.</param>
+	/// <param name="headerOnly">
+	/// If <see langword="true"/>, the actual texture data will not be read (<see cref="RawData"/> will be empty).
+	/// </param>
+	/// <param name="cancellationToken">A <see cref="CancellationToken"/> instance that can be used to abort the operation.</param>
+	/// <exception cref="IOException">Invalid data is encountered while reading the texture</exception>
+	public async Task ReadAsync(Stream stream, bool headerOnly, CancellationToken cancellationToken = default)
+	{
+		using var reader = new AsyncBinaryReader(stream, Encoding.UTF8, leaveOpen: true);
+
+		await ReadAsync(reader, headerOnly, cancellationToken).ConfigureAwait(false);
+	}
+
+	public override Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		=> ReadAsync(reader, headerOnly: false, cancellationToken);
+
+	/// <summary>
+	/// Asynchronously reads a BCTEX file using the provided <paramref name="reader"/>.
+	/// </summary>
+	/// <param name="reader">An <see cref="AsyncBinaryReader"/> that will be used to read the file.</param>
+	/// <param name="headerOnly">
+	/// If <see langword="true"/>, the actual texture data will not be read (<see cref="RawData"/> will be empty).
+	/// </param>
+	/// <param name="cancellationToken">A <see cref="CancellationToken"/> instance that can be used to abort the operation.</param>
+	/// <exception cref="IOException">Invalid data is encountered while reading the texture</exception>
+	public async Task ReadAsync(AsyncBinaryReader reader, bool headerOnly, CancellationToken cancellationToken = default)
 	{
 		var signature = await reader.ReadBytesAsync(4, cancellationToken).ConfigureAwait(false);
 
