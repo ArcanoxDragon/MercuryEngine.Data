@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using MercuryEngine.Data.Core.Framework.Structures;
+﻿using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.DreadTypes;
 using Vector3 = MercuryEngine.Data.Types.DreadTypes.Vector3;
@@ -11,12 +10,6 @@ public class Transform : DataStructure<Transform>
 	public Vector3 Position { get; set; } = new();
 	public Vector3 Rotation { get; set; } = new();
 	public Vector3 Scale    { get; set; } = new();
-
-	public Matrix4x4 TransformMatrix
-	{
-		get => TransformMatrixField.Value;
-		set => TransformMatrixField.Value = value;
-	}
 
 	#region Private Data
 

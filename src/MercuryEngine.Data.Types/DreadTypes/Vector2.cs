@@ -1,10 +1,12 @@
-﻿using MercuryEngine.Data.Core.Framework.Structures;
+﻿using System.Diagnostics;
+using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.Fields;
 using SysVector2 = System.Numerics.Vector2;
 
 namespace MercuryEngine.Data.Types.DreadTypes;
 
+[DebuggerDisplay("<{X}, {Y}>")]
 public class Vector2 : DataStructure<Vector2>, ITypedDreadField
 {
 	public Vector2() { }
