@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
 using MercuryEngine.Data.Types.Bsmat;
 using SharpGLTF.Geometry;
@@ -11,7 +12,6 @@ using SharpGLTF.Schema2;
 using SharpGLTF.Transforms;
 using SkiaSharp;
 using AlphaMode = SharpGLTF.Materials.AlphaMode;
-using Mesh = MercuryEngine.Data.Types.Bcmdl.Mesh;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
 
@@ -27,28 +27,28 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 	{
 		var scene = new SceneBuilder(sceneName);
 
-		foreach (var mesh in bcmdl.Meshes)
+		foreach (var bcmdlNode in bcmdl.Nodes)
 		{
-			if (mesh is null)
+			if (bcmdlNode is null)
 				continue;
 
-			var meshBuilder = BuildMesh(mesh);
+			var meshBuilder = BuildMesh(bcmdlNode);
 
 			if (meshBuilder is null)
 				continue;
 
-			var nodeBuilder = new NodeBuilder(mesh.Id?.Name);
+			var nodeBuilder = new NodeBuilder(bcmdlNode.Id?.Name);
 			var localMatrix = Matrix4x4.Identity;
 
-			if (mesh.Submesh is { } submesh)
+			if (bcmdlNode.Mesh is { } mesh)
 				// TODO: Not sure whether or not (or how) to consume the submesh's transformation matrix
 				//  (submeshes store both a matrix AND a separate translation vector)
-				localMatrix.Translation = submesh.Translation;
+				localMatrix.Translation = mesh.Translation;
 
 			// Scale translation portion of matrix from cm to m before applying it
 			localMatrix.Translation = ScalePosition(localMatrix.Translation);
 			nodeBuilder.LocalMatrix = localMatrix;
-			scene.AddRigidMesh(meshBuilder, nodeBuilder).WithName(mesh.Id?.Name);
+			scene.AddRigidMesh(meshBuilder, nodeBuilder).WithName(bcmdlNode.Id?.Name);
 		}
 
 		if (binary)
@@ -63,19 +63,19 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		}
 	}
 
-	private IMeshBuilder<MaterialBuilder>? BuildMesh(Mesh mesh)
+	private IMeshBuilder<MaterialBuilder>? BuildMesh(MeshNode meshNode)
 	{
-		var meshBuilder = CreateMeshBuilder(mesh, mesh.Id?.Name);
+		var meshBuilder = CreateMeshBuilder(meshNode, meshNode.Id?.Name);
 
 		if (meshBuilder is null)
 			return null;
 
-		var materialBuilder = new MaterialBuilder(mesh.Material?.Name);
+		var materialBuilder = new MaterialBuilder(meshNode.Material?.Name);
 
-		if (mesh.Material?.Path is { } materialPath && MaterialResolver?.LoadMaterial(materialPath) is { } material)
+		if (meshNode.Material?.Path is { } materialPath && MaterialResolver?.LoadMaterial(materialPath) is { } material)
 			AssignMaterials(materialBuilder, material);
 
-		FillPrimitives(mesh, meshBuilder, materialBuilder);
+		FillPrimitives(meshNode, meshBuilder, materialBuilder);
 
 		return meshBuilder;
 	}
@@ -144,9 +144,9 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		}
 	}
 
-	private static IMeshBuilder<MaterialBuilder>? CreateMeshBuilder(Mesh mesh, string? name)
+	private static IMeshBuilder<MaterialBuilder>? CreateMeshBuilder(MeshNode node, string? name)
 	{
-		if (mesh is not { Material: { } material, Submesh.VertexBuffer: { } vertexBuffer })
+		if (node is not { Material: { } material, Mesh: { VertexBuffer: { } vertexBuffer } mesh })
 			return null;
 
 		var geometryType = vertexBuffer.GetGeometryType();
@@ -192,22 +192,22 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		};
 	}
 
-	private static void FillPrimitives(Mesh mesh, IMeshBuilder<MaterialBuilder> meshBuilder, MaterialBuilder materialBuilder)
+	private static void FillPrimitives(MeshNode node, IMeshBuilder<MaterialBuilder> meshBuilder, MaterialBuilder materialBuilder)
 	{
-		if (mesh is not { Submesh: { SubmeshInfos: { } submeshInfos, VertexBuffer: { } vertexBuffer, IndexBuffer: { } indexBuffer } })
+		if (node.Mesh is not { Submeshes: { } submeshes, VertexBuffer: { } vertexBuffer, IndexBuffer: { } indexBuffer })
 			return;
 
 		var vertices = vertexBuffer.GetVertices();
 		var indices = indexBuffer.GetIndices();
 
-		foreach (var submeshInfo in submeshInfos)
+		foreach (var submesh in submeshes)
 		{
-			if (submeshInfo is null || submeshInfo.IndexCount % 3 != 0)
+			if (submesh is null || submesh.IndexCount % 3 != 0)
 				// TODO: Need way of communicating warnings to consumer
 				continue;
 
-			var startIndex = submeshInfo.IndexOffset;
-			var endIndex = startIndex + submeshInfo.IndexCount - 1;
+			var startIndex = submesh.IndexOffset;
+			var endIndex = startIndex + submesh.IndexCount - 1;
 
 			if (endIndex >= indices.Length)
 				// TODO: Need way of communicating warnings to consumer

@@ -4,7 +4,7 @@ using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 namespace MercuryEngine.Data.Types.Bcmdl;
 
-public class MeshId : DataStructure<MeshId>
+public class NodeId : DataStructure<NodeId>
 {
 	public string? Name
 	{
@@ -26,7 +26,7 @@ public class MeshId : DataStructure<MeshId>
 
 	#endregion
 
-	protected override void Describe(DataStructureBuilder<MeshId> builder)
+	protected override void Describe(DataStructureBuilder<NodeId> builder)
 	{
 		builder.Pointer(m => m.NameField, unique: true);
 		builder.Property(m => m.Visible);

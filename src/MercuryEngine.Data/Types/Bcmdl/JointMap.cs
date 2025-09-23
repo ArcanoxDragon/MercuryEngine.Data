@@ -4,7 +4,7 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Types.Bcmdl;
 
-public class JointMap(SubmeshInfo parent) : IBinaryField
+public class JointMap(Submesh parent) : IBinaryField
 {
 	private uint[] entries = [];
 

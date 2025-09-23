@@ -6,8 +6,6 @@ namespace MercuryEngine.Data.Types.Bcmdl;
 
 public class JointsInfo : DataStructure<JointsInfo>
 {
-	public uint JointCount { get; set; }
-
 	public IList<Joint?> Joints
 	{
 		get
@@ -28,8 +26,9 @@ public class JointsInfo : DataStructure<JointsInfo>
 
 	#region Private Data
 
-	private LinkedListField<Joint>?      JointsField     { get; set; }
-	private LinkedListField<JointFlags>? JointFlagsField { get; set; }
+	internal uint                         JointCount      { get; set; }
+	private  LinkedListField<Joint>?      JointsField     { get; set; }
+	private  LinkedListField<JointFlags>? JointFlagsField { get; set; }
 
 	#endregion
 

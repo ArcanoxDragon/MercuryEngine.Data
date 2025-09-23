@@ -14,9 +14,9 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 
 	public ulong UnknownPointer   { get; set; }
 	public uint  UnknownValue     { get; set; }
-	public uint  UncompressedSize { get; set; }
-	public uint  VertexCount      { get; set; }
-	public uint  CompressedSize   { get; set; }
+	public uint  UncompressedSize { get; private set; }
+	public uint  VertexCount      { get; private set; }
+	public uint  CompressedSize   { get; private set; }
 
 	public List<VertexInfoDescription> VertexInfoSlots => VertexInfoSlotsList.Entries;
 

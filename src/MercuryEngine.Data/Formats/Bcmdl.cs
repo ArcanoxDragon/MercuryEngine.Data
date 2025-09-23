@@ -35,12 +35,12 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 	}
 
 	[JsonPropertyOrder(3)]
-	public IList<Submesh?> Submeshes
+	public IList<Mesh?> Meshes
 	{
 		get
 		{
-			SubmeshesField ??= LinkedListField.Create<Submesh>();
-			return SubmeshesField.Entries;
+			MeshesField ??= LinkedListField.Create<Mesh>();
+			return MeshesField.Entries;
 		}
 	}
 
@@ -55,22 +55,22 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 	}
 
 	[JsonPropertyOrder(5)]
-	public IList<Mesh?> Meshes
+	public IList<MeshNode?> Nodes
 	{
 		get
 		{
-			MeshesField ??= LinkedListField.Create<Mesh>();
-			return MeshesField.Entries;
+			NodesField ??= LinkedListField.Create<MeshNode>();
+			return NodesField.Entries;
 		}
 	}
 
 	[JsonPropertyOrder(6)]
-	public IList<MeshId?> MeshIds
+	public IList<NodeId?> NodeIds
 	{
 		get
 		{
-			MeshIdsField ??= LinkedListField.Create<MeshId>();
-			return MeshIdsField.Entries;
+			NodeIdsField ??= LinkedListField.Create<NodeId>();
+			return NodeIdsField.Entries;
 		}
 	}
 
@@ -113,10 +113,10 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 
 	private LinkedListField<VertexBuffer>?          VertexBuffersField         { get; set; }
 	private LinkedListField<IndexBuffer>?           IndexBuffersField          { get; set; }
-	private LinkedListField<Submesh>?               SubmeshesField             { get; set; }
-	private LinkedListField<Material>?              MaterialsField             { get; set; }
 	private LinkedListField<Mesh>?                  MeshesField                { get; set; }
-	private LinkedListField<MeshId>?                MeshIdsField               { get; set; }
+	private LinkedListField<Material>?              MaterialsField             { get; set; }
+	private LinkedListField<MeshNode>?              NodesField                 { get; set; }
+	private LinkedListField<NodeId>?                NodeIdsField               { get; set; }
 	private LinkedListField<Transform>?             TransformsField            { get; set; }
 	private LinkedListField<SpecializationValue>?   SpecializationValuesField  { get; set; }
 	private LinkedListField<UnknownMaterialParams>? UnknownMaterialParamsField { get; set; }
@@ -140,10 +140,10 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 		builder.Constant(0x003A0001, "<version>");
 		builder.Pointer(m => m.VertexBuffersField, _ => LinkedListField.Create<VertexBuffer>());
 		builder.Pointer(m => m.IndexBuffersField, _ => LinkedListField.Create<IndexBuffer>());
-		builder.Pointer(m => m.SubmeshesField, _ => LinkedListField.Create<Submesh>());
-		builder.Pointer(m => m.MaterialsField, _ => LinkedListField.Create<Material>());
 		builder.Pointer(m => m.MeshesField, _ => LinkedListField.Create<Mesh>());
-		builder.Pointer(m => m.MeshIdsField, _ => LinkedListField.Create<MeshId>());
+		builder.Pointer(m => m.MaterialsField, _ => LinkedListField.Create<Material>());
+		builder.Pointer(m => m.NodesField, _ => LinkedListField.Create<MeshNode>());
+		builder.Pointer(m => m.NodeIdsField, _ => LinkedListField.Create<NodeId>());
 		builder.Pointer(m => m.TransformsField, _ => LinkedListField.Create<Transform>());
 		builder.Pointer(m => m.JointsInfo);
 		builder.Pointer(m => m.SpecializationValuesField, _ => LinkedListField.Create<SpecializationValue>());

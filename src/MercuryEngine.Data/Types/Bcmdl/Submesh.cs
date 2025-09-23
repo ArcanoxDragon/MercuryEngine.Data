@@ -1,55 +1,41 @@
-﻿using System.Numerics;
-using MercuryEngine.Data.Core.Framework.Structures;
+﻿using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
-using MercuryEngine.Data.Types.DreadTypes;
-using Vector3 = MercuryEngine.Data.Types.DreadTypes.Vector3;
 
 namespace MercuryEngine.Data.Types.Bcmdl;
 
 public class Submesh : DataStructure<Submesh>
 {
-	public Matrix4x4 TransformMatrix
-	{
-		get => TransformMatrixField.Value;
-		set => TransformMatrixField.Value = value;
-	}
+	public uint SkinningType       { get; set; }
+	public uint IndexOffset        { get; set; }
+	public uint IndexCount         { get; set; }
 
-	public Vector3       BoundingBoxSize { get; set; } = new();
-	public IndexBuffer?  IndexBuffer     { get; set; }
-	public VertexBuffer? VertexBuffer    { get; set; }
-	public uint          InfoCount       { get; set; }
-	public Vector3       Translation     { get; set; } = new();
+	// TODO: Abstract this away
+	public uint JointMapEntryCount { get; set; }
 
-	public IList<SubmeshInfo?> SubmeshInfos
+	public uint[] JointMap
 	{
 		get
 		{
-			SubmeshInfosField ??= CreateSubmeshInfosField();
-			return SubmeshInfosField.Entries;
+			JointMapField ??= CreateJointMapField();
+			return JointMapField.Entries;
 		}
 	}
 
-	#region Private Fields
+	#region Private Data
 
-	private Matrix4x4Field                TransformMatrixField { get; } = new();
-	private LinkedListField<SubmeshInfo>? SubmeshInfosField    { get; set; }
+	private JointMap? JointMapField { get; set; }
 
 	#endregion
 
-	private static LinkedListField<SubmeshInfo> CreateSubmeshInfosField()
-		=> LinkedListField.Create<SubmeshInfo>(startByteAlignment: 8);
+	private JointMap CreateJointMapField()
+		=> new(this);
 
 	protected override void Describe(DataStructureBuilder<Submesh> builder)
 	{
-		builder.RawProperty(m => m.TransformMatrixField);
-		builder.RawProperty(m => m.BoundingBoxSize);
-		builder.Padding(4, 0xFF);
-		builder.Pointer(m => m.IndexBuffer);
-		builder.Pointer(m => m.VertexBuffer);
-		builder.Property(m => m.InfoCount);
-		builder.Padding(4, 0xFF);
-		builder.Pointer(m => m.SubmeshInfosField, _ => CreateSubmeshInfosField());
-		builder.RawProperty(m => m.Translation);
-		builder.Padding(4, 0xFF);
+		builder.Property(m => m.SkinningType);
+		builder.Property(m => m.IndexOffset);
+		builder.Property(m => m.IndexCount);
+		builder.Property(m => m.JointMapEntryCount);
+		builder.Pointer(m => m.JointMapField, owner => owner.CreateJointMapField(), startByteAlignment: 8);
 	}
 }
