@@ -206,15 +206,16 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 				// TODO: Need way of communicating warnings to consumer
 				continue;
 
-			var finalIndex = submeshInfo.IndexOffset + submeshInfo.IndexCount - 1;
+			var startIndex = submeshInfo.IndexOffset;
+			var endIndex = startIndex + submeshInfo.IndexCount - 1;
 
-			if (finalIndex >= indices.Length)
+			if (endIndex >= indices.Length)
 				// TODO: Need way of communicating warnings to consumer
 				continue;
 
 			var primitiveBuilder = meshBuilder.UsePrimitive(materialBuilder);
 
-			for (var i = 0; i < indices.Length; i += 3)
+			for (var i = startIndex; i <= endIndex - 2; i += 3)
 			{
 				var triIndexA = indices[i];
 				var triIndexB = indices[i + 1];
