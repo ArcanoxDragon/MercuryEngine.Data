@@ -57,6 +57,18 @@ public class UniformParameter : DataStructure<UniformParameter>
 
 	#endregion
 
+	public override string ToString()
+	{
+		var (dataType, values) = Type switch {
+			TypeFloat       => ( "float", FloatValues.Cast<object>() ),
+			TypeSignedInt   => ( "int", SignedIntValues.Cast<object>() ),
+			TypeUnsignedInt => ( "uint", UnsignedIntValues.Cast<object>() ),
+			_               => ( "unknown", [] ),
+		};
+
+		return $"{dataType} {Name} = {string.Join(", ", values)}";
+	}
+
 	protected override void Describe(DataStructureBuilder<UniformParameter> builder)
 	{
 		builder.Property(m => m.Name);

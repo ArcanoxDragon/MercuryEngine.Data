@@ -14,11 +14,11 @@ public class Submesh : DataStructure<Submesh>
 		set => TransformMatrixField.Value = value;
 	}
 
-	public Vector3       UnkVector    { get; set; } = new();
-	public IndexBuffer?  IndexBuffer  { get; set; }
-	public VertexBuffer? VertexBuffer { get; set; }
-	public uint          InfoCount    { get; set; }
-	public Vector3       Translation  { get; set; } = new();
+	public Vector3       BoundingBoxSize { get; set; } = new();
+	public IndexBuffer?  IndexBuffer     { get; set; }
+	public VertexBuffer? VertexBuffer    { get; set; }
+	public uint          InfoCount       { get; set; }
+	public Vector3       Translation     { get; set; } = new();
 
 	public IList<SubmeshInfo?> SubmeshInfos
 	{
@@ -42,7 +42,7 @@ public class Submesh : DataStructure<Submesh>
 	protected override void Describe(DataStructureBuilder<Submesh> builder)
 	{
 		builder.RawProperty(m => m.TransformMatrixField);
-		builder.RawProperty(m => m.UnkVector);
+		builder.RawProperty(m => m.BoundingBoxSize);
 		builder.Padding(4, 0xFF);
 		builder.Pointer(m => m.IndexBuffer);
 		builder.Pointer(m => m.VertexBuffer);

@@ -1,9 +1,11 @@
-﻿using MercuryEngine.Data.Core.Framework.Structures;
+﻿using System.Diagnostics;
+using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types.DreadTypes;
 
 namespace MercuryEngine.Data.Types.Bsmat;
 
+[DebuggerDisplay("Name = {Name}, TexturePath = {TexturePath}")]
 public class Sampler : DataStructure<Sampler>
 {
 	public string      Name                { get; set; } = string.Empty;
