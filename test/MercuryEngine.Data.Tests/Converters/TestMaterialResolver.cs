@@ -32,7 +32,7 @@ public class TestMaterialResolver : IMaterialResolver
 		return bsmat;
 	}
 
-	public byte[]? LoadTexture(string path)
+	public SKBitmap? LoadTexture(string path)
 	{
 		var fullPath = Path.Join(Configuration.RomFsPath, "textures", path);
 
@@ -50,12 +50,7 @@ public class TestMaterialResolver : IMaterialResolver
 		if (bctex.Textures.Count == 0)
 			return null;
 
-		using var outStream = new MemoryStream();
-		using var bitmap = bctex.Textures[0].ToBitmap();
-
-		bitmap.Encode(outStream, SKEncodedImageFormat.Png, 100);
-
-		return outStream.ToArray();
+		return bctex.Textures[0].ToBitmap();
 	}
 
 	private static bool FindPackageFile(string path, [NotNullWhen(true)] out string? packageFilePath, [NotNullWhen(true)] out PackageFile? file)

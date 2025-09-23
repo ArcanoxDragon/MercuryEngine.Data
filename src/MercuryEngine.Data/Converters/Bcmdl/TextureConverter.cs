@@ -1,77 +1,121 @@
-﻿using System.Diagnostics;
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
 
 internal static class TextureConverter
 {
-	public static (byte[], byte[]?) SeparateBaseColorAndEmissive(byte[] inputTexture)
+	private static readonly SKColorSpace SrgbColorSpace   = SKColorSpace.CreateSrgb();
+	private static readonly SKColorSpace LinearColorSpace = SKColorSpace.CreateRgb(SKColorSpaceTransferFn.Linear, SKColorSpaceXyz.Xyz);
+
+	/// <summary>
+	/// Separates an RGBA texture into an RGB base color texture, and an RGB emissive texture using the A
+	/// component of the source texture to control the emissive amount.
+	/// </summary>
+	public static (SKBitmap, SKBitmap?) SeparateBaseColorAndEmissive(SKBitmap inputTexture)
 	{
-		SKImageInfo inputImageInfo;
+		// Remove alpha channel of base color texture
+		const string MainSamplingCode =
+			"result = half4(sample.rgb, 1.0);";
 
-		using (var inputStream = new MemoryStream(inputTexture))
-		using (var inputCodec = SKCodec.Create(inputStream))
-			inputImageInfo = inputCodec.Info;
+		// Premultiply emissive color using alpha channel of base color texture
+		const string SubSamplingCode =
+			"result = half4(sample.rgb * sample.a, 1.0);";
 
-		using var sourceBitmap = SKBitmap.Decode(inputTexture, inputImageInfo with {
-			AlphaType = SKAlphaType.Unpremul,
-		});
-
-		if (sourceBitmap.ColorType is not (SKColorType.Rgba8888 or SKColorType.Bgra8888))
-			return ( inputTexture, null );
-
-		using var baseColorTexture = new SKBitmap(sourceBitmap.Width, sourceBitmap.Height, SKColorType.Rgb888x, SKAlphaType.Opaque);
-		using var emissiveTexture = new SKBitmap(sourceBitmap.Width, sourceBitmap.Height, SKColorType.Rgb888x, SKAlphaType.Opaque);
-
-		// Multiply the alpha component of the source texture with the RGB components to premultiply the emissive map
-		{
-			using var sourcePixels = sourceBitmap.PeekPixels();
-			using var baseColorPixels = baseColorTexture.PeekPixels();
-			using var emissivePixels = emissiveTexture.PeekPixels();
-
-			var sourceData = sourcePixels.GetPixelSpan<Rgba>();
-			var baseColorData = baseColorPixels.GetPixelSpan<Rgba>();
-			var emissiveData = emissivePixels.GetPixelSpan<Rgba>();
-
-			Debug.Assert(sourceData.Length == baseColorData.Length);
-			Debug.Assert(sourceData.Length == emissiveData.Length);
-
-			for (var i = 0; i < sourceData.Length; i++)
-			{
-				var sourcePixel = sourceData[i];
-
-				if (sourceBitmap.ColorType == SKColorType.Bgra8888)
-				{
-					// Need to swap R and B
-					sourcePixel = sourcePixel with {
-						R = sourcePixel.B,
-						B = sourcePixel.R,
-					};
-				}
-
-				var sourceR = sourcePixel.R / 255f;
-				var sourceG = sourcePixel.G / 255f;
-				var sourceB = sourcePixel.B / 255f;
-				var sourceA = sourcePixel.A / 255f;
-
-				baseColorData[i] = sourcePixel with { A = 255 };
-
-				var emissiveR = sourceR * sourceA;
-				var emissiveG = sourceG * sourceA;
-				var emissiveB = sourceB * sourceA;
-
-				emissiveData[i] = new Rgba((byte) ( emissiveR * 255 ), (byte) ( emissiveG * 255 ), (byte) ( emissiveB * 255 ), 255);
-			}
-		}
-
-		using var baseColorStream = new MemoryStream();
-		using var emissiveStream = new MemoryStream();
-
-		baseColorTexture.Encode(baseColorStream, SKEncodedImageFormat.Png, 100);
-		emissiveTexture.Encode(emissiveStream, SKEncodedImageFormat.Png, 100);
-
-		return ( baseColorStream.ToArray(), emissiveStream.ToArray() );
+		return SeparateTexture(inputTexture, SrgbColorSpace, MainSamplingCode, SrgbColorSpace, SubSamplingCode);
 	}
 
-	private readonly record struct Rgba(byte R, byte G, byte B, byte A);
+	/// <summary>
+	/// Separates an RGBA texture into an RGB metallic/roughness texture and an RGB occlusion texture.
+	/// The G and B channels of the source texture will be preserved to the metallic/roughness texture,
+	/// except that the G channel will be clamped to be at least 0.05f. The A channel of the source
+	/// texture will be transferred to the R channel of the occlusion texture.
+	/// </summary>
+	public static (SKBitmap, SKBitmap?) SeparateMetallicRoughnessAndOcclusion(SKBitmap inputTexture)
+	{
+		// Clamp roughness to a minimum of 0.05, and keep metallic the same
+		const string MainSamplingCode =
+			"""
+			float clampedRoughness = max(sample.g, 0.05);
+
+			result = half4(0, clampedRoughness, sample.b, 1.0);
+			""";
+
+		// Move occlusion to its own texture as the R channel
+		const string SubSamplingCode =
+			"result = half4(sample.a, 0, 0, 1);";
+
+		return SeparateTexture(inputTexture, LinearColorSpace, MainSamplingCode, LinearColorSpace, SubSamplingCode);
+	}
+
+	public static SKBitmap ConvertNormalMap(SKBitmap inputTexture)
+	{
+		// Ensure B channel is fully saturated (Dread uses 2D normal maps, but most 3D software expects 3D maps)
+		const string SamplingCode =
+			"""
+			half2 normalXY = sample.rg * 2.0 - 1.0;
+			half normalZ = sqrt(saturate(1.0 - normalXY.x * normalXY.x + normalXY.y * normalXY.y));
+			half3 normal = half3(normalXY, normalZ);
+			result = half4((normal + 1.0) / 2.0, 1.0);
+			""";
+
+		return ConvertTexture(inputTexture, LinearColorSpace, SamplingCode);
+	}
+
+	private static (SKBitmap, SKBitmap?) SeparateTexture(
+		SKBitmap inputTexture,
+		SKColorSpace mainColorSpace,
+		string mainSamplingCode,
+		SKColorSpace subColorSpace,
+		string subSamplingCode)
+	{
+		if (inputTexture.ColorType is not (SKColorType.Rgba8888 or SKColorType.Bgra8888))
+			return ( inputTexture, null );
+
+		using var sourceImage = SKImage.FromBitmap(inputTexture);
+		using var inputImageShader = sourceImage.ToRawShader();
+		var mainTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque, mainColorSpace);
+		var subTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque, subColorSpace);
+
+		RenderUsingShader(inputImageShader, mainTexture, mainSamplingCode);
+		RenderUsingShader(inputImageShader, subTexture, subSamplingCode);
+
+		return ( mainTexture, subTexture );
+	}
+
+	private static SKBitmap ConvertTexture(SKBitmap inputTexture, SKColorSpace targetColorSpace, string samplingCode)
+	{
+		using var sourceImage = SKImage.FromBitmap(inputTexture);
+		using var inputImageShader = sourceImage.ToRawShader();
+		var outputTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque, targetColorSpace);
+
+		RenderUsingShader(inputImageShader, outputTexture, samplingCode);
+
+		return outputTexture;
+	}
+
+	private static void RenderUsingShader(SKShader inputImageShader, SKBitmap outputImage, string samplingCode)
+	{
+		var fullShaderSource =
+			$$"""
+			  uniform shader image;
+
+			  half4 main(float2 coord) {
+			    half4 sample = image.eval(coord);
+			    half4 result = half4(0, 0, 0, 1);
+			    {{samplingCode}}
+			    return result;
+			  }
+			  """;
+		using var effectBuilder = SKRuntimeEffect.BuildShader(fullShaderSource);
+
+		effectBuilder.Children.Add("image", inputImageShader);
+
+		using var shader = effectBuilder.Build();
+		using var canvas = new SKCanvas(outputImage);
+		using var paint = new SKPaint();
+
+		paint.Shader = shader;
+		canvas.DrawPaint(paint);
+		canvas.Flush();
+	}
 }

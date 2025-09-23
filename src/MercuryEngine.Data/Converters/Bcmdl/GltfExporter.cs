@@ -10,6 +10,7 @@ using SharpGLTF.Memory;
 using SharpGLTF.Scenes;
 using SharpGLTF.Schema2;
 using SharpGLTF.Transforms;
+using SkiaSharp;
 using AlphaMode = SharpGLTF.Materials.AlphaMode;
 using Mesh = MercuryEngine.Data.Types.Bcmdl.Mesh;
 
@@ -34,12 +35,16 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 			var meshBuilder = BuildMesh(mesh);
 			var nodeBuilder = new NodeBuilder(mesh.Id?.Name);
+			var localMatrix = Matrix4x4.Identity;
 
-			if (mesh.Submesh?.TransformMatrix is { } matrix)
-				nodeBuilder.LocalMatrix = matrix;
-			if (mesh.Submesh?.Translation is { } translation)
-				nodeBuilder.WithLocalTranslation(translation);
+			if (mesh.Submesh is { } submesh)
+				// TODO: Not sure whether or not (or how) to consume the submesh's transformation matrix
+				//  (submeshes store both a matrix AND a separate translation vector)
+				localMatrix.Translation = submesh.Translation;
 
+			// Scale translation portion of matrix from cm to m before applying it
+			localMatrix.Translation = ScalePosition(localMatrix.Translation);
+			nodeBuilder.LocalMatrix = localMatrix;
 			scene.AddRigidMesh(meshBuilder, nodeBuilder).WithName(mesh.Id?.Name);
 		}
 
@@ -81,34 +86,57 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		{
 			if (!TryGetKnownChannel(sampler.Name, out var channel))
 				continue;
-			if (MaterialResolver?.LoadTexture(sampler.TexturePath) is not { } textureData)
+
+			using var inputTexture = MaterialResolver?.LoadTexture(sampler.TexturePath);
+
+			if (inputTexture is null)
 				continue;
 
-			byte[]? emissiveData = null;
+			var textureName = Path.GetFileNameWithoutExtension(sampler.TexturePath);
+			SKBitmap mainTexture;
+			SKBitmap? subTexture = null;
 
 			if (channel == KnownChannel.BaseColor)
-				( textureData, emissiveData ) = TextureConverter.SeparateBaseColorAndEmissive(textureData);
-
-			var image = new MemoryImage(textureData);
-			var imageBuilder = ImageBuilder.From(image, sampler.Name);
-
-			var channelBuilder = materialBuilder.UseChannel(channel);
-
-			channelBuilder
-				.UseTexture()
-				.WithPrimaryImage(imageBuilder)
-				.WithSampler(GetWrapMode(sampler.TilingModeU), GetWrapMode(sampler.TilingModeV), GetMipMapFilter(sampler.MagnificationFilter), GetInterpolationFilter(sampler.MinificationFilter));
-
-			if (channel == KnownChannel.BaseColor && emissiveData != null)
-			{
-				var emissiveImage = new MemoryImage(emissiveData);
-				var emissiveImageBuilder = ImageBuilder.From(emissiveImage, sampler.Name);
-
-				materialBuilder.WithEmissive(emissiveImageBuilder, Vector3.One);
-			}
+				( mainTexture, subTexture ) = TextureConverter.SeparateBaseColorAndEmissive(inputTexture);
+			else if (channel == KnownChannel.MetallicRoughness)
+				( mainTexture, subTexture ) = TextureConverter.SeparateMetallicRoughnessAndOcclusion(inputTexture);
 			else if (channel == KnownChannel.Normal)
+				mainTexture = TextureConverter.ConvertNormalMap(inputTexture);
+			else
+				mainTexture = inputTexture;
+
+			using (mainTexture)
+			using (subTexture)
 			{
-				materialBuilder.WithChannelParam(KnownChannel.Normal, KnownProperty.NormalScale, 1f);
+				var mainImage = ToMemoryImage(mainTexture);
+				var mainImageBuilder = ImageBuilder.From(mainImage, textureName);
+				var subImage = default(MemoryImage);
+				var subImageBuilder = default(ImageBuilder);
+				var channelBuilder = materialBuilder.UseChannel(channel);
+
+				if (subTexture != null)
+				{
+					subImage = ToMemoryImage(subTexture);
+					subImageBuilder = ImageBuilder.From(subImage, $"{textureName}.2");
+				}
+
+				channelBuilder
+					.UseTexture()
+					.WithPrimaryImage(mainImageBuilder)
+					.WithSampler(GetWrapMode(sampler.TilingModeU), GetWrapMode(sampler.TilingModeV), GetMipMapFilter(sampler.MagnificationFilter), GetInterpolationFilter(sampler.MinificationFilter));
+
+				if (channel == KnownChannel.BaseColor && subImageBuilder != null)
+				{
+					materialBuilder.WithEmissive(subImageBuilder, Vector3.One);
+				}
+				else if (channel == KnownChannel.Normal)
+				{
+					materialBuilder.WithChannelParam(KnownChannel.Normal, KnownProperty.NormalScale, 1f);
+				}
+				else if (channel == KnownChannel.MetallicRoughness && subImageBuilder != null)
+				{
+					materialBuilder.WithOcclusion(subImageBuilder);
+				}
 			}
 		}
 	}
@@ -212,9 +240,9 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 		IVertexGeometry CreateGeometry()
 			=> ( vertexData.Position, vertexData.Normal, vertexData.Tangent ) switch {
-				({ } position, { } normal, { } tangent) => new VertexPositionNormalTangent(position, normal, tangent),
-				({ } position, { } normal, null)        => new VertexPositionNormal(position, normal),
-				({ } position, null, null)              => new VertexPosition(position),
+				({ } position, { } normal, { } tangent) => new VertexPositionNormalTangent(ScalePosition(position), normal, tangent),
+				({ } position, { } normal, null)        => new VertexPositionNormal(ScalePosition(position), normal),
+				({ } position, null, null)              => new VertexPosition(ScalePosition(position)),
 
 				_ => new VertexPosition(),
 			};
@@ -241,12 +269,25 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		( valid, channel ) = textureName switch {
 			TextureNameBaseColor  => ( true, KnownChannel.BaseColor ),
 			TextureNameNormals    => ( true, KnownChannel.Normal ),
-			TextureNameAttributes => ( true, KnownChannel.SpecularFactor ), // This is the closest I can think of
+			TextureNameAttributes => ( true, KnownChannel.MetallicRoughness ), // This is technically correct, but must be split as it also contains occlusion
 			_                     => ( false, default ),
 		};
 
 		return valid;
 	}
+
+	private static MemoryImage ToMemoryImage(SKBitmap bitmap)
+	{
+		using var outputStream = new MemoryStream();
+
+		bitmap.Encode(outputStream, SKEncodedImageFormat.Png, 100);
+
+		return new MemoryImage(outputStream.ToArray());
+	}
+
+	private static Vector3 ScalePosition(Vector3 rawPosition)
+		// Scale cm to meters
+		=> new(rawPosition.X / 100f, rawPosition.Y / 100f, rawPosition.Z / 100f);
 
 	private static TextureWrapMode GetWrapMode(TilingMode tilingMode)
 		=> tilingMode switch {
