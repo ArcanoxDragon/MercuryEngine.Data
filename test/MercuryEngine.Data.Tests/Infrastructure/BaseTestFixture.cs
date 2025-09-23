@@ -73,6 +73,9 @@ public abstract class BaseTestFixture
 			var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativeDirectory);
 			var outFileName = Path.GetFileName(relativeFileName);
 			var outFilePath = Path.Combine(outFileDir, outFileName);
+
+			Directory.CreateDirectory(outFileDir);
+
 			using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
 
 			fileStream.CopyTo(outFileStream);
