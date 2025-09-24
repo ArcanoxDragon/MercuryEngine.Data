@@ -41,8 +41,8 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 			var localMatrix = Matrix4x4.Identity;
 
 			if (bcmdlNode.Mesh is { } mesh)
-				// TODO: Not sure whether or not (or how) to consume the submesh's transformation matrix
-				//  (submeshes store both a matrix AND a separate translation vector)
+				// TODO: Not sure whether or not (or how) to consume the mesh's transformation matrix
+				//  (meshes store both a matrix AND a separate translation vector)
 				localMatrix.Translation = mesh.Translation;
 
 			// Scale translation portion of matrix from cm to m before applying it
@@ -194,20 +194,20 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 	private static void FillPrimitives(MeshNode node, IMeshBuilder<MaterialBuilder> meshBuilder, MaterialBuilder materialBuilder)
 	{
-		if (node.Mesh is not { Submeshes: { } submeshes, VertexBuffer: { } vertexBuffer, IndexBuffer: { } indexBuffer })
+		if (node.Mesh is not { Primitives: { } primitives, VertexBuffer: { } vertexBuffer, IndexBuffer: { } indexBuffer })
 			return;
 
 		var vertices = vertexBuffer.GetVertices();
 		var indices = indexBuffer.GetIndices();
 
-		foreach (var submesh in submeshes)
+		foreach (var primitive in primitives)
 		{
-			if (submesh is null || submesh.IndexCount % 3 != 0)
+			if (primitive is null || primitive.IndexCount % 3 != 0)
 				// TODO: Need way of communicating warnings to consumer
 				continue;
 
-			var startIndex = submesh.IndexOffset;
-			var endIndex = startIndex + submesh.IndexCount - 1;
+			var startIndex = primitive.IndexOffset;
+			var endIndex = startIndex + primitive.IndexCount - 1;
 
 			if (endIndex >= indices.Length)
 				// TODO: Need way of communicating warnings to consumer

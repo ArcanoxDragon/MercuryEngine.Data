@@ -20,20 +20,20 @@ public class Mesh : DataStructure<Mesh>
 	public VertexBuffer? VertexBuffer    { get; set; }
 	public Vector3       Translation     { get; set; } = new();
 
-	public IList<Submesh?> Submeshes
+	public IList<MeshPrimitive?> Primitives
 	{
 		get
 		{
-			SubmeshesField ??= CreateSubmeshesField();
-			return SubmeshesField.Entries;
+			PrimitivesField ??= CreatePrimitivesField();
+			return PrimitivesField.Entries;
 		}
 	}
 
 	#region Private Fields
 
-	private Matrix4x4Field            TransformMatrixField { get; } = new();
-	private uint                      SubmeshCount         { get; set; }
-	private LinkedListField<Submesh>? SubmeshesField       { get; set; }
+	private Matrix4x4Field                  TransformMatrixField { get; } = new();
+	private uint                            PrimitiveCount       { get; set; }
+	private LinkedListField<MeshPrimitive>? PrimitivesField      { get; set; }
 
 	#endregion
 
@@ -43,13 +43,13 @@ public class Mesh : DataStructure<Mesh>
 	{
 		base.BeforeWrite(context);
 
-		SubmeshCount = (uint) ( SubmeshesField?.Entries.Count ?? 0 );
+		PrimitiveCount = (uint) ( PrimitivesField?.Entries.Count ?? 0 );
 	}
 
 	#endregion
 
-	private static LinkedListField<Submesh> CreateSubmeshesField()
-		=> LinkedListField.Create<Submesh>(startByteAlignment: 8);
+	private static LinkedListField<MeshPrimitive> CreatePrimitivesField()
+		=> LinkedListField.Create<MeshPrimitive>(startByteAlignment: 8);
 
 	protected override void Describe(DataStructureBuilder<Mesh> builder)
 	{
@@ -58,9 +58,9 @@ public class Mesh : DataStructure<Mesh>
 		builder.Padding(4, 0xFF);
 		builder.Pointer(m => m.IndexBuffer);
 		builder.Pointer(m => m.VertexBuffer);
-		builder.Property(m => m.SubmeshCount);
+		builder.Property(m => m.PrimitiveCount);
 		builder.Padding(4, 0xFF);
-		builder.Pointer(m => m.SubmeshesField, _ => CreateSubmeshesField());
+		builder.Pointer(m => m.PrimitivesField, _ => CreatePrimitivesField());
 		builder.RawProperty(m => m.Translation);
 		builder.Padding(4, 0xFF);
 	}

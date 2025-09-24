@@ -3,7 +3,7 @@ using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 namespace MercuryEngine.Data.Types.Bcmdl;
 
-public class Submesh : DataStructure<Submesh>
+public class MeshPrimitive : DataStructure<MeshPrimitive>
 {
 	public uint SkinningType       { get; set; }
 	public uint IndexOffset        { get; set; }
@@ -30,7 +30,7 @@ public class Submesh : DataStructure<Submesh>
 	private JointMap CreateJointMapField()
 		=> new(this);
 
-	protected override void Describe(DataStructureBuilder<Submesh> builder)
+	protected override void Describe(DataStructureBuilder<MeshPrimitive> builder)
 	{
 		builder.Property(m => m.SkinningType);
 		builder.Property(m => m.IndexOffset);
