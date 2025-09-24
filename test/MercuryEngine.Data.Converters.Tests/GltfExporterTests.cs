@@ -40,6 +40,6 @@ public class GltfExporterTests : BaseTestFixture
 		var textureResolver = new TestMaterialResolver();
 		var exporter = new GltfExporter(textureResolver);
 
-		exporter.ExportGltf(bcmdl, outFilePath, sceneName: Path.GetFileNameWithoutExtension(fileName));
+		exporter.ExportGltf(bcmdl, outFilePath, sceneName: Path.GetFileNameWithoutExtension(fileName), binary: true);
 	}
 }

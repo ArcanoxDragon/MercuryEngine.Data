@@ -11,6 +11,30 @@ public class Transform : DataStructure<Transform>
 	public Vector3 Rotation { get; set; } = new();
 	public Vector3 Scale    { get; set; } = new();
 
+	public Transform Clone()
+	{
+		var clone = new Transform();
+
+		CopyTo(clone);
+
+		return clone;
+	}
+
+	public void CopyTo(Transform other)
+	{
+		other.Position.X = Position.X;
+		other.Position.Y = Position.Y;
+		other.Position.Z = Position.Z;
+
+		other.Rotation.X = Rotation.X;
+		other.Rotation.Y = Rotation.Y;
+		other.Rotation.Z = Rotation.Z;
+
+		other.Scale.X = Scale.X;
+		other.Scale.Y = Scale.Y;
+		other.Scale.Z = Scale.Z;
+	}
+
 	#region Private Data
 
 	private Matrix4x4Field TransformMatrixField { get; } = new();

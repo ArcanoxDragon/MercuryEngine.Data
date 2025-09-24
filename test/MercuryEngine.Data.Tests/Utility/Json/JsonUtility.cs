@@ -13,7 +13,7 @@ internal static class JsonUtility
 		WriteIndented = true,
 		IncludeFields = true,
 		MaxDepth = 256,
-		ReferenceHandler = ReferenceHandler.Preserve,
+		// ReferenceHandler = ReferenceHandler.Preserve,
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 		TypeInfoResolver = JsonTypeInfoResolver.Combine(
 			TestJsonSerializerContext.Default,

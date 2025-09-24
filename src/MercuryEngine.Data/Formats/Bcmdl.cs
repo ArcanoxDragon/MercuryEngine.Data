@@ -4,6 +4,7 @@ using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types;
 using MercuryEngine.Data.Types.Bcmdl;
+using MercuryEngine.Data.Types.Bcmdl.Wrappers;
 
 namespace MercuryEngine.Data.Formats;
 
@@ -106,6 +107,13 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 			return UnknownMaterialParamsField.Entries;
 		}
 	}
+
+	#endregion
+
+	#region Public Methods
+
+	public Armature GetArmature()
+		=> Armature.FromBcmdl(this);
 
 	#endregion
 

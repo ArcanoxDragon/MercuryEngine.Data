@@ -5,9 +5,9 @@ namespace MercuryEngine.Data.Types.Bcmdl;
 
 public class MeshPrimitive : DataStructure<MeshPrimitive>
 {
-	public uint SkinningType       { get; set; }
-	public uint IndexOffset        { get; set; }
-	public uint IndexCount         { get; set; }
+	public SkinningType SkinningType { get; set; }
+	public uint         IndexOffset  { get; set; }
+	public uint         IndexCount   { get; set; }
 
 	// TODO: Abstract this away
 	public uint JointMapEntryCount { get; set; }
