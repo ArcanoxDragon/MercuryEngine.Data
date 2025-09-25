@@ -62,7 +62,7 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 	/// If <see langword="true"/>, all vertices will be analyzed to ensure that they all contain the same attributes as
 	/// the first vertex. This may be slow, but ensures that the input data is consistent.
 	/// </param>
-	public void ReplaceVertices(VertexData[] vertices, bool validateLayout = false)
+	public void ReplaceVertices(ReadOnlySpan<VertexData> vertices, bool validateLayout = false)
 	{
 		if (vertices.Length == 0)
 		{
@@ -77,8 +77,8 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 		if (validateLayout)
 		{
 			// Ensure the remainder of the vertices all match the expected layout
-			for (var i = 1u; i < VertexCount; i++)
-				vertices[i].ValidateMatchesLayout(newVertexInfoDescriptions, i);
+			for (var i = 1; i < VertexCount; i++)
+				vertices[i].ValidateMatchesLayout(newVertexInfoDescriptions, (uint) i);
 		}
 
 		this.dataChanged = true;
@@ -102,8 +102,8 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 			infoSlot.StartOffset = bytesWritten;
 			bytesWritten += (uint) slotDataSize;
 
-			for (var i = 0u; i < VertexCount; i++)
-				vertices[i].WriteToVertexBuffer(in dataSpan, infoSlot, i);
+			for (var i = 0; i < VertexCount; i++)
+				vertices[i].WriteToVertexBuffer(in dataSpan, infoSlot, (uint) i);
 		}
 	}
 

@@ -15,7 +15,7 @@ public class IndexBuffer : DataStructure<IndexBuffer>
 	public uint   IndexCount       { get; private set; }
 	public uint   CompressedSize   { get; private set; }
 	public byte[] UncompressedData { get; private set; } = [];
-	public bool   IsCompressed     { get; private set; }
+	public bool   IsCompressed     { get; set; }
 
 	public ushort[] GetIndices()
 	{
@@ -28,12 +28,12 @@ public class IndexBuffer : DataStructure<IndexBuffer>
 		return indices;
 	}
 
-	public void ReplaceIndices(ushort[] indices)
+	public void ReplaceIndices(ReadOnlySpan<ushort> indices)
 	{
 		if (UncompressedData.Length != indices.Length * sizeof(ushort))
 			UncompressedData = new byte[indices.Length * sizeof(ushort)];
 
-		var sourceBytes = MemoryMarshal.Cast<ushort, byte>(indices.AsSpan());
+		var sourceBytes = MemoryMarshal.Cast<ushort, byte>(indices);
 		var destBytes = UncompressedData;
 
 		sourceBytes.CopyTo(destBytes);
