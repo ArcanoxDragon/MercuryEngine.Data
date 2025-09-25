@@ -171,13 +171,15 @@ public class HeapManager(ulong startingAddress = 0)
 			this.isWriting = true;
 			DataMapper.PushRange("Heap", writer);
 
+			IBinaryField? priorField = null;
+
 			while (this.writeQueue.TryDequeue(out var item))
 			{
 				var (address, field, endByteAlignment, description) = item;
 				var currentAddress = (ulong) writer.BaseStream.Position;
 
 				if (address < currentAddress)
-					throw new IOException($"Tried to write a field allocated to address 0x{address:X16}, but the prior field wrote past that address!");
+					throw new IOException($"Tried to write field \"{field}\" allocated to address 0x{address:X16}, but prior field \"{priorField}\" wrote past that address!");
 
 				if (currentAddress < address)
 				{
@@ -203,6 +205,8 @@ public class HeapManager(ulong startingAddress = 0)
 					for (var i = 0; i < paddingNeeded; i++)
 						writer.Write(PaddingByte);
 				}
+
+				priorField = field;
 			}
 		}
 		finally
