@@ -1,5 +1,4 @@
-﻿using System.IO.Compression;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
@@ -69,7 +68,7 @@ public class IndexBuffer : DataStructure<IndexBuffer>
 		if (this.dataChanged)
 		{
 			if (IsCompressed)
-				RawData = GzipHelper.CompressData(UncompressedData, CompressionLevel.SmallestSize);
+				RawData = GzipHelper.CompressData(UncompressedData);
 			else
 				RawData = UncompressedData;
 		}

@@ -96,10 +96,19 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 		if (this.dataChanged)
 		{
 			if (IsCompressed)
-				RawData = GzipHelper.CompressData(UncompressedData, CompressionLevel.SmallestSize);
+				RawData = GzipHelper.CompressData(UncompressedData);
 			else
 				RawData = UncompressedData;
+
+			CompressedSize = (uint) RawData.Length;
 		}
+	}
+
+	protected override void AfterWrite(WriteContext context)
+	{
+		base.AfterWrite(context);
+
+		this.dataChanged = false;
 	}
 
 	#endregion
