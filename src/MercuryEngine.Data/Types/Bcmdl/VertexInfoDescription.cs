@@ -5,6 +5,26 @@ namespace MercuryEngine.Data.Types.Bcmdl;
 
 public class VertexInfoDescription : DataStructure<VertexInfoDescription>
 {
+	public VertexInfoDescription() { }
+
+	public VertexInfoDescription(VertexInfoType type)
+	{
+		Type = type;
+		Count = type switch {
+			VertexInfoType.Position    => 3,
+			VertexInfoType.Normal      => 3,
+			VertexInfoType.Color       => 4,
+			VertexInfoType.UV1         => 2,
+			VertexInfoType.UV2         => 2,
+			VertexInfoType.UV3         => 2,
+			VertexInfoType.Tangent     => 4,
+			VertexInfoType.JointIndex  => 4,
+			VertexInfoType.JointWeight => 4,
+
+			_ => throw new ArgumentException($"Unrecognized {nameof(VertexInfoType)}: {type}", nameof(type)),
+		};
+	}
+
 	public VertexInfoType Type        { get; set; }
 	public uint           StartOffset { get; set; }
 	public ushort         DataType    { get; set; } = 3; // TODO: ?

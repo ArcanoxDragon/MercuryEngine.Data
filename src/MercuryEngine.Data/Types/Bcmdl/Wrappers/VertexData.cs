@@ -29,7 +29,7 @@ public class VertexData
 		JointWeight = null;
 	}
 
-	internal void ReadFromVertexBuffer(ReadOnlySpan<byte> vertexBufferData, VertexInfoDescription infoSlot, uint vertexIndex)
+	internal void ReadFromVertexBuffer(in ReadOnlySpan<byte> vertexBufferData, VertexInfoDescription infoSlot, uint vertexIndex)
 	{
 		Debug.Assert(infoSlot.DataType == 3); // All known models use "3", which is presumably "float"
 
@@ -106,6 +106,154 @@ public class VertexData
 			var w = values[3];
 
 			return new Vector4(x, y, z, w);
+		}
+	}
+
+	internal void WriteToVertexBuffer(in Span<byte> vertexBufferData, VertexInfoDescription infoSlot, uint vertexIndex)
+	{
+		Debug.Assert(infoSlot.DataType == 3); // All known models use "3", which is presumably "float"
+
+		var componentByteSize = infoSlot.Count * sizeof(float);
+		var componentStart = (int) ( infoSlot.StartOffset + ( vertexIndex * componentByteSize ) );
+		var componentEnd = componentStart + componentByteSize;
+		var componentData = vertexBufferData[componentStart..componentEnd];
+
+		switch (infoSlot.Type)
+		{
+			case VertexInfoType.Position:
+				WriteVector3(componentData, Position);
+				break;
+			case VertexInfoType.Normal:
+				WriteVector3(componentData, Normal);
+				break;
+			case VertexInfoType.Color:
+				WriteVector4(componentData, Color);
+				break;
+			case VertexInfoType.UV1:
+				WriteVector2(componentData, UV1);
+				break;
+			case VertexInfoType.UV2:
+				WriteVector2(componentData, UV2);
+				break;
+			case VertexInfoType.UV3:
+				WriteVector2(componentData, UV3);
+				break;
+			case VertexInfoType.Tangent:
+				WriteVector4(componentData, Tangent);
+				break;
+			case VertexInfoType.JointIndex:
+				WriteVector4(componentData, JointIndex);
+				break;
+			case VertexInfoType.JointWeight:
+				WriteVector4(componentData, JointWeight);
+				break;
+		}
+
+		static void WriteVector2(Span<byte> data, Vector2? value)
+		{
+			if (data.Length != 2 * sizeof(float))
+				throw new ArgumentException($"Wrong amount of data allocated for {nameof(Vector2)}!", nameof(data));
+
+			var values = MemoryMarshal.Cast<byte, float>(data);
+
+			values[0] = value?.X ?? 0;
+			values[1] = value?.Y ?? 0;
+		}
+
+		static void WriteVector3(Span<byte> data, Vector3? value)
+		{
+			if (data.Length != 3 * sizeof(float))
+				throw new ArgumentException($"Wrong amount of data allocated for {nameof(Vector3)}!", nameof(data));
+
+			var values = MemoryMarshal.Cast<byte, float>(data);
+
+			values[0] = value?.X ?? 0;
+			values[1] = value?.Y ?? 0;
+			values[2] = value?.Z ?? 0;
+		}
+
+		static void WriteVector4(Span<byte> data, Vector4? value)
+		{
+			if (data.Length != 4 * sizeof(float))
+				throw new ArgumentException($"Wrong amount of data allocated for {nameof(Vector4)}!", nameof(data));
+
+			var values = MemoryMarshal.Cast<byte, float>(data);
+
+			values[0] = value?.X ?? 0;
+			values[1] = value?.Y ?? 0;
+			values[2] = value?.Z ?? 0;
+			values[3] = value?.W ?? 0;
+		}
+	}
+
+	internal IEnumerable<VertexInfoDescription> GetVertexInfoSlots()
+	{
+		// This ordering tries to maintain the most consistent ordering seen in Dread's base models
+
+		if (Position.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.Position);
+		if (Normal.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.Normal);
+		if (Color.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.Color);
+		if (UV1.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.UV1);
+		if (UV2.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.UV2);
+		if (UV3.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.UV3);
+		if (Tangent.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.Tangent);
+		if (JointIndex.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.JointIndex);
+		if (JointWeight.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.JointWeight);
+	}
+
+	internal void ValidateMatchesLayout(List<VertexInfoDescription> expectedSlots, uint vertexIndex)
+	{
+		var expectedTypes = expectedSlots.Select(s => s.Type).ToHashSet();
+
+		var shouldHavePosition = expectedTypes.Contains(VertexInfoType.Position);
+		var shouldHaveNormal = expectedTypes.Contains(VertexInfoType.Normal);
+		var shouldHaveTangent = expectedTypes.Contains(VertexInfoType.Tangent);
+		var shouldHaveColor = expectedTypes.Contains(VertexInfoType.Color);
+		var shouldHaveUV1 = expectedTypes.Contains(VertexInfoType.UV1);
+		var shouldHaveUV2 = expectedTypes.Contains(VertexInfoType.UV2);
+		var shouldHaveUV3 = expectedTypes.Contains(VertexInfoType.UV3);
+		var shouldHaveJointIndex = expectedTypes.Contains(VertexInfoType.JointIndex);
+		var shouldHaveJointWeight = expectedTypes.Contains(VertexInfoType.JointWeight);
+
+		var doesHavePosition = Position.HasValue;
+		var doesHaveNormal = Normal.HasValue;
+		var doesHaveTangent = Tangent.HasValue;
+		var doesHaveColor = Color.HasValue;
+		var doesHaveUV1 = UV1.HasValue;
+		var doesHaveUV2 = UV2.HasValue;
+		var doesHaveUV3 = UV3.HasValue;
+		var doesHaveJointIndex = JointIndex.HasValue;
+		var doesHaveJointWeight = JointWeight.HasValue;
+
+		AssertType(shouldHavePosition, doesHavePosition);
+		AssertType(shouldHaveNormal, doesHaveNormal);
+		AssertType(shouldHaveTangent, doesHaveTangent);
+		AssertType(shouldHaveColor, doesHaveColor);
+		AssertType(shouldHaveUV1, doesHaveUV1);
+		AssertType(shouldHaveUV2, doesHaveUV2);
+		AssertType(shouldHaveUV3, doesHaveUV3);
+		AssertType(shouldHaveJointIndex, doesHaveJointIndex);
+		AssertType(shouldHaveJointWeight, doesHaveJointWeight);
+
+		return;
+
+		void AssertType(bool shouldHave, bool doesHave)
+		{
+			if (shouldHave != doesHave)
+			{
+				var expectedTypeNames = string.Join(", ", expectedTypes);
+
+				throw new IOException($"The data for vertex {vertexIndex} does not match the expected data layout of: {expectedTypeNames}");
+			}
 		}
 	}
 }

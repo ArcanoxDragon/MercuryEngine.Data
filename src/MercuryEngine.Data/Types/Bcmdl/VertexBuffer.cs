@@ -1,5 +1,4 @@
-﻿using System.IO.Compression;
-using MercuryEngine.Data.Core.Extensions;
+﻿using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
@@ -29,12 +28,13 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 	/// </summary>
 	public VertexData[] GetVertices()
 	{
-		var stride = VertexInfoSlots.Sum(slot => slot.Count * sizeof(float)); // All components are expected to be float-based vectors for Dread
+		var singleVertexDataSize = VertexInfoSlots.Sum(slot => slot.Count * sizeof(float)); // All components are expected to be float-based vectors for Dread
+		var totalExpectedSize = singleVertexDataSize * VertexCount;
 
-		if (UncompressedData.Length != ( stride * VertexCount ))
-			throw new InvalidOperationException($"Vertex buffer data must be {stride * VertexCount} bytes ({VertexCount} vertices * {stride} bytes per vertex), but it was {UncompressedData.Length}");
+		if (UncompressedData.Length != totalExpectedSize)
+			throw new InvalidOperationException($"Vertex buffer data must be {totalExpectedSize} bytes ({VertexCount} vertices * {singleVertexDataSize} bytes per vertex), but it was {UncompressedData.Length}");
 
-		var dataSpan = UncompressedData.AsSpan();
+		var dataSpan = (ReadOnlySpan<byte>) UncompressedData;
 		var vertices = new VertexData[VertexCount];
 		var firstSlot = true;
 
@@ -45,13 +45,66 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 				if (firstSlot)
 					vertices[i] = new VertexData();
 
-				vertices[i].ReadFromVertexBuffer(dataSpan, infoSlot, i);
+				vertices[i].ReadFromVertexBuffer(in dataSpan, infoSlot, i);
 			}
 
 			firstSlot = false;
 		}
 
 		return vertices;
+	}
+
+	/// <summary>
+	/// Replaces the raw vertex buffer data with data from the provided <paramref name="vertices"/> array.
+	/// </summary>
+	/// <param name="vertices">An array of <see cref="VertexData"/> objects that will be copied into the buffer.</param>
+	/// <param name="validateLayout">
+	/// If <see langword="true"/>, all vertices will be analyzed to ensure that they all contain the same attributes as
+	/// the first vertex. This may be slow, but ensures that the input data is consistent.
+	/// </param>
+	public void ReplaceVertices(VertexData[] vertices, bool validateLayout = false)
+	{
+		if (vertices.Length == 0)
+		{
+			UncompressedData = [];
+			UncompressedSize = 0;
+			this.dataChanged = true;
+			return;
+		}
+
+		var newVertexInfoDescriptions = vertices[0].GetVertexInfoSlots().ToList();
+
+		if (validateLayout)
+		{
+			// Ensure the remainder of the vertices all match the expected layout
+			for (var i = 1u; i < VertexCount; i++)
+				vertices[i].ValidateMatchesLayout(newVertexInfoDescriptions, i);
+		}
+
+		this.dataChanged = true;
+		VertexCount = (uint) vertices.Length;
+		VertexInfoSlots.Clear();
+		VertexInfoSlots.AddRange(newVertexInfoDescriptions);
+
+		var singleVertexDataSize = VertexInfoSlots.Sum(slot => slot.Count * sizeof(float)); // All components are expected to be float-based vectors for Dread
+		var totalNeededSize = singleVertexDataSize * VertexCount;
+
+		UncompressedData = new byte[totalNeededSize];
+		UncompressedSize = (uint) totalNeededSize;
+
+		var dataSpan = UncompressedData.AsSpan();
+		var bytesWritten = 0u;
+
+		foreach (var infoSlot in VertexInfoSlots)
+		{
+			var slotDataSize = infoSlot.Count * sizeof(float) * VertexCount;
+
+			infoSlot.StartOffset = bytesWritten;
+			bytesWritten += (uint) slotDataSize;
+
+			for (var i = 0u; i < VertexCount; i++)
+				vertices[i].WriteToVertexBuffer(in dataSpan, infoSlot, i);
+		}
 	}
 
 	#region Private Data

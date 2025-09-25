@@ -28,6 +28,19 @@ public class IndexBuffer : DataStructure<IndexBuffer>
 		return indices;
 	}
 
+	public void ReplaceIndices(ushort[] indices)
+	{
+		if (UncompressedData.Length != indices.Length * sizeof(ushort))
+			UncompressedData = new byte[indices.Length * sizeof(ushort)];
+
+		var sourceBytes = MemoryMarshal.Cast<ushort, byte>(indices.AsSpan());
+		var destBytes = UncompressedData;
+
+		sourceBytes.CopyTo(destBytes);
+		IndexCount = (uint) indices.Length;
+		this.dataChanged = true;
+	}
+
 	#region Private Data
 
 	private RawBytes? BufferData { get; set; }
@@ -71,7 +84,16 @@ public class IndexBuffer : DataStructure<IndexBuffer>
 				RawData = GzipHelper.CompressData(UncompressedData);
 			else
 				RawData = UncompressedData;
+
+			CompressedSize = (uint) RawData.Length;
 		}
+	}
+
+	protected override void AfterWrite(WriteContext context)
+	{
+		base.AfterWrite(context);
+
+		this.dataChanged = false;
 	}
 
 	#endregion
