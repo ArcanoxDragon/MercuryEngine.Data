@@ -7,8 +7,11 @@ using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Types.DreadTypes;
 
-public class Matrix4x4Field() : BaseBinaryField<Matrix4x4>(Matrix4x4.Identity)
+public class Matrix4x4Field(Matrix4x4 initialValue) : BaseBinaryField<Matrix4x4>(initialValue)
 {
+	public Matrix4x4Field()
+		: this(Matrix4x4.Identity) { }
+
 	public override uint Size => (uint) Unsafe.SizeOf<Matrix4x4>();
 
 	public override void Read(BinaryReader reader, ReadContext context)

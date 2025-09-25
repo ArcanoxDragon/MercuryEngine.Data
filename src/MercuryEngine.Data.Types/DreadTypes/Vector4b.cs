@@ -6,7 +6,7 @@ using SysVector4 = System.Numerics.Vector4;
 namespace MercuryEngine.Data.Types.DreadTypes;
 
 [DebuggerDisplay("<{X}, {Y}, {Z}, {W}>")]
-public class Vector4b : DataStructure<Vector4b>
+public class Vector4b : DataStructure<Vector4b>, IEquatable<Vector4b>
 {
 	public Vector4b() { }
 
@@ -46,4 +46,42 @@ public class Vector4b : DataStructure<Vector4b>
 			.Property(m => m.Y)
 			.Property(m => m.Z)
 			.Property(m => m.W);
+
+	#region Equality
+
+	public bool Equals(Vector4b? other)
+	{
+		if (other is null)
+			return false;
+		if (ReferenceEquals(this, other))
+			return true;
+
+		return X == other.X &&
+			   Y == other.Y &&
+			   Z == other.Z &&
+			   W == other.W;
+	}
+
+	public override bool Equals(object? obj)
+	{
+		if (obj is null)
+			return false;
+		if (ReferenceEquals(this, obj))
+			return true;
+		if (obj.GetType() != GetType())
+			return false;
+
+		return Equals((Vector4b) obj);
+	}
+
+	public override int GetHashCode()
+		=> HashCode.Combine(X, Y, Z, W);
+
+	public static bool operator ==(Vector4b? left, Vector4b? right)
+		=> Equals(left, right);
+
+	public static bool operator !=(Vector4b? left, Vector4b? right)
+		=> !Equals(left, right);
+
+	#endregion
 }
