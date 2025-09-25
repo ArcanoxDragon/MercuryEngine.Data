@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-
-namespace MercuryEngine.Data.Types.Bcmdl.Wrappers;
+﻿namespace MercuryEngine.Data.Types.Bcmdl.Wrappers;
 
 public class ArmatureJoint(string name)
 {
@@ -10,16 +8,6 @@ public class ArmatureJoint(string name)
 
 	public Transform      Transform { get; set; } = new();
 	public ArmatureJoint? Parent    { get; private set; }
-
-	#region Unknown Data (in BCMDL)
-
-	/// <summary>
-	/// This represents a flag present on joints in a BCMDL file, the purpose of which is not known.
-	/// </summary>
-	[EditorBrowsable(EditorBrowsableState.Advanced)]
-	public bool UnknownFlag { get; set; }
-
-	#endregion
 
 	public bool                         IsRoot   => Parent is null;
 	public IReadOnlyList<ArmatureJoint> Children => this.children;

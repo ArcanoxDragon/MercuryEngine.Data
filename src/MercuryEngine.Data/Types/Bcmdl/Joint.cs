@@ -32,7 +32,7 @@ public class Joint : DataStructure<Joint>
 		}
 	}
 
-	public bool UnkFlag { get; set; }
+	public bool IsUsedForSkinning { get; set; }
 
 	#region Private Data
 
@@ -46,6 +46,6 @@ public class Joint : DataStructure<Joint>
 		builder.Pointer(m => m.Transform);
 		builder.Pointer(m => m.NameField, unique: true);
 		builder.Pointer(m => m.ParentNameField, unique: true);
-		builder.Property(m => m.UnkFlag);
+		builder.Property(m => m.IsUsedForSkinning);
 	}
 }

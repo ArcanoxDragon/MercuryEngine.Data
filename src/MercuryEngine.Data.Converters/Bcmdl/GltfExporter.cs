@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using System.Text.Json.Nodes;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
@@ -97,16 +96,12 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 		NodeBuilder VisitJoint(ArmatureJoint joint, NodeBuilder? parent = null)
 		{
-			var builder = new NodeBuilder(joint.Name) {
-				Extras = new JsonObject {
-					["UnknownFlag"] = joint.UnknownFlag,
-				},
-			};
+			var builder = new NodeBuilder(joint.Name);
 
 			// Add the node to its parent (if applicable)
 			parent?.AddNode(builder);
 
-			// Apply the joint's transform (as world matrix)
+			// Apply the joint's transform
 			builder.LocalMatrix = GetArmatureJointMatrix(joint);
 
 			// Recursively visit the joint's children
