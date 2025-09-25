@@ -1,10 +1,11 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Definitions.Utility;
 
-[assembly: LevelOfParallelism(16)]
+[assembly: LevelOfParallelism(8)]
 
 namespace MercuryEngine.Data.Tests;
 
@@ -15,6 +16,12 @@ public class Global
 		WriteIndented = true,
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 	};
+
+	[SuppressMessage(
+		"ReSharper",
+		"ConvertToConstant.Global",
+		Justification = "Used as a toggleable flag that shouldn't result in \"heuristically unreachable code\" warnings")]
+	public static readonly bool WriteOutputFiles = true;
 
 	[OneTimeSetUp]
 	public void InitKnownStrings()
@@ -27,7 +34,7 @@ public class Global
 	[OneTimeTearDown]
 	public void WriteNewStrings()
 	{
-		if (KnownStrings.NewStrings.Count == 0)
+		if (!WriteOutputFiles || KnownStrings.NewStrings.Count == 0)
 			return;
 
 		var stringToHashMap = KnownStrings.NewStrings.ToImmutableSortedDictionary(s => s, s => s.GetCrc64(), StringComparer.Ordinal);

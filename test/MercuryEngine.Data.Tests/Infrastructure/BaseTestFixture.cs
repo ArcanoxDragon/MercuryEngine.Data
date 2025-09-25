@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Formats;
@@ -61,12 +62,19 @@ public abstract class BaseTestFixture
 		}
 	}
 
-	protected static Stream OpenPackageFile(string packageFilePath, PackageFile file, string dataFormatName, bool writeOriginal = true)
+	protected static Stream OpenPackageFile(string packageFilePath, PackageFile file, string dataFormatName, bool writeOriginal = true, bool overwriteOriginal = false)
 	{
-		var pkgStream = File.Open(packageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+		var options = new FileStreamOptions {
+			Mode = FileMode.Open,
+			Access = FileAccess.Read,
+			Share = FileShare.Read,
+			Options = FileOptions.RandomAccess,
+			BufferSize = (int) BitOperations.RoundUpToPowerOf2((uint) file.Length),
+		};
+		var pkgStream = File.Open(packageFilePath, options);
 		var fileStream = Pkg.OpenPackageFile(pkgStream, file);
 
-		if (writeOriginal)
+		if (Global.WriteOutputFiles && writeOriginal)
 		{
 			var relativeFileName = file.Name.ToString();
 			var relativeDirectory = Path.GetDirectoryName(relativeFileName)!;
@@ -74,13 +82,16 @@ public abstract class BaseTestFixture
 			var outFileName = Path.GetFileName(relativeFileName);
 			var outFilePath = Path.Combine(outFileDir, outFileName);
 
-			Directory.CreateDirectory(outFileDir);
+			if (overwriteOriginal || !File.Exists(outFilePath))
+			{
+				Directory.CreateDirectory(outFileDir);
 
-			using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+				using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
 
-			fileStream.CopyTo(outFileStream);
-			outFileStream.Flush();
-			fileStream.Seek(0, SeekOrigin.Begin);
+				fileStream.CopyTo(outFileStream);
+				outFileStream.Flush();
+				fileStream.Seek(0, SeekOrigin.Begin);
+			}
 		}
 
 		return fileStream;
@@ -128,21 +139,24 @@ public abstract class BaseTestFixture
 		dataStructure.Write(tempStream);
 		tempStream.Seek(0, SeekOrigin.Begin);
 
-		// Write a copy of the data file back out
-		var relativePath = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
-		var relativeDirectory = Path.GetDirectoryName(relativePath)!;
-		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativeDirectory);
-		var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".out" + Path.GetExtension(sourceFilePath);
-		var outFilePath = Path.Combine(outFileDir, outFileName);
+		if (Global.WriteOutputFiles)
+		{
+			// Write a copy of the data file back out
+			var relativePath = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
+			var relativeDirectory = Path.GetDirectoryName(relativePath)!;
+			var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativeDirectory);
+			var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".out" + Path.GetExtension(sourceFilePath);
+			var outFilePath = Path.Combine(outFileDir, outFileName);
 
-		if (!quiet)
-			TestContext.Progress.WriteLine($"Output {dataFormatName} file: {outFilePath}");
+			if (!quiet)
+				TestContext.Progress.WriteLine($"Output {dataFormatName} file: {outFilePath}");
 
-		using (var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write))
-			tempStream.CopyTo(outFileStream);
+			using (var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write))
+				tempStream.CopyTo(outFileStream);
 
-		// Dump the write map
-		DataUtilities.DumpDataMapper(dataMapper, outFilePath);
+			// Dump the write map
+			DataUtilities.DumpDataMapper(dataMapper, outFilePath);
+		}
 
 		// Compare the input and output data
 		var newBuffer = tempStream.ToArray();
@@ -195,21 +209,24 @@ public abstract class BaseTestFixture
 		await dataStructure.WriteAsync(tempStream);
 		tempStream.Seek(0, SeekOrigin.Begin);
 
-		// Write a copy of the data file back out
-		var relativePath = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
-		var relativeDirectory = Path.GetDirectoryName(relativePath)!;
-		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativeDirectory);
-		var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".out" + Path.GetExtension(sourceFilePath);
-		var outFilePath = Path.Combine(outFileDir, outFileName);
+		if (Global.WriteOutputFiles)
+		{
+			// Write a copy of the data file back out
+			var relativePath = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
+			var relativeDirectory = Path.GetDirectoryName(relativePath)!;
+			var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativeDirectory);
+			var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".out" + Path.GetExtension(sourceFilePath);
+			var outFilePath = Path.Combine(outFileDir, outFileName);
 
-		if (!quiet)
-			await TestContext.Progress.WriteLineAsync($"Output {dataFormatName} file: {outFilePath}");
+			if (!quiet)
+				await TestContext.Progress.WriteLineAsync($"Output {dataFormatName} file: {outFilePath}");
 
-		await using (var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write))
-			await tempStream.CopyToAsync(outFileStream);
+			await using (var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write))
+				await tempStream.CopyToAsync(outFileStream);
 
-		// Dump the write map
-		DataUtilities.DumpDataMapper(dataMapper, outFilePath);
+			// Dump the write map
+			DataUtilities.DumpDataMapper(dataMapper, outFilePath);
+		}
 
 		// Compare the input and output data
 		var newBuffer = tempStream.ToArray();
@@ -224,8 +241,8 @@ public abstract class BaseTestFixture
 	{
 		Assert.That(newBuffer, Has.Length.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
 
-		var originalSpan = originalBuffer.AsSpan();
-		var newSpan = newBuffer.AsSpan();
+		Span<byte> originalSpan = originalBuffer.AsSpan();
+		Span<byte> newSpan = newBuffer.AsSpan();
 		var slowCompareStart = 0;
 
 		if (originalSpan.Length >= sizeof(ulong))
@@ -233,11 +250,11 @@ public abstract class BaseTestFixture
 			// Fast comparison by going 8 bytes at a time
 			var numChunks = originalSpan.Length / sizeof(ulong);
 			var chunkAlignedSize = numChunks * sizeof(ulong);
-			var originalSpanAligned = originalSpan[..chunkAlignedSize];
-			var newSpanAligned = newSpan[..chunkAlignedSize];
+			Span<byte> originalSpanAligned = originalSpan[..chunkAlignedSize];
+			Span<byte> newSpanAligned = newSpan[..chunkAlignedSize];
 
-			var originalSpanU64 = MemoryMarshal.Cast<byte, ulong>(originalSpanAligned);
-			var newSpanU64 = MemoryMarshal.Cast<byte, ulong>(newSpanAligned);
+			Span<ulong> originalSpanU64 = MemoryMarshal.Cast<byte, ulong>(originalSpanAligned);
+			Span<ulong> newSpanU64 = MemoryMarshal.Cast<byte, ulong>(newSpanAligned);
 
 			// Set "slowCompareStart" to the end of the U64-aligned chunks, in case
 			// there are extra bytes at the end (i.e. length not an even multiple of 8).

@@ -11,21 +11,27 @@ internal static class DataUtilities
 	public static void DumpDataStructure<T>(T dataStructure, string sourceFilePath, string? relativeTo = null, bool print = true)
 	where T : BinaryFormat<T>, new()
 	{
+		if (!Global.WriteOutputFiles && !print)
+			return;
+
 		var formatName = dataStructure.DisplayName;
 		var jsonDump = JsonSerializer.Serialize(dataStructure, JsonUtility.JsonOptions);
 
-		var relativePath = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
-		var relativeDirectory = Path.GetDirectoryName(relativePath)!;
-		var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataStructure.DisplayName, relativeDirectory);
-		var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".json";
-		var outFilePath = Path.Combine(outFileDir, outFileName);
+		if (Global.WriteOutputFiles)
+		{
+			var relativePath = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
+			var relativeDirectory = Path.GetDirectoryName(relativePath)!;
+			var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataStructure.DisplayName, relativeDirectory);
+			var outFileName = Path.GetFileNameWithoutExtension(sourceFilePath) + ".json";
+			var outFilePath = Path.Combine(outFileDir, outFileName);
 
-		Directory.CreateDirectory(outFileDir);
+			Directory.CreateDirectory(outFileDir);
 
-		using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
-		using var writer = new StreamWriter(outFileStream, Encoding.UTF8);
+			using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
+			using var writer = new StreamWriter(outFileStream, Encoding.UTF8);
 
-		writer.Write(jsonDump);
+			writer.Write(jsonDump);
+		}
 
 		if (print)
 		{
@@ -36,6 +42,9 @@ internal static class DataUtilities
 
 	public static void DumpDataMapper(DataMapper dataMapper, string dataFilePath)
 	{
+		if (!Global.WriteOutputFiles)
+			return;
+
 		var outFileDir = Path.GetDirectoryName(dataFilePath)!;
 		var outFileName = Path.GetFileNameWithoutExtension(dataFilePath) + ".map.json";
 		var outFilePath = Path.Combine(outFileDir, outFileName);
