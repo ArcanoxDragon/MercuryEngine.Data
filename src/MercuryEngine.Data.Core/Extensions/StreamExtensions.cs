@@ -55,4 +55,11 @@ public static class StreamExtensions
 
 			_ => stream.Position,
 		};
+
+	/// <summary>
+	/// Returns the number of bytes by which this <see cref="Stream"/> must be advanced in order
+	/// to align its <see cref="Stream.Position"/> with an even block of <paramref name="byteAlignment"/> bytes.
+	/// </summary>
+	public static uint GetNeededPaddingForAlignment(this Stream stream, uint byteAlignment)
+		=> MathHelper.GetNeededPaddingForAlignment((ulong) stream.Position, byteAlignment);
 }

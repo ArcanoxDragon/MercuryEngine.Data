@@ -5,6 +5,17 @@ namespace MercuryEngine.Data.Core.Utility;
 
 public static class MathHelper
 {
+	/// <summary>
+	/// Returns the number of bytes by which a position in a data buffer must be advanced in order
+	/// to align the position with an even block of <paramref name="byteAlignment"/> bytes.
+	/// </summary>
+	public static uint GetNeededPaddingForAlignment(ulong currentPosition, uint byteAlignment)
+	{
+		var misalignment = currentPosition % byteAlignment;
+
+		return misalignment == 0 ? 0 : (uint) ( byteAlignment - misalignment );
+	}
+
 	/// <inheritdoc cref="CreateXYZRotationMatrix(float,float,float)"/>
 	public static Matrix4x4 CreateXYZRotationMatrix(Vector3 vector)
 		=> CreateXYZRotationMatrix(vector.X, vector.Y, vector.Z);

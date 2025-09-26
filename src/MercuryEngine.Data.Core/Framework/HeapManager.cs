@@ -4,6 +4,7 @@ using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
+using MercuryEngine.Data.Core.Utility;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
 namespace MercuryEngine.Data.Core.Framework;
@@ -75,7 +76,7 @@ public class HeapManager(ulong startingAddress = 0)
 
 		if (startByteAlignment > 0)
 		{
-			var prePaddingNeeded = GetNeededPadding((long) address, startByteAlignment);
+			var prePaddingNeeded = MathHelper.GetNeededPaddingForAlignment(address, startByteAlignment);
 
 			address += prePaddingNeeded;
 			sizeWithPadding += prePaddingNeeded;
@@ -83,7 +84,7 @@ public class HeapManager(ulong startingAddress = 0)
 
 		if (endByteAlignment > 0)
 		{
-			var postPaddingNeeded = GetNeededPadding((long) ( address + field.Size ), endByteAlignment);
+			var postPaddingNeeded = MathHelper.GetNeededPaddingForAlignment(address + field.Size, endByteAlignment);
 
 			sizeWithPadding += postPaddingNeeded;
 		}
@@ -116,7 +117,7 @@ public class HeapManager(ulong startingAddress = 0)
 
 		if (endByteAlignment > 0)
 		{
-			var paddingNeeded = GetNeededPadding((long) endAddress, endByteAlignment);
+			var paddingNeeded = MathHelper.GetNeededPaddingForAlignment(endAddress, endByteAlignment);
 
 			allocationSize += paddingNeeded;
 			endAddress += paddingNeeded;
@@ -200,7 +201,7 @@ public class HeapManager(ulong startingAddress = 0)
 
 				if (endByteAlignment > 0)
 				{
-					var paddingNeeded = GetNeededPadding(writer.BaseStream.Position, endByteAlignment);
+					var paddingNeeded = writer.BaseStream.GetNeededPaddingForAlignment(endByteAlignment);
 
 					for (var i = 0; i < paddingNeeded; i++)
 						writer.Write(PaddingByte);
@@ -256,7 +257,7 @@ public class HeapManager(ulong startingAddress = 0)
 
 				if (endByteAlignment > 0)
 				{
-					var paddingNeeded = GetNeededPadding(baseStream.Position, endByteAlignment);
+					var paddingNeeded = baseStream.GetNeededPaddingForAlignment(endByteAlignment);
 
 					for (var i = 0; i < paddingNeeded; i++)
 						await writer.WriteAsync(PaddingByte, cancellationToken).ConfigureAwait(false);
@@ -287,13 +288,6 @@ public class HeapManager(ulong startingAddress = 0)
 	{
 		if (this.isWriting)
 			throw new InvalidOperationException($"{callerName} cannot be called while writing allocated data");
-	}
-
-	private static uint GetNeededPadding(long currentPosition, uint byteAlignment)
-	{
-		var misalignment = currentPosition % byteAlignment;
-
-		return misalignment == 0 ? 0 : (uint) ( byteAlignment - misalignment );
 	}
 
 	private readonly record struct Allocation(ulong Address, IBinaryField Field, uint EndByteAlignment, string? Description);
