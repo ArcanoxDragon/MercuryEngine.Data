@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Numerics;
+using System.Text.Json.Serialization;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
@@ -86,7 +87,7 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 	}
 
 	[JsonPropertyOrder(8)]
-	public JointsInfo? JointsInfo { get; set; }
+	public JointsInfo? JointsInfo { get; set; } = new();
 
 	[JsonPropertyOrder(9)]
 	public IList<SpecializationValue?> SpecializationValues
@@ -115,19 +116,49 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 	public Armature GetArmature()
 		=> Armature.FromBcmdl(this);
 
+	public NodeId GetOrCreateNodeId(string name)
+	{
+		var nodeId = NodeIds.FirstOrDefault(id => id?.Name == name);
+
+		if (nodeId is null)
+		{
+			nodeId = new NodeId(name);
+			NodeIds.Add(nodeId);
+		}
+
+		return nodeId;
+	}
+
+	public Transform GetOrCreateTransform(Vector3 position, Vector3 rotation, Vector3 scale)
+	{
+		var transform = Transforms.FirstOrDefault(t => t?.Position == position && t.Rotation == rotation && t.Scale == scale);
+
+		if (transform is null)
+		{
+			transform = new Transform {
+				Position = position,
+				Rotation = rotation,
+				Scale = scale,
+			};
+			Transforms.Add(transform);
+		}
+
+		return transform;
+	}
+
 	#endregion
 
 	#region Private Data
 
-	private LinkedListField<VertexBuffer>?          VertexBuffersField         { get; set; }
-	private LinkedListField<IndexBuffer>?           IndexBuffersField          { get; set; }
-	private LinkedListField<Mesh>?                  MeshesField                { get; set; }
-	private LinkedListField<Material>?              MaterialsField             { get; set; }
-	private LinkedListField<MeshNode>?              NodesField                 { get; set; }
-	private LinkedListField<NodeId>?                NodeIdsField               { get; set; }
-	private LinkedListField<Transform>?             TransformsField            { get; set; }
-	private LinkedListField<SpecializationValue>?   SpecializationValuesField  { get; set; }
-	private LinkedListField<UnknownMaterialParams>? UnknownMaterialParamsField { get; set; }
+	private LinkedListField<VertexBuffer>?          VertexBuffersField         { get; set; } = LinkedListField.Create<VertexBuffer>();
+	private LinkedListField<IndexBuffer>?           IndexBuffersField          { get; set; } = LinkedListField.Create<IndexBuffer>();
+	private LinkedListField<Mesh>?                  MeshesField                { get; set; } = LinkedListField.Create<Mesh>();
+	private LinkedListField<Material>?              MaterialsField             { get; set; } = LinkedListField.Create<Material>();
+	private LinkedListField<MeshNode>?              NodesField                 { get; set; } = LinkedListField.Create<MeshNode>();
+	private LinkedListField<NodeId>?                NodeIdsField               { get; set; } = LinkedListField.Create<NodeId>();
+	private LinkedListField<Transform>?             TransformsField            { get; set; } = LinkedListField.Create<Transform>();
+	private LinkedListField<SpecializationValue>?   SpecializationValuesField  { get; set; } = LinkedListField.Create<SpecializationValue>();
+	private LinkedListField<UnknownMaterialParams>? UnknownMaterialParamsField { get; set; } = LinkedListField.Create<UnknownMaterialParams>();
 
 	#endregion
 
@@ -136,6 +167,8 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 	protected override void BeforeWrite(WriteContext context)
 	{
 		base.BeforeWrite(context);
+
+		// TODO: Validate that all pointers referenced by substructures are present in the root pointer lists
 
 		context.HeapManager.PaddingByte = 0xFF;
 	}

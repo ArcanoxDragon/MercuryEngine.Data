@@ -8,7 +8,7 @@ public class MeshNode : DataStructure<MeshNode>
 	public Mesh?     Mesh     { get; set; }
 	public Material? Material { get; set; }
 	public NodeId?   Id       { get; set; }
-	public bool      Visible  { get; set; }
+	public bool      Visible  { get; set; } = true;
 
 	protected override void Describe(DataStructureBuilder<MeshNode> builder)
 	{

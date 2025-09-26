@@ -6,6 +6,14 @@ namespace MercuryEngine.Data.Types.Bcmdl;
 
 public class NodeId : DataStructure<NodeId>
 {
+	public NodeId() { }
+
+	public NodeId(string name, bool visible = true)
+	{
+		Name = name;
+		Visible = visible;
+	}
+
 	public string? Name
 	{
 		get => NameField?.Value;
@@ -18,7 +26,7 @@ public class NodeId : DataStructure<NodeId>
 		}
 	}
 
-	public bool Visible { get; set; }
+	public bool Visible { get; set; } = true;
 
 	#region Private Data
 

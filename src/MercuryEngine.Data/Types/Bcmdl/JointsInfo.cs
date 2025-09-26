@@ -6,6 +6,13 @@ namespace MercuryEngine.Data.Types.Bcmdl;
 
 public class JointsInfo : DataStructure<JointsInfo>
 {
+	public JointsInfo()
+	{
+		JointFlagsField = CreateJointFlagsField();
+	}
+
+	public uint JointCount => (uint) ( JointsField?.Entries.Count ?? 0 );
+
 	public IList<Joint?> Joints
 	{
 		get
@@ -26,9 +33,9 @@ public class JointsInfo : DataStructure<JointsInfo>
 
 	#region Private Data
 
-	internal uint                         JointCount      { get; set; }
-	private  LinkedListField<Joint>?      JointsField     { get; set; }
-	private  LinkedListField<JointFlags>? JointFlagsField { get; set; }
+	private uint                         StoredJointCount { get; set; }
+	private LinkedListField<Joint>?      JointsField      { get; set; } = CreateJointsField();
+	private LinkedListField<JointFlags>? JointFlagsField  { get; set; }
 
 	#endregion
 
@@ -38,7 +45,7 @@ public class JointsInfo : DataStructure<JointsInfo>
 	{
 		base.BeforeWrite(context);
 
-		JointCount = (uint) ( JointsField?.Entries.Count ?? 0 );
+		StoredJointCount = JointCount;
 	}
 
 	#endregion
@@ -51,7 +58,7 @@ public class JointsInfo : DataStructure<JointsInfo>
 
 	protected override void Describe(DataStructureBuilder<JointsInfo> builder)
 	{
-		builder.Property(m => m.JointCount);
+		builder.Property(m => m.StoredJointCount);
 		builder.Padding(4, 0xFF);
 		builder.Pointer(m => m.JointsField, _ => CreateJointsField());
 		builder.Pointer(m => m.JointFlagsField, owner => owner.CreateJointFlagsField(), endByteAlignment: 8);
