@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using MercuryEngine.Data.Formats;
@@ -64,15 +63,7 @@ public abstract class BaseTestFixture
 
 	protected static Stream OpenPackageFile(string packageFilePath, PackageFile file, string dataFormatName, bool writeOriginal = true, bool overwriteOriginal = false)
 	{
-		var options = new FileStreamOptions {
-			Mode = FileMode.Open,
-			Access = FileAccess.Read,
-			Share = FileShare.Read,
-			Options = FileOptions.RandomAccess,
-			BufferSize = (int) BitOperations.RoundUpToPowerOf2((uint) file.Length),
-		};
-		var pkgStream = File.Open(packageFilePath, options);
-		var fileStream = Pkg.OpenPackageFile(pkgStream, file);
+		var fileStream = PkgReader.OpenPackageFile(packageFilePath, file);
 
 		if (Global.WriteOutputFiles && writeOriginal)
 		{
