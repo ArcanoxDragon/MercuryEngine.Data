@@ -21,7 +21,7 @@ public class IndexBuffer : DataStructure<IndexBuffer>
 	{
 		var indices = new ushort[IndexCount];
 		var sourceBytes = UncompressedData.AsSpan();
-		var destBytes = MemoryMarshal.Cast<ushort, byte>(indices);
+		var destBytes = MemoryMarshal.Cast<ushort, byte>(indices.AsSpan());
 
 		sourceBytes.CopyTo(destBytes);
 
