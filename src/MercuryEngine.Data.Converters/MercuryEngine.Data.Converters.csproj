@@ -15,6 +15,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\MercuryEngine.Data.TegraTextureLib\MercuryEngine.Data.TegraTextureLib.csproj" />
 		<ProjectReference Include="..\MercuryEngine.Data\MercuryEngine.Data.csproj" />
 	</ItemGroup>
 

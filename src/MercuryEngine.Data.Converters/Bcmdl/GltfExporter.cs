@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
@@ -87,14 +88,12 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 		foreach (var joint in armature.RootJoints)
 		{
-			var builder = VisitJoint(joint);
-
-			scene.AddNode(builder).WithName(joint.Name);
+			VisitJoint(joint);
 		}
 
 		return;
 
-		NodeBuilder VisitJoint(ArmatureJoint joint, NodeBuilder? parent = null)
+		void VisitJoint(ArmatureJoint joint, NodeBuilder? parent = null)
 		{
 			var builder = new NodeBuilder(joint.Name);
 
@@ -109,7 +108,8 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 				VisitJoint(child, builder);
 
 			ArmatureNodeCache[joint.Name] = builder;
-			return builder;
+
+			scene.AddNode(builder).WithName(joint.Name);
 		}
 	}
 
@@ -120,7 +120,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 		var jointPosition = ScalePosition(joint.Transform.Position);
 
-		jointMatrix = CreateRotationMatrix(joint.Transform.Rotation) *
+		jointMatrix = MathHelper.CreateXYZRotationMatrix(joint.Transform.Rotation) *
 					  Matrix4x4.CreateTranslation(jointPosition) *
 					  Matrix4x4.CreateScale(joint.Transform.Scale);
 
@@ -241,9 +241,9 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 				throw new ApplicationException($"Armature node not found for joint \"{armatureJoint.Name}\"!");
 
 			var jointMatrix = primitive.SkinningType == SkinningType.WholeMeshTransform ? Matrix4x4.Identity : armatureJointNode.WorldMatrix;
-			var bindMatrix = SkinnedTransform.CalculateInverseBinding(meshMatrix, jointMatrix);
+			var inverseBindMatrix = SkinnedTransform.CalculateInverseBinding(meshMatrix, jointMatrix);
 
-			bindJoints[index++] = ( armatureJointNode, bindMatrix );
+			bindJoints[index++] = ( armatureJointNode, inverseBindMatrix );
 		}
 
 		scene.AddSkinnedMesh(meshBuilder, bindJoints);
@@ -459,9 +459,4 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 	private static Vector3 ScalePosition(Vector3 rawPosition)
 		// Scale cm to meters
 		=> new(rawPosition.X / 100f, rawPosition.Y / 100f, rawPosition.Z / 100f);
-
-	private static Matrix4x4 CreateRotationMatrix(Vector3 rotationVector)
-		=> Matrix4x4.CreateRotationX(rotationVector.X) *
-		   Matrix4x4.CreateRotationY(rotationVector.Y) *
-		   Matrix4x4.CreateRotationZ(rotationVector.Z);
 }
