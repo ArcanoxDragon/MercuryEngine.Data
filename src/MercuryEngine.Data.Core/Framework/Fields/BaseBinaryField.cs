@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using MercuryEngine.Data.Core.Framework.IO;
+﻿using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -17,8 +16,7 @@ where T : notnull
 
 	public virtual T Value { get; set; } = initialValue;
 
-	[JsonIgnore]
-	public abstract uint Size { get; }
+	public abstract uint GetSize(uint startPosition);
 
 	protected DataMapper? DataMapper { get; set; }
 

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.Fields.Fluent;
@@ -66,10 +65,26 @@ where TPropertyKey : IBinaryField
 		this.propertyKeyTranslator = other.propertyKeyTranslator;
 	}
 
-	[JsonIgnore]
-	public uint Size => sizeof(uint) + (uint) this.values.Sum(
-		pair => this.propertyKeyTranslator.GetKeySize(pair.Key) + pair.Value.Size
-	);
+	public uint GetSize(uint startPosition)
+	{
+		var totalSize = (uint) sizeof(uint); // Count
+		var currentPosition = startPosition + totalSize;
+
+		foreach (var entry in this.values)
+		{
+			var keySize = this.propertyKeyTranslator.GetKeySize(entry.Key, currentPosition);
+
+			totalSize += keySize;
+			currentPosition += keySize;
+
+			var valueSize = entry.Value.GetSize(currentPosition);
+
+			totalSize += valueSize;
+			currentPosition += valueSize;
+		}
+
+		return totalSize;
+	}
 
 	protected DataMapper? DataMapper { get; set; }
 

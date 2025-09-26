@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
-using System.Text.Json.Serialization;
 using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -11,8 +10,7 @@ namespace MercuryEngine.Data.Core.Framework.Fields;
 public abstract class NumberField<T>(T value) : BaseBinaryField<T>(value)
 where T : unmanaged
 {
-	[JsonIgnore]
-	public override uint Size => (uint) Unsafe.SizeOf<T>();
+	public override uint GetSize(uint startPosition) => (uint) Unsafe.SizeOf<T>();
 }
 
 public class BooleanField(bool value) : NumberField<bool>(value)
@@ -57,7 +55,7 @@ public class CharField(char value) : NumberField<char>(value)
 
 	public CharField() : this(default) { }
 
-	public override uint Size => (uint) UnicodeEncoding.GetByteCount([Value]);
+	public override uint GetSize(uint startPosition) => (uint) UnicodeEncoding.GetByteCount([Value]);
 
 	public override void Read(BinaryReader reader, ReadContext context)
 		=> Value = reader.ReadChar();

@@ -20,7 +20,7 @@ where T : IBinaryField
 {
 	public List<T?> Entries { get; } = [];
 
-	public uint Size => 2 * sizeof(ulong) * (uint) Entries.Count; // Pointer to target + pointer to next node, for each entry
+	public uint GetSize(uint startPosition) => 2 * sizeof(ulong) * (uint) Entries.Count;
 
 	public DataMapper? DataMapper { get; set; }
 

@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
@@ -32,8 +31,15 @@ where TField : class, ITypedDreadField
 
 	public ulong InnerTypeId => Value?.TypeId ?? 0L;
 
-	[JsonIgnore]
-	public uint Size => sizeof(ulong) + Value?.Size ?? 0;
+	public uint GetSize(uint startPosition)
+	{
+		var totalSize = (uint) sizeof(ulong);
+
+		if (Value != null)
+			totalSize += Value.GetSize(startPosition + totalSize);
+
+		return totalSize;
+	}
 
 	public void Reset()
 		=> Value = null;

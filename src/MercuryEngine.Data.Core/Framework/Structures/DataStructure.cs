@@ -27,8 +27,21 @@ where T : DataStructure<T>
 		this.fieldsLazy = new Lazy<List<DataStructureField>>(GetFieldList);
 	}
 
-	[JsonIgnore]
-	public uint Size => (uint) Fields.Sum(f => f.Handler.GetSize(this));
+	public uint GetSize(uint startPosition)
+	{
+		var totalSize = 0u;
+		var currentPosition = startPosition;
+
+		foreach (var field in Fields)
+		{
+			var fieldSize = field.Handler.GetSize(this, currentPosition);
+
+			totalSize += fieldSize;
+			currentPosition += fieldSize;
+		}
+
+		return totalSize;
+	}
 
 	[JsonIgnore]
 	public IDictionary<Guid, IBinaryField> BackingFields { get; } = new Dictionary<Guid, IBinaryField>();

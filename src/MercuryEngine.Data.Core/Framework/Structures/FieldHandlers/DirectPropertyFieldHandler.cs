@@ -17,8 +17,8 @@ public class DirectPropertyFieldHandler<
 {
 	private readonly Func<TOwner, IBinaryField?> getter = ReflectionUtility.GetGetter<TOwner, IBinaryField?>(property);
 
-	public uint GetSize(IDataStructure dataStructure)
-		=> GetField(dataStructure).Size;
+	public uint GetSize(IDataStructure dataStructure, uint startPosition)
+		=> GetField(dataStructure).GetSize(startPosition);
 
 	public IBinaryField GetField(IDataStructure dataStructure)
 		=> this.getter((TOwner) dataStructure) ?? throw new InvalidOperationException(

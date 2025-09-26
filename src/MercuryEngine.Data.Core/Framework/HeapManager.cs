@@ -72,7 +72,7 @@ public class HeapManager(ulong startingAddress = 0)
 			throw new InvalidOperationException("Space has already been allocated for the provided field");
 
 		var address = StartingAddress + TotalAllocated;
-		var sizeWithPadding = field.Size;
+		var sizeWithPadding = 0u;
 
 		if (startByteAlignment > 0)
 		{
@@ -82,9 +82,13 @@ public class HeapManager(ulong startingAddress = 0)
 			sizeWithPadding += prePaddingNeeded;
 		}
 
+		var fieldSize = field.GetSize((uint) address);
+
+		sizeWithPadding += fieldSize;
+
 		if (endByteAlignment > 0)
 		{
-			var postPaddingNeeded = MathHelper.GetNeededPaddingForAlignment(address + field.Size, endByteAlignment);
+			var postPaddingNeeded = MathHelper.GetNeededPaddingForAlignment(address + fieldSize, endByteAlignment);
 
 			sizeWithPadding += postPaddingNeeded;
 		}
@@ -112,7 +116,7 @@ public class HeapManager(ulong startingAddress = 0)
 		this.fieldAddresses[field] = address;
 		this.fieldsByAddress[address] = field;
 
-		var allocationSize = field.Size;
+		var allocationSize = field.GetSize((uint) address);
 		var endAddress = address + allocationSize;
 
 		if (endByteAlignment > 0)

@@ -12,7 +12,7 @@ where TField : IBinaryField
 {
 	protected Guid UniqueId { get; } = Guid.NewGuid();
 
-	public abstract uint GetSize(IDataStructure dataStructure);
+	public abstract uint GetSize(IDataStructure dataStructure, uint startPosition);
 
 	IBinaryField IFieldHandler.GetField(IDataStructure dataStructure)
 		=> GetField(dataStructure);

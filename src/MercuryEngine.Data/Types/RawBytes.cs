@@ -9,7 +9,7 @@ public class RawBytes(Func<Stream, int> getSizeForReading) : BaseBinaryField<byt
 	public RawBytes(Func<int> getSizeForReading)
 		: this(_ => getSizeForReading()) { }
 
-	public override uint Size => (uint) ( Value.Length );
+	public override uint GetSize(uint startPosition) => (uint) (Value.Length);
 
 	public override void Read(BinaryReader reader, ReadContext context)
 	{

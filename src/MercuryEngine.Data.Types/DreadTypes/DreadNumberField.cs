@@ -26,7 +26,7 @@ where TBaseField : NumberField<T>, new()
 		set => ( (IDataMapperAware) this.baseField ).DataMapper = value;
 	}
 
-	public uint Size => this.baseField.Size;
+	public uint GetSize(uint startPosition) => this.baseField.GetSize(startPosition);
 
 	public void Read(BinaryReader reader, ReadContext context)
 		=> this.baseField.Read(reader, context);

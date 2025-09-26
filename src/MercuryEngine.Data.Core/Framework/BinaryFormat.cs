@@ -140,7 +140,7 @@ where T : BinaryFormat<T>, new()
 		if (ReferenceEquals(context.Root, this))
 		{
 			// Reset the heap manager, and set its starting address to the first byte after the structure's own fields
-			var nonHeapSize = Size;
+			var nonHeapSize = GetSize(0u);
 
 			context.HeapManager.Reset(nonHeapSize);
 		}

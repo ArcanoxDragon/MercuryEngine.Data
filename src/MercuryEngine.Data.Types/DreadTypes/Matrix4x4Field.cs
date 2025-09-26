@@ -12,11 +12,11 @@ public class Matrix4x4Field(Matrix4x4 initialValue) : BaseBinaryField<Matrix4x4>
 	public Matrix4x4Field()
 		: this(Matrix4x4.Identity) { }
 
-	public override uint Size => (uint) Unsafe.SizeOf<Matrix4x4>();
+	public override uint GetSize(uint startPosition) => (uint) Unsafe.SizeOf<Matrix4x4>();
 
 	public override void Read(BinaryReader reader, ReadContext context)
 	{
-		var data = reader.ReadBytes((int) Size);
+		var data = reader.ReadBytes(Unsafe.SizeOf<Matrix4x4>());
 
 		Value = ReadMatrix(data);
 	}
@@ -30,7 +30,7 @@ public class Matrix4x4Field(Matrix4x4 initialValue) : BaseBinaryField<Matrix4x4>
 
 	public override async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
 	{
-		var data = await reader.ReadBytesAsync((int) Size, cancellationToken).ConfigureAwait(false);
+		var data = await reader.ReadBytesAsync(Unsafe.SizeOf<Matrix4x4>(), cancellationToken).ConfigureAwait(false);
 
 		Value = ReadMatrix(data);
 	}

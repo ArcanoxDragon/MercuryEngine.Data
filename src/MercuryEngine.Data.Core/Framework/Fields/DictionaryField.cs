@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.IO;
@@ -29,8 +28,26 @@ where TValue : IBinaryField
 	public DictionaryField()
 		: this(DefaultKeyFactory, DefaultValueFactory) { }
 
-	[JsonIgnore]
-	public override uint Size => sizeof(uint) + (uint) Value.Sum(pair => pair.Key.Size + pair.Value.Size);
+	public override uint GetSize(uint startPosition)
+	{
+		var totalSize = (uint) sizeof(uint); // Count
+		var currentPosition = startPosition + totalSize;
+
+		foreach (var entry in Value)
+		{
+			var keySize = entry.Key.GetSize(currentPosition);
+
+			totalSize += keySize;
+			currentPosition += keySize;
+
+			var valueSize = entry.Value.GetSize(currentPosition);
+
+			totalSize += valueSize;
+			currentPosition += valueSize;
+		}
+
+		return totalSize;
+	}
 
 	protected virtual string MappingDescription => $"Dictionary<{typeof(TKey).Name}, {typeof(TValue).Name}>";
 

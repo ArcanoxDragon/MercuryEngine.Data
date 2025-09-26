@@ -53,7 +53,7 @@ public class TerminatedStringField(string initialValue) : BaseBinaryField<string
 	[JsonIgnore]
 	public Encoding Encoding { get; set; } = DefaultEncoding;
 
-	public override uint Size => (uint) Encoding.GetByteCount(Value) + 1;
+	public override uint GetSize(uint startPosition) => (uint) Encoding.GetByteCount(Value) + 1;
 
 	public override void Read(BinaryReader reader, ReadContext context)
 	{

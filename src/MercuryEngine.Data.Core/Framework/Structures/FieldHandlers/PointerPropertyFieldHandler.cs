@@ -22,7 +22,7 @@ where TField : IBinaryField
 	private readonly Func<TOwner, TField?>   getter = ReflectionUtility.GetGetter<TOwner, TField?>(property);
 	private readonly Action<TOwner, TField?> setter = ReflectionUtility.GetSetter<TOwner, TField?>(property);
 
-	public uint GetSize(IDataStructure dataStructure)
+	public uint GetSize(IDataStructure dataStructure, uint startPosition)
 		=> sizeof(ulong); // Just the pointer address
 
 	public IBinaryField? GetField(IDataStructure dataStructure)
@@ -139,7 +139,11 @@ where TField : IBinaryField
 	{
 		var field = GetField(dataStructure);
 
-		if (field is null or { Size: 0 })
+		// We don't have an address yet at this point, but we can assume that any field whose size
+		// may change due to the start position will have the smallest size at address "0" (where
+		// no padding would be needed regardless of alignment). This will at least be reliable
+		// enough to effectively skip fields with no data to write.
+		if (field?.GetSize(0) is null or 0)
 			// Write "0" for "null pointer"
 			return 0;
 

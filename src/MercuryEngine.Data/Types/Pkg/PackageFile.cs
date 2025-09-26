@@ -21,8 +21,8 @@ public class PackageFile : DataStructure<PackageFile>
 		set => DataField.Data = value;
 	}
 
-	[Obsolete($"This is the size of the file's header entry, not the length of the file's data. Use {nameof(Length)} instead.")]
-	public new uint Size => base.Size;
+	[Obsolete($"This returns the size of the file's header entry, not the length of the file's data. Use {nameof(Length)} instead.")]
+	public new uint GetSize(uint startPosition) => base.GetSize(startPosition);
 
 	/// <summary>
 	/// Gets the length of the file's data.

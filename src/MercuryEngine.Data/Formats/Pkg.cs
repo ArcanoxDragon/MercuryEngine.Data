@@ -31,7 +31,7 @@ public partial class Pkg : BinaryFormat<Pkg>
 		if (Files.Count > 0)
 		{
 			// Adjust the start of the heap section to the correct byte alignment
-			var dataStart = Header.Size;
+			var dataStart = Header.GetSize(0);
 			var misalignment = dataStart % DataSectionStartAlignment;
 			var padding = misalignment == 0 ? 0 : DataSectionStartAlignment - misalignment;
 

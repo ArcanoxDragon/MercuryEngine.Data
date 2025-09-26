@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -11,8 +10,7 @@ where TField : IBinaryField
 {
 	private TField innerField = innerField;
 
-	[JsonIgnore]
-	public uint Size => predicate() ? this.innerField.Size : 0;
+	public uint GetSize(uint startPosition) => predicate() ? this.innerField.GetSize(startPosition) : 0;
 
 	public void Read(BinaryReader reader, ReadContext context)
 	{

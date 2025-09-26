@@ -34,13 +34,13 @@ where TValue : IBinaryField
 	// IDictionary<TKey, TValue> properties need to work as long as we don't need to activate null lists.
 	private Action<TOwner, Dictionary<TKey, TValue>?>? setter;
 
-	public override uint GetSize(IDataStructure dataStructure)
+	public override uint GetSize(IDataStructure dataStructure, uint startPosition)
 	{
 		if (this.getter((TOwner) dataStructure) is null)
 			return 0;
 
 		PrepareForWrite(dataStructure, out var field);
-		return field.Size;
+		return field.GetSize(startPosition);
 	}
 
 	public override void Reset(IDataStructure dataStructure)

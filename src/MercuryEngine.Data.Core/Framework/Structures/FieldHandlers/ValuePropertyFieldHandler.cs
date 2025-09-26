@@ -23,8 +23,8 @@ where TValue : notnull
 	private readonly Func<TOwner, TValue?>  getter = ReflectionUtility.GetGetter<TOwner, TValue?>(property);
 	private readonly Action<TOwner, TValue> setter = ReflectionUtility.GetSetter<TOwner, TValue>(property);
 
-	public override uint GetSize(IDataStructure dataStructure)
-		=> PrepareForWrite(dataStructure, out var field) ? field.Size : 0;
+	public override uint GetSize(IDataStructure dataStructure, uint startPosition)
+		=> PrepareForWrite(dataStructure, out var field) ? field.GetSize(startPosition) : 0;
 
 	public override void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
 	{

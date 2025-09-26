@@ -14,7 +14,7 @@ public interface IFieldHandler
 	/// <summary>
 	/// Gets the size of the data that this handler's field currently represents in the provided <paramref name="dataStructure"/>.
 	/// </summary>
-	uint GetSize(IDataStructure dataStructure);
+	uint GetSize(IDataStructure dataStructure, uint startPosition);
 
 	/// <summary>
 	/// The <see cref="IBinaryField"/> instance that would be written by this handler for the provided <paramref name="dataStructure"/>,

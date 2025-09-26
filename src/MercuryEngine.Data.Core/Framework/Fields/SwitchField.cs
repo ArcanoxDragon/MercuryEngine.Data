@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
-using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields.Fluent;
 using MercuryEngine.Data.Core.Framework.Fields.Internal;
@@ -53,8 +52,7 @@ where TField : IBinaryField
 		set => this.evaluator.ReplaceEffectiveField(value);
 	}
 
-	[JsonIgnore]
-	public uint Size => EffectiveField.Size;
+	public uint GetSize(uint startPosition) => EffectiveField.GetSize(startPosition);
 
 	public void Reset() => ( EffectiveField as IResettableField )?.Reset();
 	public void Read(BinaryReader reader, ReadContext context) => EffectiveField.Read(reader, context);

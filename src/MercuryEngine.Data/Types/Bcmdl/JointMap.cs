@@ -17,7 +17,7 @@ public class JointMap(MeshPrimitive parent) : IBinaryField
 		}
 	}
 
-	public uint Size => parent.JointMapEntryCount * sizeof(uint);
+	public uint GetSize(uint startPosition) => parent.JointMapEntryCount * sizeof(uint);
 
 	public void Read(BinaryReader reader, ReadContext context)
 	{

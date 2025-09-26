@@ -61,7 +61,7 @@ public class FixedLengthStringField(int length, string initialValue) : BaseBinar
 	[JsonIgnore]
 	public Encoding Encoding { get; set; } = DefaultEncoding;
 
-	public override uint Size => (uint) Length;
+	public override uint GetSize(uint startPosition) => (uint) Length;
 
 	public override void Read(BinaryReader reader, ReadContext context)
 	{

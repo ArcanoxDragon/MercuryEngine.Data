@@ -21,8 +21,8 @@ where TField : IBinaryField
 	private readonly Func<TOwner, TField?>   getter = ReflectionUtility.GetGetter<TOwner, TField?>(property);
 	private readonly Action<TOwner, TField?> setter = ReflectionUtility.GetSetter<TOwner, TField?>(property);
 
-	public uint GetSize(IDataStructure dataStructure)
-		=> GetField(dataStructure)?.Size ?? 0u;
+	public uint GetSize(IDataStructure dataStructure, uint startPosition)
+		=> GetField(dataStructure)?.GetSize(startPosition) ?? 0u;
 
 	public IBinaryField? GetField(IDataStructure dataStructure)
 		=> this.getter((TOwner) dataStructure);

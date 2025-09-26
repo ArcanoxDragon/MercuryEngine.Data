@@ -9,7 +9,24 @@ public class VertexInfoList : IBinaryField
 {
 	public List<VertexInfoDescription> Entries { get; } = [];
 
-	public uint Size => (uint) ( sizeof(uint) + sizeof(int) + Entries.Sum(e => e.Size) );
+	public uint GetSize(uint startPosition)
+	{
+		var totalSize = (uint) (
+			sizeof(uint) + // Count
+			sizeof(uint)   // Padding
+		);
+		var currentPosition = startPosition + totalSize;
+
+		foreach (var entry in Entries)
+		{
+			var entrySize = entry.GetSize(currentPosition);
+
+			totalSize += entrySize;
+			currentPosition += entrySize;
+		}
+
+		return totalSize;
+	}
 
 	public void Read(BinaryReader reader, ReadContext context)
 	{

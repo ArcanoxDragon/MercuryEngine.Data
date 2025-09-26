@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using MercuryEngine.Data.Core.Framework.IO;
+﻿using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Mapping;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -12,8 +11,13 @@ where TValue : IBinaryField
 	public TKey   Key   { get; } = key;
 	public TValue Value { get; } = value;
 
-	[JsonIgnore]
-	public uint Size => Key.Size + Value.Size;
+	public uint GetSize(uint startPosition)
+	{
+		var keySize = Key.GetSize(startPosition);
+		var valueSize = Value.GetSize(startPosition + keySize);
+
+		return keySize + valueSize;
+	}
 
 	protected DataMapper? DataMapper { get; set; }
 

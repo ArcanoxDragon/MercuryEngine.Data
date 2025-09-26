@@ -34,8 +34,6 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 
 	private readonly Dictionary<string, ExtraField> extraFields = [];
 
-	private string type = "CComponent";
-
 	public ActorDefComponent()
 	{
 		RawExtraFieldsCondition = new ConditionalField<DictionaryField<TerminatedStringField, ExtraField>>(
@@ -55,17 +53,17 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 
 	private string RawType
 	{
-		get => this.type;
+		get;
 		set
 		{
-			this.type = value;
+			field = value;
 
 			// When setting the Type (such as during reading), we also set the object on InnerFields to an empty instance of the appropriate CharClass.
 			var charClassTypeName = GetCharClassTypeName(Type);
 
 			InnerFields.Object = DreadTypeLibrary.GetTypedField(charClassTypeName);
 		}
-	}
+	} = "CComponent";
 
 	public int Unknown1 { get; set; }
 	public int Unknown2 { get; set; }
@@ -153,8 +151,20 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 		public StrId             Root        { get; } = new("Root");
 		public ITypedDreadField? Object      { get; set; }
 
-		public uint Size      => sizeof(uint) + InnerSize;
-		public uint InnerSize => Object is null ? 0 : ( EmptyString.Size + Root.Size + Object.Size );
+		public uint GetSize(uint startPosition)
+			=> sizeof(uint) + GetInnerSize(startPosition + sizeof(uint));
+
+		public uint GetInnerSize(uint startPosition)
+		{
+			if (Object is null)
+				return 0;
+
+			var emptyStringSize = EmptyString.GetSize(startPosition);
+			var rootSize = Root.GetSize(startPosition + emptyStringSize);
+			var objectSize = Object.GetSize(startPosition + emptyStringSize + rootSize);
+
+			return emptyStringSize + rootSize + objectSize;
+		}
 
 		public void Reset()
 		{
@@ -183,7 +193,9 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 
 		public void Write(BinaryWriter writer, WriteContext context)
 		{
-			writer.Write(InnerSize);
+			var innerSize = GetInnerSize((uint) writer.BaseStream.Position);
+
+			writer.Write(innerSize);
 
 			if (Object is null)
 				return;
@@ -217,7 +229,10 @@ public class ActorDefComponent : DataStructure<ActorDefComponent>
 
 		public async Task WriteAsync(AsyncBinaryWriter writer, WriteContext context, CancellationToken cancellationToken = default)
 		{
-			await writer.WriteAsync(InnerSize, cancellationToken).ConfigureAwait(false);
+			var baseStream = await writer.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
+			var innerSize = GetInnerSize((uint) baseStream.Position);
+
+			await writer.WriteAsync(innerSize, cancellationToken).ConfigureAwait(false);
 
 			if (Object is null)
 				return;

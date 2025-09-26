@@ -2,7 +2,6 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -21,8 +20,7 @@ where T : struct, Enum
 
 	public EnumField() : this(default) { }
 
-	[JsonIgnore]
-	public override uint Size => (uint) Unsafe.SizeOf<T>();
+	public override uint GetSize(uint startPosition) => (uint) Unsafe.SizeOf<T>();
 
 	public override void Read(BinaryReader reader, ReadContext context)
 		=> Value = ReadFunction(reader);

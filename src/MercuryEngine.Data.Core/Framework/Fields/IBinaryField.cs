@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.IO;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
@@ -14,8 +13,8 @@ public interface IBinaryField
 	/// <summary>
 	/// Gets the size of this <see cref="IBinaryField"/> (how many bytes it will take up when written as binary data).
 	/// </summary>
-	[JsonIgnore]
-	uint Size { get; }
+	/// <param name="startPosition"></param>
+	uint GetSize(uint startPosition);
 
 	/// <summary>
 	/// Loads this <see cref="IBinaryField"/> from the provided <paramref name="reader"/>.

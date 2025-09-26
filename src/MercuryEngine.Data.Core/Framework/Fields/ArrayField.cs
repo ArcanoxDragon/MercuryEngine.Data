@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.IO;
@@ -27,8 +26,21 @@ where TItem : IBinaryField
 	public ArrayField(Func<TItem> itemFactory)
 		: this(itemFactory, []) { }
 
-	[JsonIgnore]
-	public override uint Size => sizeof(uint) + (uint) Value.Sum(e => e.Size);
+	public override uint GetSize(uint startPosition)
+	{
+		var totalSize = (uint) sizeof(uint); // Count
+		var currentPosition = startPosition + totalSize;
+
+		foreach (var entry in Value)
+		{
+			var entrySize = entry.GetSize(currentPosition);
+
+			totalSize += entrySize;
+			currentPosition += entrySize;
+		}
+
+		return totalSize;
+	}
 
 	protected virtual string MappingDescription => $"Array<{typeof(TItem).Name}>";
 

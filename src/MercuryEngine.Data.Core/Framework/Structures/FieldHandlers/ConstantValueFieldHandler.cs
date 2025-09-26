@@ -8,8 +8,8 @@ namespace MercuryEngine.Data.Core.Framework.Structures.FieldHandlers;
 public class ConstantValueFieldHandler(Func<IBinaryField> fieldFactory)
 	: FieldHandlerWithBackingField<IDataStructure>(_ => fieldFactory())
 {
-	public override uint GetSize(IDataStructure dataStructure)
-		=> GetField(dataStructure).Size;
+	public override uint GetSize(IDataStructure dataStructure, uint startPosition)
+		=> GetField(dataStructure).GetSize(startPosition);
 
 	public override void HandleRead(IDataStructure dataStructure, BinaryReader reader, ReadContext context)
 		=> GetField(dataStructure).Read(reader, context);
