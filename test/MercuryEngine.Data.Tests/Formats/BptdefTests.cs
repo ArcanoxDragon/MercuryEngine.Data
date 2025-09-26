@@ -38,6 +38,8 @@ public class BptdefTests : BaseTestFixture
 		var csvFileName = Path.GetFileNameWithoutExtension(fileName) + ".csv";
 		var csvFilePath = Path.Combine(outFileDir, csvFileName);
 
+		Directory.CreateDirectory(outFileDir);
+
 		using var csvStream = File.Open(csvFilePath, FileMode.Create, FileAccess.Write);
 		using var csvWriter = new StreamWriter(csvStream);
 
