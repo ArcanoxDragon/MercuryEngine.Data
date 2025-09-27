@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Framework.IO;
@@ -13,12 +14,14 @@ namespace MercuryEngine.Data.Core.Framework.Fields;
 public class ArrayField<
 	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
 	TItem
->(Func<TItem> itemFactory, List<TItem> initialValue) : BaseBinaryField<List<TItem>>(initialValue)
+>(Func<TItem> itemFactory, List<TItem> initialValue, uint startByteAlignment, byte paddingByte = 0) : BaseBinaryField<List<TItem>>(initialValue)
 where TItem : IBinaryField
 {
 	protected static readonly Func<TItem> DefaultItemFactory = ReflectionUtility.CreateFactoryFromDefaultConstructor<TItem>();
 
 	private readonly Func<TItem> itemFactory = itemFactory;
+
+	private byte[] paddingBuffer = [];
 
 	public ArrayField()
 		: this(DefaultItemFactory) { }
@@ -26,10 +29,30 @@ where TItem : IBinaryField
 	public ArrayField(Func<TItem> itemFactory)
 		: this(itemFactory, []) { }
 
+	public ArrayField(Func<TItem> itemFactory, List<TItem> initialValue)
+		: this(itemFactory, [], startByteAlignment: 0) { }
+
+	public ArrayField(uint startByteAlignment, byte paddingByte = 0)
+		: this(DefaultItemFactory, startByteAlignment, paddingByte) { }
+
+	public ArrayField(Func<TItem> itemFactory, uint startByteAlignment, byte paddingByte = 0)
+		: this(itemFactory, [], startByteAlignment, paddingByte) { }
+
 	public override uint GetSize(uint startPosition)
 	{
 		var totalSize = (uint) sizeof(uint); // Count
 		var currentPosition = startPosition + totalSize;
+
+		if (Value.Count == 0)
+			return totalSize;
+
+		if (startByteAlignment > 0)
+		{
+			var neededPadding = MathHelper.GetNeededPaddingForAlignment(currentPosition, startByteAlignment);
+
+			totalSize += neededPadding;
+			currentPosition += neededPadding;
+		}
 
 		foreach (var entry in Value)
 		{
@@ -51,6 +74,16 @@ where TItem : IBinaryField
 		Value.Clear();
 
 		var entryCount = reader.ReadUInt32();
+
+		if (entryCount == 0)
+			return;
+
+		if (startByteAlignment > 0)
+		{
+			var paddingReadBytes = reader.BaseStream.GetNeededPaddingForAlignment(startByteAlignment);
+
+			reader.ReadBytes((int) paddingReadBytes);
+		}
 
 		for (var i = 0; i < entryCount; i++)
 		{
@@ -74,26 +107,42 @@ where TItem : IBinaryField
 	{
 		DataMapper.PushRange(MappingDescription, writer);
 
-		writer.Write((uint) Value.Count);
-
-		foreach (var (i, entry) in Value.Pairs())
+		try
 		{
-			try
+			writer.Write((uint) Value.Count);
+
+			if (Value.Count == 0)
+				return;
+
+			if (startByteAlignment > 0)
 			{
-				DataMapper.PushRange(GetEntryMappingDescription(i, entry), writer);
-				entry.WriteWithDataMapper(writer, DataMapper, context);
+				var neededPadding = (int) writer.BaseStream.GetNeededPaddingForAlignment(startByteAlignment);
+
+				EnsurePaddingBuffer(neededPadding);
+				writer.Write(this.paddingBuffer[..neededPadding]);
 			}
-			catch (Exception ex)
+
+			foreach (var (i, entry) in Value.Pairs())
 			{
-				throw new IOException(GetEntryWriteExceptionMessage(i, entry), ex);
-			}
-			finally
-			{
-				DataMapper.PopRange(writer);
+				try
+				{
+					DataMapper.PushRange(GetEntryMappingDescription(i, entry), writer);
+					entry.WriteWithDataMapper(writer, DataMapper, context);
+				}
+				catch (Exception ex)
+				{
+					throw new IOException(GetEntryWriteExceptionMessage(i, entry), ex);
+				}
+				finally
+				{
+					DataMapper.PopRange(writer);
+				}
 			}
 		}
-
-		DataMapper.PopRange(writer);
+		finally
+		{
+			DataMapper.PopRange(writer);
+		}
 	}
 
 	public override async Task ReadAsync(AsyncBinaryReader reader, ReadContext context, CancellationToken cancellationToken = default)
@@ -101,6 +150,16 @@ where TItem : IBinaryField
 		Value.Clear();
 
 		var entryCount = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
+
+		if (entryCount == 0)
+			return;
+
+		if (startByteAlignment > 0)
+		{
+			var paddingReadBytes = reader.BaseStream.GetNeededPaddingForAlignment(startByteAlignment);
+
+			await reader.ReadBytesAsync((int) paddingReadBytes, cancellationToken).ConfigureAwait(false);
+		}
 
 		for (var i = 0; i < entryCount; i++)
 		{
@@ -128,30 +187,47 @@ where TItem : IBinaryField
 	{
 		await DataMapper.PushRangeAsync(MappingDescription, writer, cancellationToken).ConfigureAwait(false);
 
-		await writer.WriteAsync((uint) Value.Count, cancellationToken).ConfigureAwait(false);
-
-		foreach (var (i, entry) in Value.Pairs())
+		try
 		{
-			try
+			await writer.WriteAsync((uint) Value.Count, cancellationToken).ConfigureAwait(false);
+
+			if (Value.Count == 0)
+				return;
+
+			if (startByteAlignment > 0)
 			{
-				await DataMapper.PushRangeAsync(GetEntryMappingDescription(i, entry), writer, cancellationToken).ConfigureAwait(false);
-				await entry.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
+				var baseStream = await writer.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
+				var neededPadding = (int) baseStream.GetNeededPaddingForAlignment(startByteAlignment);
+
+				EnsurePaddingBuffer(neededPadding);
+				await writer.WriteAsync(this.paddingBuffer[..neededPadding], cancellationToken).ConfigureAwait(false);
 			}
-			catch (OperationCanceledException)
+
+			foreach (var (i, entry) in Value.Pairs())
 			{
-				throw;
-			}
-			catch (Exception ex)
-			{
-				throw new IOException(GetEntryWriteExceptionMessage(i, entry), ex);
-			}
-			finally
-			{
-				await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
+				try
+				{
+					await DataMapper.PushRangeAsync(GetEntryMappingDescription(i, entry), writer, cancellationToken).ConfigureAwait(false);
+					await entry.WriteWithDataMapperAsync(writer, DataMapper, context, cancellationToken).ConfigureAwait(false);
+				}
+				catch (OperationCanceledException)
+				{
+					throw;
+				}
+				catch (Exception ex)
+				{
+					throw new IOException(GetEntryWriteExceptionMessage(i, entry), ex);
+				}
+				finally
+				{
+					await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
+				}
 			}
 		}
-
-		await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
+		finally
+		{
+			await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	protected virtual string GetEntryReadExceptionMessage(int index, TItem entry, long position)
@@ -161,11 +237,29 @@ where TItem : IBinaryField
 		=> $"An exception occurred while writing entry {index} of an array of {typeof(TItem).Name}";
 
 	protected virtual string GetEntryMappingDescription(int index, TItem entry) => $"[{index}]";
+
+	private void EnsurePaddingBuffer(int neededPadding)
+	{
+		if (this.paddingBuffer.Length >= neededPadding)
+			return;
+
+		var newBuffer = new byte[BitOperations.RoundUpToPowerOf2((uint) neededPadding)];
+
+		Array.Fill(newBuffer, paddingByte);
+		this.paddingBuffer = newBuffer;
+	}
 }
 
 [PublicAPI]
 public static class ArrayField
 {
+	public static ArrayField<TEntry> Create<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TEntry
+	>(uint startByteAlignment, byte paddingByte = 0)
+	where TEntry : IBinaryField, new()
+		=> new(() => new TEntry(), startByteAlignment, paddingByte);
+
 	public static ArrayField<TEntry> Create<
 		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
 		TEntry

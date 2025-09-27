@@ -262,11 +262,25 @@ where T : IDataStructure
 	public DataStructureBuilder<T> Array<
 		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
 		TItem
+	>(Expression<Func<T, IList<TItem>>> propertyExpression, uint startByteAlignment, byte paddingByte = 0)
+	where TItem : class, IBinaryField, new()
+		=> Array(propertyExpression, _ => new TItem(), startByteAlignment, paddingByte);
+
+	public DataStructureBuilder<T> Array<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TItem
 	>(Expression<Func<T, IList<TItem>>> propertyExpression, Func<T, TItem> itemFactory)
+	where TItem : class, IBinaryField
+		=> Array(propertyExpression, itemFactory, startByteAlignment: 0);
+
+	public DataStructureBuilder<T> Array<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TItem
+	>(Expression<Func<T, IList<TItem>>> propertyExpression, Func<T, TItem> itemFactory, uint startByteAlignment, byte paddingByte = 0)
 	where TItem : class, IBinaryField
 	{
 		var property = ReflectionUtility.GetProperty(propertyExpression);
-		var adapter = new ArrayPropertyFieldHandler<T, TItem>(owner => new ArrayField<TItem>(() => itemFactory(owner)), property);
+		var adapter = new ArrayPropertyFieldHandler<T, TItem>(owner => new ArrayField<TItem>(() => itemFactory(owner), startByteAlignment, paddingByte), property);
 		var description = $"{property.Name}: {typeof(TItem).GetDisplayName()}[]";
 		return AddField(new DataStructureField(adapter, description));
 	}
