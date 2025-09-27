@@ -2,8 +2,8 @@
 
 namespace MercuryEngine.Data.Core.Framework.IO;
 
-public sealed class WriteContext(IDataStructure root, HeapManager heapManager)
+public sealed class WriteContext(HeapManager heapManager, IDataStructure? root = null)
 {
-	public IDataStructure Root        { get; } = root;
-	public HeapManager    HeapManager { get; } = heapManager;
+	public HeapManager     HeapManager { get; } = heapManager;
+	public IDataStructure? Root        { get; } = root;
 }

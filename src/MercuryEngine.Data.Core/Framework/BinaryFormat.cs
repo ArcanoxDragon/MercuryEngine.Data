@@ -84,7 +84,7 @@ where T : BinaryFormat<T>, new()
 	{
 		using var reader = new BinaryReader(stream, encoding, true);
 		var heapManager = new HeapManager { DataMapper = DataMapper };
-		var context = new ReadContext(this, heapManager);
+		var context = new ReadContext(heapManager, this);
 
 		base.Read(reader, context);
 
@@ -98,7 +98,7 @@ where T : BinaryFormat<T>, new()
 	{
 		using var writer = new BinaryWriter(stream, encoding, true);
 		var heapManager = new HeapManager { DataMapper = DataMapper };
-		var context = new WriteContext(this, heapManager);
+		var context = new WriteContext(heapManager, this);
 
 		DataMapper?.Reset();
 		base.Write(writer, context);
@@ -111,7 +111,7 @@ where T : BinaryFormat<T>, new()
 	{
 		using var reader = new AsyncBinaryReader(stream, encoding, true);
 		var heapManager = new HeapManager { DataMapper = DataMapper };
-		var context = new ReadContext(this, heapManager);
+		var context = new ReadContext(heapManager, this);
 
 		await ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 
@@ -125,7 +125,7 @@ where T : BinaryFormat<T>, new()
 	{
 		using var writer = new AsyncBinaryWriter(stream, encoding, true);
 		var heapManager = new HeapManager { DataMapper = DataMapper };
-		var context = new WriteContext(this, heapManager);
+		var context = new WriteContext(heapManager, this);
 
 		DataMapper?.Reset();
 		await base.WriteAsync(writer, context, cancellationToken: cancellationToken).ConfigureAwait(false);

@@ -17,8 +17,7 @@ public partial class Pkg
 	public static IEnumerable<PackageFile> EnumeratePackageFiles(Stream pkgStream)
 	{
 		using BinaryReader reader = new(pkgStream);
-		var dummyPkg = new Pkg(); // Only used to construct the ReadContext
-		var context = new ReadContext(dummyPkg, new HeapManager());
+		var context = new ReadContext(new HeapManager());
 
 		// Skip past HeaderSize and DataSectionSize
 		reader.ReadUInt32();
@@ -42,8 +41,7 @@ public partial class Pkg
 	public static async IAsyncEnumerable<PackageFile> EnumeratePackageFilesAsync(Stream pkgStream, [EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		using AsyncBinaryReader reader = new(pkgStream);
-		var dummyPkg = new Pkg(); // Only used to construct the ReadContext
-		var context = new ReadContext(dummyPkg, new HeapManager());
+		var context = new ReadContext(new HeapManager());
 
 		// Skip past HeaderSize and DataSectionSize
 		await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
