@@ -1,6 +1,8 @@
 ﻿using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Definitions.Utility;
 
 namespace MercuryEngine.Data.Types.Bcmdl;
 
@@ -96,6 +98,22 @@ public class Material : DataStructure<Material>
 	private TerminatedStringField? Tex1NameField { get; set; }
 	private TerminatedStringField? Tex2NameField { get; set; }
 	private TerminatedStringField? Tex3NameField { get; set; }
+
+	#endregion
+
+	#region Hooks
+
+	protected override void AfterRead(ReadContext context)
+	{
+		base.AfterRead(context);
+
+		KnownStrings.Record(Name);
+		KnownStrings.Record(Path);
+		KnownStrings.Record(Prefix);
+		KnownStrings.Record(Tex1Name);
+		KnownStrings.Record(Tex2Name);
+		KnownStrings.Record(Tex3Name);
+	}
 
 	#endregion
 

@@ -1,8 +1,10 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Definitions.Utility;
 
 namespace MercuryEngine.Data.Types.Bsmat;
 
@@ -54,6 +56,17 @@ public class UniformParameter : DataStructure<UniformParameter>
 	private ArrayField<UInt32Field> UnsignedIntsField { get; } = new();
 
 	private SwitchField<IBinaryField> ValuesField { get; }
+
+	#endregion
+
+	#region Hooks
+
+	protected override void AfterRead(ReadContext context)
+	{
+		base.AfterRead(context);
+
+		KnownStrings.Record(Name);
+	}
 
 	#endregion
 

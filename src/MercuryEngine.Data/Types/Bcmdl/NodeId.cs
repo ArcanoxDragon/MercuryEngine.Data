@@ -1,6 +1,8 @@
 ﻿using MercuryEngine.Data.Core.Framework.Fields;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Definitions.Utility;
 
 namespace MercuryEngine.Data.Types.Bcmdl;
 
@@ -31,6 +33,17 @@ public class NodeId : DataStructure<NodeId>
 	#region Private Data
 
 	private TerminatedStringField? NameField { get; set; }
+
+	#endregion
+
+	#region Hooks
+
+	protected override void AfterRead(ReadContext context)
+	{
+		base.AfterRead(context);
+
+		KnownStrings.Record(Name);
+	}
 
 	#endregion
 

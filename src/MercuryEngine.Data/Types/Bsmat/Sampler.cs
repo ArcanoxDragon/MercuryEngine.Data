@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
+using MercuryEngine.Data.Definitions.Utility;
 using MercuryEngine.Data.Types.DreadTypes;
 
 namespace MercuryEngine.Data.Types.Bsmat;
@@ -25,6 +27,20 @@ public class Sampler : DataStructure<Sampler>
 	public float       Anisotropic         { get; set; }
 	public float       MaxMipLevel         { get; set; }
 	public float       MaxAnisotropy       { get; set; }
+
+	#region Hooks
+
+	protected override void AfterRead(ReadContext context)
+	{
+		base.AfterRead(context);
+
+		KnownStrings.Record(Name);
+		KnownStrings.Record(ShaderBindingName);
+		KnownStrings.Record(Type);
+		KnownStrings.Record(TexturePath);
+	}
+
+	#endregion
 
 	protected override void Describe(DataStructureBuilder<Sampler> builder)
 	{

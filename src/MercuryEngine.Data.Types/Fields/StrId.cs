@@ -7,7 +7,7 @@ namespace MercuryEngine.Data.Types.Fields;
 public class StrId(ulong value) : UInt64Field(value)
 {
 	public StrId()
-		: this(default(ulong)) { }
+		: this(0) { }
 
 	public StrId(string value)
 		: this(value.GetCrc64())

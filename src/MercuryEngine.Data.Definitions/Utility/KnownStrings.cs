@@ -34,8 +34,13 @@ public static class KnownStrings
 	/// <summary>
 	/// Records the CRC64 hash of the provided <paramref name="value"/> so that it can be retrieved by the hash at a later point in time.
 	/// </summary>
-	public static void Record(string value)
-		=> InternalKnownStrings.Record(value);
+	public static void Record(string? value)
+	{
+		if (value is null)
+			return;
+
+		InternalKnownStrings.Record(value);
+	}
 
 	private static void ParseStringsFromDataFile(string fileName)
 	{
