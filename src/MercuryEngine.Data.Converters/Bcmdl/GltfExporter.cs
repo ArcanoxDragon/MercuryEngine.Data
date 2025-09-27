@@ -24,69 +24,72 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 	private const string TextureNameNormals    = "texNormals";
 	private const string TextureNameAttributes = "texAttributes";
 
+	/// <summary>
+	/// Raised when a non-fatal warning is encountered during BCMDL import or glTF export.
+	/// </summary>
+	public event Action<string>? Warning;
+
 	public IMaterialResolver? MaterialResolver { get; } = materialResolver;
 
 	private Dictionary<string, NodeBuilder>      ArmatureNodeCache { get; } = [];
 	private Dictionary<ArmatureJoint, Matrix4x4> JointMatrixCache  { get; } = [];
 
+	private SceneBuilder? CurrentScene        { get; set; }
 	private Armature?     CurrentArmature     { get; set; }
 	private VertexData[]? CurrentVertexBuffer { get; set; }
 	private ushort[]?     CurrentIndexBuffer  { get; set; }
 
-	public void ExportGltf(Formats.Bcmdl bcmdl, string targetFilePath, bool binary = true, string? sceneName = null)
+	public void LoadBcmdl(Formats.Bcmdl bcmdl, string? sceneName = null)
 	{
-		try
+		CurrentScene = new SceneBuilder(sceneName);
+
+		// Build the armature first
+		CurrentArmature = bcmdl.GetArmature();
+
+		BuildSceneArmature();
+
+		// Build meshes
+		foreach (var bcmdlNode in bcmdl.Nodes)
 		{
-			var scene = new SceneBuilder(sceneName);
+			if (bcmdlNode?.Mesh is not { VertexBuffer: { } vertexBuffer, IndexBuffer: { } indexBuffer })
+				continue;
 
-			// Build the armature first
-			CurrentArmature = bcmdl.GetArmature();
+			CurrentVertexBuffer = vertexBuffer.GetVertices();
+			CurrentIndexBuffer = indexBuffer.GetIndices();
 
-			BuildArmature(scene, CurrentArmature);
+			AddMeshInstance(CurrentScene, bcmdlNode);
 
-			// Build meshes
-			foreach (var bcmdlNode in bcmdl.Nodes)
-			{
-				if (bcmdlNode?.Mesh is not { VertexBuffer: { } vertexBuffer, IndexBuffer: { } indexBuffer })
-					continue;
-
-				CurrentVertexBuffer = vertexBuffer.GetVertices();
-				CurrentIndexBuffer = indexBuffer.GetIndices();
-
-				AddMeshInstance(scene, bcmdlNode);
-
-				CurrentVertexBuffer = null;
-				CurrentIndexBuffer = null;
-			}
-
-			if (binary)
-			{
-				scene.ToGltf2().SaveGLB(targetFilePath, new WriteSettings {
-					ImageWriting = ResourceWriteMode.BufferView,
-				});
-			}
-			else
-			{
-				scene.ToGltf2().SaveGLTF(targetFilePath);
-			}
-		}
-		finally
-		{
-			// Clean up
-			ArmatureNodeCache.Clear();
-			JointMatrixCache.Clear();
-			CurrentArmature = null;
 			CurrentVertexBuffer = null;
 			CurrentIndexBuffer = null;
 		}
 	}
 
-	private void BuildArmature(SceneBuilder scene, Armature armature)
+	public void ExportGltf(string targetFilePath, bool binary = true)
 	{
+		if (CurrentScene is null)
+			throw new InvalidOperationException("A BCMDL has not yet been loaded");
+
+		if (binary)
+		{
+			CurrentScene.ToGltf2().SaveGLB(targetFilePath, new WriteSettings {
+				ImageWriting = ResourceWriteMode.BufferView,
+			});
+		}
+		else
+		{
+			CurrentScene.ToGltf2().SaveGLTF(targetFilePath);
+		}
+	}
+
+	private void BuildSceneArmature()
+	{
+		if (CurrentScene is null || CurrentArmature is null)
+			return;
+
 		ArmatureNodeCache.Clear();
 		JointMatrixCache.Clear();
 
-		foreach (var joint in armature.RootJoints)
+		foreach (var joint in CurrentArmature.RootJoints)
 		{
 			VisitJoint(joint);
 		}
@@ -108,8 +111,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 				VisitJoint(child, builder);
 
 			ArmatureNodeCache[joint.Name] = builder;
-
-			scene.AddNode(builder).WithName(joint.Name);
+			CurrentScene.AddNode(builder).WithName(joint.Name);
 		}
 	}
 
@@ -144,12 +146,14 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 		// Add a mesh for each primitive (joint maps are stored per-primitive in BCMDL, but per mesh in glTF,
 		// so in order for the per-vertex indices to line up, the primitives have to be in separate meshes)
+		var index = 0;
+
 		foreach (var primitive in primitives)
 		{
 			if (primitive is null || !TryCreateMeshBuilder(bcmdlNode, bcmdlNode.Id?.Name, out var meshBuilder))
 				continue;
 
-			FillPrimitive(meshBuilder, materialBuilder, primitive);
+			FillPrimitive(bcmdlNode, index, meshBuilder, materialBuilder, primitive);
 
 			// Add primitive to the scene, either as skinned or rigid (depending on if it referenced any joints)
 			if (mesh.IsSkinned() && primitive.JointMap.Length > 0)
@@ -166,6 +170,8 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 				scene.AddRigidMesh(meshBuilder, meshNodeBuilder).WithName(bcmdlNode.Id?.Name);
 			}
+
+			index++;
 		}
 	}
 
@@ -380,21 +386,25 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 	#region Primitives
 
-	private void FillPrimitive(IMeshBuilder<MaterialBuilder> meshBuilder, MaterialBuilder materialBuilder, MeshPrimitive meshPrimitive)
+	private void FillPrimitive(MeshNode meshNode, int primitiveIndex, IMeshBuilder<MaterialBuilder> meshBuilder, MaterialBuilder materialBuilder, MeshPrimitive meshPrimitive)
 	{
 		if (CurrentVertexBuffer is not { } vertices || CurrentIndexBuffer is not { } indices)
 			return;
 
 		if (meshPrimitive.IndexCount % 3 != 0)
-			// TODO: Need way of communicating warnings to consumer
+		{
+			Warn($"Primitive {primitiveIndex} of mesh \"{meshNode.Id?.Name}\" had an invalid number of indices: {meshPrimitive.IndexCount} (must be divisible by 3)");
 			return;
+		}
 
 		var startIndex = meshPrimitive.IndexOffset;
 		var endIndex = startIndex + meshPrimitive.IndexCount - 1;
 
 		if (endIndex >= indices.Length)
-			// TODO: Need way of communicating warnings to consumer
+		{
+			Warn($"Primitive {primitiveIndex} of mesh \"{meshNode.Id?.Name}\" had too many indices (last IndexBuffer index was {endIndex}, but IndexBuffer only has {indices.Length} indices)");
 			return;
+		}
 
 		var primitiveBuilder = meshBuilder.UsePrimitive(materialBuilder);
 
@@ -405,8 +415,11 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 			var triIndexC = indices[i + 2];
 
 			if (triIndexA >= vertices.Length || triIndexB >= vertices.Length || triIndexC >= vertices.Length)
-				// TODO: Need way of communicating warnings to consumer
+			{
+				var offendingIndex = Math.Max(triIndexA, Math.Max(triIndexB, triIndexC));
+				Warn($"Primitive {primitiveIndex} of mesh \"{meshNode.Id?.Name}\" had an invalid triangle (referenced vertex {offendingIndex}, but vertex buffer only has {vertices.Length} vertices)");
 				return;
+			}
 
 			var vertexA = vertices[triIndexA];
 			var vertexB = vertices[triIndexB];
@@ -455,6 +468,12 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 	}
 
 	#endregion
+
+	private void Warn(FormattableString message)
+		=> Warning?.Invoke(message.ToString());
+
+	private void Warn(string message)
+		=> Warning?.Invoke(message);
 
 	private static Vector3 ScalePosition(Vector3 rawPosition)
 		// Scale cm to meters
