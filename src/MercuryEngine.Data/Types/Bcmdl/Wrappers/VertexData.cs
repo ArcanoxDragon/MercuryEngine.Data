@@ -58,6 +58,10 @@ public class VertexData
 			case VertexInfoType.UV3:
 				UV3 = ReadVector2(componentData);
 				break;
+			case VertexInfoType.Tangent when infoSlot.Count == 3:
+				// This is a rare case with billboard models - a tangent for a 2D plane does not have a fourth component
+				Tangent = new Vector4(ReadVector3(componentData), 1f);
+				break;
 			case VertexInfoType.Tangent:
 				Tangent = ReadVector4(componentData);
 				break;

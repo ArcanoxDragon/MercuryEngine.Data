@@ -4,9 +4,9 @@ namespace MercuryEngine.Data.Converters.Bcmdl;
 
 public static class BcmdlExtensions
 {
-	public static bool IsSkinned(this Mesh meshNode)
+	public static bool IsSkinned(this Mesh mesh)
 	{
-		if (meshNode.VertexBuffer is not { } vertexBuffer)
+		if (mesh.VertexBuffer is not { } vertexBuffer)
 			return false;
 
 		var hasJointIndices = vertexBuffer.VertexInfoSlots.Any(s => s.Type == VertexInfoType.JointIndex);

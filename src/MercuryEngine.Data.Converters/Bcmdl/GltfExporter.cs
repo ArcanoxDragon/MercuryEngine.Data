@@ -133,7 +133,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 	private void AddMeshInstance(SceneBuilder scene, MeshNode bcmdlNode)
 	{
-		if (bcmdlNode.Mesh is not { Primitives: { } primitives })
+		if (bcmdlNode.Mesh is not { Primitives: { } primitives } mesh)
 			return;
 
 		// Create and populate the MaterialBuilder
@@ -152,7 +152,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 			FillPrimitive(meshBuilder, materialBuilder, primitive);
 
 			// Add primitive to the scene, either as skinned or rigid (depending on if it referenced any joints)
-			if (primitive.JointMap.Length > 0)
+			if (mesh.IsSkinned() && primitive.JointMap.Length > 0)
 			{
 				// Skinned mesh
 				AddSkinnedMesh(scene, bcmdlNode, primitive, meshBuilder);
