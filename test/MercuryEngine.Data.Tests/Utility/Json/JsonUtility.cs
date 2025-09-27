@@ -22,6 +22,7 @@ internal static class JsonUtility
 		Converters = {
 			new DataMapperJsonConverter(),
 			new JsonStringEnumConverter(),
+			new AnimatableValueJsonConverter(),
 			new ArrayFieldJsonConverter(),
 			new DictionaryFieldJsonConverter(),
 			new DreadPointerJsonConverter(),

@@ -9,6 +9,7 @@ namespace MercuryEngine.Data.Tests.Utility.Json;
 	IncludeFields = true,
 	Converters = [
 		typeof(JsonStringEnumConverter),
+		typeof(AnimatableValueJsonConverter),
 		typeof(ArrayFieldJsonConverter),
 		typeof(DictionaryFieldJsonConverter),
 		typeof(DreadPointerJsonConverter),

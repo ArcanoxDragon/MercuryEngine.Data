@@ -1,4 +1,6 @@
-﻿namespace MercuryEngine.Data.Types.Bcmdl.Wrappers;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace MercuryEngine.Data.Types.Bcmdl.Wrappers;
 
 public class Armature
 {
@@ -35,6 +37,18 @@ public class Armature
 	public IReadOnlyList<ArmatureJoint> AllJoints => this.allJoints;
 
 	public IEnumerable<ArmatureJoint> RootJoints => this.allJoints.Where(j => j.IsRoot);
+
+	public bool TryGetJoint(int index, [NotNullWhen(true)] out ArmatureJoint? joint)
+	{
+		if (index < 0 || index >= this.allJoints.Count)
+		{
+			joint = null;
+			return false;
+		}
+
+		joint = this.allJoints[index];
+		return true;
+	}
 
 	private void PopulateFromBcmdl(Formats.Bcmdl source)
 	{

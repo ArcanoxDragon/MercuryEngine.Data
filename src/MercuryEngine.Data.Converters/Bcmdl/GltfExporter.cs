@@ -4,7 +4,10 @@ using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
+using MercuryEngine.Data.Types.Bcskla;
 using MercuryEngine.Data.Types.Bsmat;
+using MercuryEngine.Data.Types.Fields;
+using SharpGLTF.Animations;
 using SharpGLTF.Geometry;
 using SharpGLTF.Geometry.VertexTypes;
 using SharpGLTF.Materials;
@@ -31,13 +34,16 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 	public IMaterialResolver? MaterialResolver { get; } = materialResolver;
 
-	private Dictionary<string, NodeBuilder>      ArmatureNodeCache { get; } = [];
-	private Dictionary<ArmatureJoint, Matrix4x4> JointMatrixCache  { get; } = [];
+	private Dictionary<string, NodeBuilder>      ArmatureNodeCache      { get; } = [];
+	private Dictionary<StrId, NodeBuilder>       ArmatureNodeCacheByCrc { get; } = [];
+	private Dictionary<ArmatureJoint, Matrix4x4> JointMatrixCache       { get; } = [];
 
 	private SceneBuilder? CurrentScene        { get; set; }
 	private Armature?     CurrentArmature     { get; set; }
 	private VertexData[]? CurrentVertexBuffer { get; set; }
 	private ushort[]?     CurrentIndexBuffer  { get; set; }
+
+	#region Public API
 
 	public void LoadBcmdl(Formats.Bcmdl bcmdl, string? sceneName = null)
 	{
@@ -64,10 +70,29 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		}
 	}
 
+	public void AttachAnimation(string animationName, Bcskla animationContainer)
+	{
+		AssertScene();
+
+		var index = 0;
+
+		foreach (var boneTrack in animationContainer.Tracks)
+		{
+			var thisIndex = index++;
+
+			if (!ArmatureNodeCacheByCrc.TryGetValue(boneTrack.BoneName, out var boneNode))
+			{
+				Warn($"Animation track {thisIndex} referenced unknown bone \"{boneTrack.BoneName}\"");
+				continue;
+			}
+
+			AttachNodeAnimation(animationName, animationContainer.FrameCount, boneNode, boneTrack);
+		}
+	}
+
 	public void ExportGltf(string targetFilePath, bool binary = true)
 	{
-		if (CurrentScene is null)
-			throw new InvalidOperationException("A BCMDL has not yet been loaded");
+		AssertScene();
 
 		if (binary)
 		{
@@ -81,12 +106,17 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		}
 	}
 
+	#endregion
+
+	#region Armature
+
 	private void BuildSceneArmature()
 	{
 		if (CurrentScene is null || CurrentArmature is null)
 			return;
 
 		ArmatureNodeCache.Clear();
+		ArmatureNodeCacheByCrc.Clear();
 		JointMatrixCache.Clear();
 
 		foreach (var joint in CurrentArmature.RootJoints)
@@ -111,6 +141,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 				VisitJoint(child, builder);
 
 			ArmatureNodeCache[joint.Name] = builder;
+			ArmatureNodeCacheByCrc[joint.Name] = builder;
 			CurrentScene.AddNode(builder).WithName(joint.Name);
 		}
 	}
@@ -130,6 +161,8 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 
 		return jointMatrix;
 	}
+
+	#endregion
 
 	#region Mesh Instances
 
@@ -164,11 +197,16 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 			else
 			{
 				// Rigid mesh
-				var meshNodeBuilder = new NodeBuilder(bcmdlNode.Id?.Name) {
-					LocalMatrix = GetMeshTransformMatrix(bcmdlNode),
-				};
+				var meshInstanceMatrix = GltfExporter.GetMeshTransformMatrix(bcmdlNode);
+				NodeBuilder meshParent;
 
-				scene.AddRigidMesh(meshBuilder, meshNodeBuilder).WithName(bcmdlNode.Id?.Name);
+				// Unskinned meshes sometimes have a joint named the same as the mesh, which should be the mesh parent
+				if (bcmdlNode.Id?.Name is { } meshName && ArmatureNodeCache.TryGetValue(meshName, out var parentJointNode))
+					meshParent = parentJointNode;
+				else
+					meshParent = new NodeBuilder(bcmdlNode.Id?.Name);
+
+				scene.AddRigidMesh(meshBuilder, meshParent, meshInstanceMatrix).WithName(bcmdlNode.Id?.Name);
 			}
 
 			index++;
@@ -468,6 +506,141 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 	}
 
 	#endregion
+
+	#region Animations
+
+	private static void AttachNodeAnimation(string trackName, float frameCount, NodeBuilder boneNode, BoneTrack boneTrack)
+	{
+		FillAnimationTrack(boneNode.UseTranslation(trackName), frameCount, boneTrack.Values.Position, 0.01f /* cm to m */);
+		FillAnimationTrack(boneNode.UseRotation(trackName), frameCount, boneTrack.Values.Rotation);
+		FillAnimationTrack(boneNode.UseScale(trackName), frameCount, boneTrack.Values.Scale);
+	}
+
+	private static void FillAnimationTrack(CurveBuilder<Vector3> curveBuilder, float frameCount, AnimatableVector trackVector, float valueScale = 1f)
+	{
+		// BCSKLA stores each vector component as its own track, so we need to use some funky logic to
+		// blend the three component tracks into a single Vector3 curve.
+
+		// All the CurveBuilder classes are internal, so we have to use this convoluted method to create an empty CurveBuilder<Vector3>...
+		var xCurve = CreateVectorCurveBuilder();
+		var yCurve = CreateVectorCurveBuilder();
+		var zCurve = CreateVectorCurveBuilder();
+
+		FillAnimationTrack(xCurve, frameCount, trackVector.X, out var xRates, valueScale);
+		FillAnimationTrack(yCurve, frameCount, trackVector.Y, out var yRates, valueScale);
+		FillAnimationTrack(zCurve, frameCount, trackVector.Z, out var zRates, valueScale);
+
+		var allFrameKeys = xCurve.Keys.Concat([..yCurve.Keys, ..zCurve.Keys]).Distinct().Order().ToList();
+
+		foreach (var frameKey in allFrameKeys)
+		{
+			var xValue = xCurve.GetPoint(frameKey).X;
+			var yValue = yCurve.GetPoint(frameKey).X;
+			var zValue = zCurve.GetPoint(frameKey).X;
+			var valueVector = new Vector3(xValue, yValue, zValue);
+			var xRate = xRates.GetValueOrDefault(frameKey);
+			var yRate = yRates.GetValueOrDefault(frameKey);
+			var zRate = zRates.GetValueOrDefault(frameKey);
+			var rateVector = new Vector3(xRate, yRate, zRate);
+
+			curveBuilder.SetPoint(frameKey, valueVector, isLinear: false);
+			curveBuilder.SetIncomingTangent(frameKey, -rateVector);
+			curveBuilder.SetOutgoingTangent(frameKey, rateVector);
+		}
+	}
+
+	private static void FillAnimationTrack(CurveBuilder<Quaternion> curveBuilder, float frameCount, AnimatableVector trackVector)
+	{
+		var vectorCurveBuilder = CreateVectorCurveBuilder();
+
+		FillAnimationTrack(vectorCurveBuilder, frameCount, trackVector);
+
+		// Merge all rates manually since we can't sample those
+		var allFrameRates = new Dictionary<float, Vector3>();
+
+		foreach (var (frame, keyframeValues) in trackVector.X.GetValues())
+		{
+			var frameKey = GetFrameKey(frameCount, frame);
+			var frameVector = allFrameRates.GetValueOrDefault(frameKey);
+
+			frameVector.X = keyframeValues.Rate;
+			allFrameRates[frameKey] = frameVector;
+		}
+
+		foreach (var (frame, keyframeValues) in trackVector.Y.GetValues())
+		{
+			var frameKey = GetFrameKey(frameCount, frame);
+			var frameVector = allFrameRates.GetValueOrDefault(frameKey);
+
+			frameVector.Y = keyframeValues.Rate;
+			allFrameRates[frameKey] = frameVector;
+		}
+
+		foreach (var (frame, keyframeValues) in trackVector.Z.GetValues())
+		{
+			var frameKey = GetFrameKey(frameCount, frame);
+			var frameVector = allFrameRates.GetValueOrDefault(frameKey);
+
+			frameVector.Z = keyframeValues.Rate;
+			allFrameRates[frameKey] = frameVector;
+		}
+
+		// Convert the vector samples to Quaternion samples using Pitch/Roll/Yaw rotation
+		foreach (var frameKey in vectorCurveBuilder.Keys)
+		{
+			var frameAngles = vectorCurveBuilder.GetPoint(frameKey);
+			var frameMatrix = MathHelper.CreateXYZRotationMatrix(frameAngles.X, frameAngles.Y, frameAngles.Z);
+			var frameQuat = Quaternion.CreateFromRotationMatrix(frameMatrix);
+			var frameRates = allFrameRates.GetValueOrDefault(frameKey);
+			var incomingTangentMatrix = MathHelper.CreateXYZRotationMatrix(-frameRates.X, -frameRates.Y, -frameRates.Z);
+			var outgoingTangentMatrix = MathHelper.CreateXYZRotationMatrix(frameRates.X, frameRates.Y, frameRates.Z);
+			var incomingTangentQuat = Quaternion.CreateFromRotationMatrix(incomingTangentMatrix);
+			var outgoingTangentQuat = Quaternion.CreateFromRotationMatrix(outgoingTangentMatrix);
+
+			curveBuilder.SetPoint(frameKey, frameQuat, isLinear: false);
+			curveBuilder.SetIncomingTangent(frameKey, incomingTangentQuat);
+			curveBuilder.SetOutgoingTangent(frameKey, outgoingTangentQuat);
+		}
+	}
+
+	private static void FillAnimationTrack(CurveBuilder<Vector3> curveBuilder, float frameCount, AnimatableValue trackValue, out Dictionary<float, float> rates, float valueScale = 1f)
+	{
+		rates = new Dictionary<float, float>();
+
+		if (trackValue.IsConstant)
+		{
+			curveBuilder.SetPoint(0f, new Vector3(trackValue.ConstantValue * valueScale, 0f, 0f), isLinear: false);
+			curveBuilder.SetPoint(1f, new Vector3(trackValue.ConstantValue * valueScale, 0f, 0f), isLinear: false);
+		}
+		else
+		{
+			foreach (var (frame, keyframeValues) in trackValue.GetValues())
+			{
+				var frameKey = GetFrameKey(frameCount, frame);
+
+				curveBuilder.SetPoint(frameKey, new Vector3(keyframeValues.Value * valueScale, 0f, 0f), isLinear: false);
+				curveBuilder.SetIncomingTangent(frameKey, new Vector3(-keyframeValues.Rate * valueScale, 0f, 0f));
+				curveBuilder.SetOutgoingTangent(frameKey, new Vector3(keyframeValues.Rate * valueScale, 0f, 0f));
+				rates[frameKey] = keyframeValues.Rate * valueScale;
+			}
+		}
+	}
+
+	private static CurveBuilder<Vector3> CreateVectorCurveBuilder()
+		// All the CurveBuilder classes are internal, so we have to use this convoluted method to create an empty CurveBuilder<Vector3>...
+		=> new NodeBuilder().UseTranslation().UseTrackBuilder("dummy");
+
+	private static float GetFrameKey(float frameCount, ushort frameIndex)
+		=> frameIndex / frameCount;
+
+	#endregion
+
+	[MemberNotNull(nameof(CurrentScene))]
+	private void AssertScene()
+	{
+		if (CurrentScene is null)
+			throw new InvalidOperationException("A BCMDL has not yet been loaded");
+	}
 
 	private void Warn(FormattableString message)
 		=> Warning?.Invoke(message.ToString());
