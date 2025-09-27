@@ -33,11 +33,18 @@ internal class InternalKnownStrings
 	{
 		var hash = value.GetCrc64();
 
-		if (HashToStringLookup.TryAdd(hash, value))
+		// Early check before locking
+		if (HashToStringLookup.ContainsKey(hash))
+			return;
+
+		lock (HashToStringLookup)
 		{
-			NewDiscoveredStrings.Add(value);
-			Debug.WriteLine("################ DISCOVERED NEW STRING!!! ################");
-			Debug.WriteLine(value);
+			if (HashToStringLookup.TryAdd(hash, value))
+			{
+				NewDiscoveredStrings.Add(value);
+				Debug.WriteLine("################ DISCOVERED NEW STRING!!! ################");
+				Debug.WriteLine(value);
+			}
 		}
 	}
 }
