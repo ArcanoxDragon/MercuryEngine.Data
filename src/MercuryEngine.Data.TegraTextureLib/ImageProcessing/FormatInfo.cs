@@ -1,4 +1,4 @@
-﻿namespace MercuryEngine.Data.TegraTextureLib;
+﻿namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
 /// <summary>
 /// Represents texture format information.

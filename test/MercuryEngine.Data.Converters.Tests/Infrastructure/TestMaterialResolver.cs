@@ -2,6 +2,7 @@
 using MercuryEngine.Data.Converters.Bcmdl;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.TegraTextureLib;
+using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Types.Pkg;
 using SkiaSharp;

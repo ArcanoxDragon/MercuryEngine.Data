@@ -1,5 +1,7 @@
 ﻿using SkiaSharp;
 using MercuryEngine.Data.TegraTextureLib.Extensions;
+using MercuryEngine.Data.TegraTextureLib.Formats;
+using MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 using BaseMedTestFixture = MercuryEngine.Data.Tests.Infrastructure.BaseTestFixture;
 
 namespace MercuryEngine.Data.TegraTextureLib.Tests;

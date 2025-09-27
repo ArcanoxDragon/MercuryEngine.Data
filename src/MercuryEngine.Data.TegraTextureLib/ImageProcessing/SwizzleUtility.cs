@@ -1,6 +1,6 @@
 ﻿using MercuryEngine.Data.TegraTextureLib.Utility;
 
-namespace MercuryEngine.Data.TegraTextureLib;
+namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
 internal static class SwizzleUtility
 {

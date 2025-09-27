@@ -3,6 +3,7 @@ using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Types.DreadTypes;
 using SkiaSharp;
 using MercuryEngine.Data.TegraTextureLib.Extensions;
+using MercuryEngine.Data.TegraTextureLib.Formats;
 
 namespace MercuryEngine.Data.TegraTextureLib.Tests;
 

@@ -4,7 +4,7 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using MercuryEngine.Data.TegraTextureLib.Utility;
 
-namespace MercuryEngine.Data.TegraTextureLib;
+namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
 public static class BCnDecoder
 {

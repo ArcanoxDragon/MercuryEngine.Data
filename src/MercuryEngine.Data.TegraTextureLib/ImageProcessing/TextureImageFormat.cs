@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace MercuryEngine.Data.TegraTextureLib;
+namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
 public enum TextureImageFormat
 {

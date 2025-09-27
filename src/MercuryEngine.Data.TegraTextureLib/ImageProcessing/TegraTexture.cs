@@ -1,8 +1,9 @@
 ﻿using System.Buffers;
-using SkiaSharp;
+using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.TegraTextureLib.Utility;
+using SkiaSharp;
 
-namespace MercuryEngine.Data.TegraTextureLib;
+namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
 public sealed record TegraTexture(Xtx.TextureInfo Info, byte[] Data)
 {

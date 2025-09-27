@@ -3,9 +3,10 @@ using System.Text;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.TegraTextureLib.Extensions;
+using MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
-namespace MercuryEngine.Data.TegraTextureLib;
+namespace MercuryEngine.Data.TegraTextureLib.Formats;
 
 public class Bctex : BaseDataFormat
 {

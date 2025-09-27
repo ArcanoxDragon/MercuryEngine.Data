@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
-namespace MercuryEngine.Data.TegraTextureLib;
+namespace MercuryEngine.Data.TegraTextureLib.Formats;
 
 public abstract class BaseDataFormat
 {

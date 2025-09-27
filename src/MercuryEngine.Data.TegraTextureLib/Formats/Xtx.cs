@@ -1,8 +1,9 @@
 ﻿using System.Text;
 using MercuryEngine.Data.TegraTextureLib.Extensions;
+using MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 using Overby.Extensions.AsyncBinaryReaderWriter;
 
-namespace MercuryEngine.Data.TegraTextureLib;
+namespace MercuryEngine.Data.TegraTextureLib.Formats;
 
 public class Xtx : BaseDataFormat
 {

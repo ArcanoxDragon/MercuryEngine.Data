@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using TegraSwizzle;
 using NativeBlockDim = TegraSwizzle.BlockDim;
 
-namespace MercuryEngine.Data.TegraTextureLib;
+namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
 [PublicAPI]
 public class TegraSwizzle
