@@ -35,7 +35,9 @@ public class VertexInfoList : IBinaryField
 		var entryCount = reader.ReadUInt32();
 
 		// There are four bytes of padding between the entry count and the first entry (-1 if read as a signed int32)
-		Debug.Assert(reader.ReadInt32() == -1);
+		var padding = reader.ReadInt32();
+
+		Debug.Assert(padding == -1);
 
 		for (var i = 0; i < entryCount; i++)
 		{
@@ -64,7 +66,9 @@ public class VertexInfoList : IBinaryField
 		var entryCount = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
 
 		// There are four bytes of padding between the entry count and the first entry (-1 if read as a signed int32)
-		Debug.Assert(await reader.ReadInt32Async(cancellationToken).ConfigureAwait(false) == -1);
+		var padding = await reader.ReadInt32Async(cancellationToken).ConfigureAwait(false);
+
+		Debug.Assert(padding == -1);
 
 		for (var i = 0; i < entryCount; i++)
 		{
