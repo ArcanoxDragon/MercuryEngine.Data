@@ -62,4 +62,22 @@ public static class StreamExtensions
 	/// </summary>
 	public static uint GetNeededPaddingForAlignment(this Stream stream, uint byteAlignment)
 		=> MathHelper.GetNeededPaddingForAlignment((ulong) stream.Position, byteAlignment);
+
+	/// <summary>
+	/// Seeks this <see cref="Stream"/> to the new location given by <paramref name="newOffset"/> and <paramref name="origin"/>,
+	/// and returns an <see cref="IDisposable"/> <see cref="SeekToken"/> that, when disposed, will return the stream to the
+	/// position it was at when this method was first called.
+	/// </summary>
+	public static SeekToken TemporarySeek(this Stream stream, long newOffset, SeekOrigin origin = SeekOrigin.Begin)
+	{
+		var originalPosition = stream.Position;
+		stream.Seek(newOffset, origin);
+		return new SeekToken(stream, originalPosition);
+	}
+
+	public readonly struct SeekToken(Stream stream, long originalPosition) : IDisposable
+	{
+		public void Dispose()
+			=> stream.Position = originalPosition;
+	}
 }
