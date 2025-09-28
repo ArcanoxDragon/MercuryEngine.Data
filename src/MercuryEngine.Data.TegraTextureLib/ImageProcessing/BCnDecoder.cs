@@ -524,6 +524,45 @@ public static class BCnDecoder
 		return output;
 	}
 
+	public static MemoryOwner<byte> DecodeBC6(ReadOnlySpan<byte> data, int width, int height, int depth, int levels, int layers, bool signed)
+	{
+		int size = 0;
+
+		for (int l = 0; l < levels; l++)
+		{
+			size += Math.Max(1, width >> l) * Math.Max(1, height >> l) * Math.Max(1, depth >> l) * layers * 8;
+		}
+
+		MemoryOwner<byte> output = MemoryOwner<byte>.Rent(size);
+		Span<byte> outputSpan = output.Span;
+
+		int inputOffset = 0;
+		int outputOffset = 0;
+
+		for (int l = 0; l < levels; l++)
+		{
+			int w = BitUtils.DivRoundUp(width, BlockWidth);
+			int h = BitUtils.DivRoundUp(height, BlockHeight);
+
+			for (int l2 = 0; l2 < layers; l2++)
+			{
+				for (int z = 0; z < depth; z++)
+				{
+					BC6Decoder.Decode(outputSpan[outputOffset..], data[inputOffset..], width, height, signed);
+
+					inputOffset += w * h * 16;
+					outputOffset += width * height * 8;
+				}
+			}
+
+			width = Math.Max(1, width >> 1);
+			height = Math.Max(1, height >> 1);
+			depth = Math.Max(1, depth >> 1);
+		}
+
+		return output;
+	}
+
 	private static ulong InterleaveBytes(uint left, uint right)
 	{
 		return BCnDecoder.InterleaveBytesWithZeros(left) | ( BCnDecoder.InterleaveBytesWithZeros(right) << 8 );

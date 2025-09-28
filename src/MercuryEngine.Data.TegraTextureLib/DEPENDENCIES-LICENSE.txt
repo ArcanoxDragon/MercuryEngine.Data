@@ -1,4 +1,4 @@
-﻿Certain parts of the code in this folder is derived from the Ryujinx project, the license for which is included below.
+﻿Certain parts of the code in this project (largely related to image decoding) are derived from the Ryujinx project, the license for which is included below.
 
 MIT License
 

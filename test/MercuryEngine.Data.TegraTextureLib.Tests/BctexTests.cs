@@ -170,30 +170,35 @@ public partial class BctexTests : BaseMedTestFixture
 		Directory.CreateDirectory(outFileDir);
 
 		var texture = bctex.Textures.Single();
-		using var bitmap = texture.ToBitmap(isSrgb: bctex.IsSrgb);
-		using var convertedBitmap = ConvertBitmapColors(bitmap);
-		var outFileName = ( bctex.TextureName ?? sourceFileName ) + ".png";
-		var outFilePath = Path.Join(outFileDir, outFileName);
-		var retry = false;
-		var iterations = 0;
 
-		do
+		for (var arrayLevel = 0; arrayLevel < texture.Info.ArrayCount; arrayLevel++)
 		{
-			retry = false;
+			using var bitmap = texture.ToBitmap(arrayLevel, isSrgb: bctex.IsSrgb);
+			using var convertedBitmap = ConvertBitmapColors(bitmap);
+			var fileNameSuffix = texture.Info.ArrayCount == 1 ? ".png" : $".{arrayLevel}.png";
+			var outFileName = ( bctex.TextureName ?? sourceFileName ) + fileNameSuffix;
+			var outFilePath = Path.Join(outFileDir, outFileName);
+			var retry = false;
+			var iterations = 0;
 
-			try
+			do
 			{
-				using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
+				retry = false;
 
-				convertedBitmap.Encode(outFileStream, SKEncodedImageFormat.Png, 100);
+				try
+				{
+					using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
+
+					convertedBitmap.Encode(outFileStream, SKEncodedImageFormat.Png, 100);
+				}
+				catch (IOException)
+				{
+					retry = true;
+					Thread.Sleep(1000);
+				}
 			}
-			catch (IOException)
-			{
-				retry = true;
-				Thread.Sleep(1000);
-			}
+			while (retry && ( ++iterations <= 10 ));
 		}
-		while (retry && ( ++iterations <= 10 ));
 	}
 
 	private static SKBitmap ConvertBitmapColors(SKBitmap input)

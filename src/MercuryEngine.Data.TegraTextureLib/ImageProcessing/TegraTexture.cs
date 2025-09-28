@@ -10,11 +10,11 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 	private static readonly SKColorSpace LinearColorSpace = SKColorSpace.CreateRgb(SKColorSpaceTransferFn.Linear, SKColorSpaceXyz.Identity);
 	private static readonly SKColorSpace SrgbColorSpace   = SKColorSpace.CreateSrgb();
 
-	public SKBitmap ToBitmap(bool isSrgb = true)
+	public SKBitmap ToBitmap(int arrayLevel = 0, int mipLevel = 0, bool isSrgb = true)
 	{
 		SKBitmap bitmap = null!;
 
-		using (var memoryOwner = DeswizzleAndDecode(out var textureFormatInfo, out var wasDecoded))
+		using (var memoryOwner = DeswizzleAndDecode(arrayLevel, mipLevel, out var textureFormatInfo, out var wasDecoded))
 		{
 			// First, load the data into a source bitmap with a color type corresponding to the source data
 			var bitmapData = memoryOwner.Span;
@@ -35,12 +35,17 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 		return bitmap;
 	}
 
-	public IMemoryOwner<byte> ToRawData()
-		=> DeswizzleAndDecode(out _, out _);
+	public IMemoryOwner<byte> ToRawData(int arrayLevel = 0, int mipLevel = 0)
+		=> DeswizzleAndDecode(arrayLevel, mipLevel, out _, out _);
 
-	private MemoryOwner<byte> DeswizzleAndDecode(out FormatInfo textureFormatInfo, out bool wasDecoded)
+	private MemoryOwner<byte> DeswizzleAndDecode(int arrayLevel, int mipLevel, out FormatInfo textureFormatInfo, out bool wasDecoded)
 	{
-		var deswizzledData = SwizzleUtility.DeswizzleTextureData(this, 0, 0, out textureFormatInfo);
+		ArgumentOutOfRangeException.ThrowIfNegative(arrayLevel);
+		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(arrayLevel, (int) Info.ArrayCount);
+		ArgumentOutOfRangeException.ThrowIfNegative(mipLevel);
+		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(mipLevel, (int) Info.MipCount);
+
+		var deswizzledData = SwizzleUtility.DeswizzleTextureData(this, arrayLevel, mipLevel, out textureFormatInfo);
 		MemoryOwner<byte> memoryOwner;
 
 		if (Info.ImageFormat == XtxImageFormat.DXT1)
@@ -71,6 +76,12 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 			memoryOwner = BCnDecoder.DecodeBC5(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1, signed);
 			wasDecoded = true;
 		}
+		else if (Info.ImageFormat == XtxImageFormat.BC6U)
+		{
+			// Decode BC6
+			memoryOwner = BCnDecoder.DecodeBC6(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1, false);
+			wasDecoded = true;
+		}
 		else
 		{
 			// Raw data
@@ -83,6 +94,10 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 
 	private static SKColorType GetColorType(FormatInfo formatInfo, bool wasDecoded)
 	{
+		if (formatInfo.Format is TextureImageFormat.Bc6HSfloat or TextureImageFormat.Bc6HUfloat)
+			// HDR
+			return SKColorType.RgbaF16;
+
 		if (wasDecoded)
 		{
 			// Always 4 bytes per pixel after decoding
