@@ -4,6 +4,7 @@
 		<TargetFramework>$(MainTargetFramework)</TargetFramework>
 		<IsPackable>false</IsPackable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
 	<ItemGroup>

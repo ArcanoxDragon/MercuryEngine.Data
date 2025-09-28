@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using MercuryEngine.Data.TegraTextureLib.Extensions;
 using MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -7,16 +8,21 @@ namespace MercuryEngine.Data.TegraTextureLib.Formats;
 
 public class Xtx : BaseDataFormat
 {
-	private const string Signature = "DFvN";
+	private const string Signature = "DFvN"; // NvFD, but stored as a little endian uint32 for some reason?
 
-	private const int BlockTypeTextureInfo = 2;
-	private const int BlockTypeTextureData = 3;
+	public uint HeaderSize { get; private set; } = (uint) (
+		Signature.Length +
+		sizeof(uint) + // HeaderSize
+		sizeof(uint) + // MajorVersion
+		sizeof(uint)   // MinorVersion
+	);
 
-	public uint HeaderSize   { get; private set; }
-	public uint MajorVersion { get; private set; }
-	public uint MinorVersion { get; private set; }
+	public uint MajorVersion { get; private set; } = 1;
+	public uint MinorVersion { get; private set; } = 1;
 
 	public List<TegraTexture> Textures { get; } = [];
+
+	#region Synchronous
 
 	public override void Read(BinaryReader reader)
 	{
@@ -31,38 +37,105 @@ public class Xtx : BaseDataFormat
 		MajorVersion = reader.ReadUInt32();
 		MinorVersion = reader.ReadUInt32();
 
-		reader.BaseStream.Seek(HeaderSize, SeekOrigin.Begin);
+		Debug.Assert(HeaderSize == 0x10, "Wrong header size!");
 
 		// Read all data blocks
-		var blocks = new List<DataBlock>();
-		var textureDatas = new List<byte[]>();
+		var textureInfoBlocks = new List<XtxDataBlock>();
+		var textureDataBlocks = new List<XtxDataBlock>();
 
 		while (reader.BaseStream.Position < reader.BaseStream.Length)
 		{
-			var block = new DataBlock();
+			var block = new XtxDataBlock();
 
 			block.Read(reader);
-			blocks.Add(block);
 
-			if (block.BlockType == BlockTypeTextureData)
-				textureDatas.Add(block.Data);
+			if (block.BlockType == XtxBlockType.TextureInfo)
+				textureInfoBlocks.Add(block);
+			else if (block.BlockType == XtxBlockType.TextureData)
+				textureDataBlocks.Add(block);
+
+			// TODO: Warning for unrecognized block type?
 		}
 
-		// Read TextureInfo block datas
-		foreach (var (i, textureInfoBlock) in blocks.Where(b => b.BlockType == BlockTypeTextureInfo).Pairs())
+		foreach (var (i, textureInfoBlock) in textureInfoBlocks.Pairs())
 		{
-			if (i >= textureDatas.Count)
+			if (i >= textureDataBlocks.Count)
 				throw new InvalidDataException($"No texture data block found for texture {i}");
 
 			using var textureInfoStream = new MemoryStream(textureInfoBlock.Data);
-			var textureInfo = new TextureInfo();
-			var textureData = textureDatas[i];
+			var textureInfo = new XtxTextureInfo();
+			var textureData = textureDataBlocks[i].Data;
 
 			textureInfo.Read(textureInfoStream);
-
 			Textures.Add(new TegraTexture(textureInfo, textureData));
 		}
 	}
+
+	public override void Write(BinaryWriter writer)
+	{
+		writer.Write(Encoding.ASCII.GetBytes(Signature));
+		writer.Write(HeaderSize);
+		writer.Write(MajorVersion);
+		writer.Write(MinorVersion);
+
+		// Write all textures
+		var nextBlockIndex = 0u;
+
+		foreach (var texture in Textures)
+		{
+			// Construct texture info block, and write the texture info to its data array
+			var textureInfoBlock = new XtxDataBlock {
+				BlockType = XtxBlockType.TextureInfo,
+				GlobalBlockIndex = nextBlockIndex++,
+			};
+
+			using (var textureInfoStream = new MemoryStream())
+			{
+				texture.Info.Write(textureInfoStream);
+				textureInfoBlock.Data = textureInfoStream.ToArray();
+			}
+
+			// Construct texture data block with the texture's raw data
+			var textureDataBlock = new XtxDataBlock {
+				BlockType = XtxBlockType.TextureData,
+				GlobalBlockIndex = nextBlockIndex++,
+				Data = texture.Data,
+				DataAlignment = texture.Info.Alignment,
+			};
+
+			// Write both blocks
+			textureInfoBlock.Write(writer);
+			textureDataBlock.Write(writer);
+		}
+
+		// Construct footer data block
+		var footerBlock = new XtxDataBlock {
+			BlockType = XtxBlockType.EndOfFile,
+			GlobalBlockIndex = nextBlockIndex++,
+		};
+
+		using (var footerStream = new MemoryStream())
+		{
+			using var footerWriter = new BinaryWriter(footerStream);
+
+			// TODO: Unknown values
+			footerWriter.Write(0u);
+			footerWriter.Write(0u);
+			footerWriter.Write(1u);
+			footerWriter.Write(1u);
+			footerWriter.Write(0u);
+			footerWriter.Write(0u);
+			footerWriter.Flush();
+			footerBlock.Data = footerStream.ToArray();
+		}
+
+		// Write footer
+		footerBlock.Write(writer);
+	}
+
+	#endregion
+
+	#region Asynchronous
 
 	public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
 	{
@@ -80,146 +153,102 @@ public class Xtx : BaseDataFormat
 		reader.BaseStream.Seek(HeaderSize, SeekOrigin.Begin);
 
 		// Read all data blocks
-		var blocks = new List<DataBlock>();
+		var blocks = new List<XtxDataBlock>();
 		var textureDatas = new List<byte[]>();
 
 		while (reader.BaseStream.Position < reader.BaseStream.Length)
 		{
-			DataBlock block = new();
+			XtxDataBlock block = new();
 
 			await block.ReadAsync(reader, cancellationToken).ConfigureAwait(false);
 			blocks.Add(block);
 
-			if (block.BlockType == BlockTypeTextureData)
+			if (block.BlockType == XtxBlockType.TextureData)
 				textureDatas.Add(block.Data);
 		}
 
 		// Read TextureInfo block datas
-		foreach (var (i, textureInfoBlock) in blocks.Where(b => b.BlockType == BlockTypeTextureInfo).Pairs())
+		foreach (var (i, textureInfoBlock) in blocks.Where(b => b.BlockType == XtxBlockType.TextureInfo).Pairs())
 		{
 			if (i >= textureDatas.Count)
 				throw new InvalidDataException($"No texture data block found for texture {i}");
 
 			using var textureInfoStream = new MemoryStream(textureInfoBlock.Data);
-			TextureInfo textureInfo = new();
+			XtxTextureInfo textureInfo = new();
 			var textureData = textureDatas[i];
 
-			await textureInfo.ReadAsync(textureInfoStream, cancellationToken).ConfigureAwait(false);
+			// ReSharper disable once MethodHasAsyncOverloadWithCancellation
+			// (reading from a memory stream, so no async benefit and therefore not worth the overhead)
+			textureInfo.Read(textureInfoStream);
 
 			Textures.Add(new TegraTexture(textureInfo, textureData));
 		}
 	}
 
-	public sealed class DataBlock : BaseDataFormat
+	public override async Task WriteAsync(AsyncBinaryWriter writer, CancellationToken cancellationToken = default)
 	{
-		private const string Signature = "HBvN";
+		await writer.WriteAsync(Encoding.ASCII.GetBytes(Signature), cancellationToken).ConfigureAwait(false);
+		await writer.WriteAsync(HeaderSize, cancellationToken).ConfigureAwait(false);
+		await writer.WriteAsync(MajorVersion, cancellationToken).ConfigureAwait(false);
+		await writer.WriteAsync(MinorVersion, cancellationToken).ConfigureAwait(false);
 
-		public  uint  BlockSize         { get; private set; }
-		public  ulong DataSize          { get; private set; }
-		private long  DataOffset        { get; set; }
-		public  uint  BlockType         { get; private set; }
-		public  uint  GlobalBlockIndex  { get; private set; }
-		public  uint  IncBlockTypeIndex { get; private set; }
+		// Write all textures
+		var nextBlockIndex = 0u;
 
-		public byte[] Data { get; private set; } = [];
-
-		public override void Read(BinaryReader reader)
+		foreach (var texture in Textures)
 		{
-			var startPosition = reader.BaseStream.Position;
-			var signature = reader.ReadBytes(4);
+			// Construct texture info block, and write the texture info to its data array
+			var textureInfoBlock = new XtxDataBlock {
+				BlockType = XtxBlockType.TextureInfo,
+				GlobalBlockIndex = nextBlockIndex++,
+			};
 
-			if (Encoding.ASCII.GetString(signature) != Signature)
-				throw new IOException("Signature mismatch: not a valid XTX data block");
+			using (var textureInfoStream = new MemoryStream())
+			{
+				// ReSharper disable once MethodHasAsyncOverloadWithCancellation
+				// (writing to a memory stream, so no async benefit and therefore not worth the overhead)
+				texture.Info.Write(textureInfoStream);
+				textureInfoBlock.Data = textureInfoStream.ToArray();
+			}
 
-			BlockSize = reader.ReadUInt32();
-			DataSize = reader.ReadUInt64();
-			DataOffset = reader.ReadInt64();
-			BlockType = reader.ReadUInt32();
-			GlobalBlockIndex = reader.ReadUInt32();
-			IncBlockTypeIndex = reader.ReadUInt32();
+			// Construct texture data block with the texture's raw data
+			var textureDataBlock = new XtxDataBlock {
+				BlockType = XtxBlockType.TextureData,
+				GlobalBlockIndex = nextBlockIndex++,
+				Data = texture.Data,
+				DataAlignment = texture.Info.Alignment,
+			};
 
-			reader.BaseStream.Seek(startPosition + DataOffset, SeekOrigin.Begin);
-			Data = reader.ReadBytes((int) DataSize);
+			// Write both blocks
+			await textureInfoBlock.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
+			await textureDataBlock.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
 		}
 
-		public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
+		// Construct footer data block
+		var footerBlock = new XtxDataBlock {
+			BlockType = XtxBlockType.EndOfFile,
+			GlobalBlockIndex = nextBlockIndex++,
+		};
+
+		using (var footerStream = new MemoryStream())
 		{
-			var startPosition = reader.BaseStream.Position;
-			var signature = await reader.ReadBytesAsync(4, cancellationToken).ConfigureAwait(false);
+			// No benefit to using async when writing to a memory stream
+			await using var footerWriter = new BinaryWriter(footerStream);
 
-			if (Encoding.ASCII.GetString(signature) != Signature)
-				throw new IOException("Signature mismatch: not a valid XTX data block");
-
-			BlockSize = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			DataSize = await reader.ReadUInt64Async(cancellationToken).ConfigureAwait(false);
-			DataOffset = await reader.ReadInt64Async(cancellationToken).ConfigureAwait(false);
-			BlockType = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			GlobalBlockIndex = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			IncBlockTypeIndex = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-
-			reader.BaseStream.Seek(startPosition + DataOffset, SeekOrigin.Begin);
-			Data = await reader.ReadBytesAsync((int) DataSize, cancellationToken).ConfigureAwait(false);
+			// TODO: Unknown values
+			footerWriter.Write(0u);
+			footerWriter.Write(0u);
+			footerWriter.Write(1u);
+			footerWriter.Write(1u);
+			footerWriter.Write(0u);
+			footerWriter.Write(0u);
+			footerWriter.Flush();
+			footerBlock.Data = footerStream.ToArray();
 		}
+
+		// Write footer
+		await footerBlock.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
 	}
 
-	public sealed class TextureInfo : BaseDataFormat
-	{
-		public ulong          DataSize       { get; private set; }
-		public uint           Alignment      { get; private set; }
-		public uint           Width          { get; private set; }
-		public uint           Height         { get; private set; }
-		public uint           Depth          { get; private set; }
-		public uint           Target         { get; private set; }
-		public XtxImageFormat ImageFormat    { get; private set; }
-		public uint           MipCount       { get; private set; }
-		public uint           SliceSize      { get; private set; }
-		public uint[]         MipOffsets     { get; private set; } = [];
-		public uint           TextureLayout1 { get; private set; }
-		public uint           TextureLayout2 { get; private set; }
-		public uint           Unknown1       { get; private set; }
-
-		public uint ArrayCount => (uint) ( DataSize / SliceSize );
-
-		public override void Read(BinaryReader reader)
-		{
-			DataSize = reader.ReadUInt64();
-			Alignment = reader.ReadUInt32();
-			Width = reader.ReadUInt32();
-			Height = reader.ReadUInt32();
-			Depth = reader.ReadUInt32();
-			Target = reader.ReadUInt32();
-			ImageFormat = (XtxImageFormat) reader.ReadUInt32();
-			MipCount = reader.ReadUInt32();
-			SliceSize = reader.ReadUInt32();
-			MipOffsets = new uint[17];
-
-			for (var i = 0; i < MipOffsets.Length; i++)
-				MipOffsets[i] = reader.ReadUInt32();
-
-			TextureLayout1 = reader.ReadUInt32();
-			TextureLayout2 = reader.ReadUInt32();
-			Unknown1 = reader.ReadUInt32();
-		}
-
-		public override async Task ReadAsync(AsyncBinaryReader reader, CancellationToken cancellationToken = default)
-		{
-			DataSize = await reader.ReadUInt64Async(cancellationToken).ConfigureAwait(false);
-			Alignment = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			Width = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			Height = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			Depth = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			Target = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			ImageFormat = (XtxImageFormat) await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			MipCount = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			SliceSize = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			MipOffsets = new uint[17];
-
-			for (var i = 0; i < MipOffsets.Length; i++)
-				MipOffsets[i] = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-
-			TextureLayout1 = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			TextureLayout2 = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-			Unknown1 = await reader.ReadUInt32Async(cancellationToken).ConfigureAwait(false);
-		}
-	}
+	#endregion
 }

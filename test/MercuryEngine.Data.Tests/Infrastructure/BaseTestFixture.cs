@@ -228,24 +228,23 @@ public abstract class BaseTestFixture
 		return dataStructure;
 	}
 
-	protected internal static void CompareBuffers(byte[] originalBuffer, byte[] newBuffer, DataMapper? dataMapper = null)
+	protected internal static void CompareBuffers(ReadOnlySpan<byte> originalBuffer, ReadOnlySpan<byte> newBuffer, DataMapper? dataMapper = null)
 	{
-		Assert.That(newBuffer, Has.Length.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
+		Assert.That(newBuffer.Length, Is.EqualTo(originalBuffer.Length), "New data was a different length than the original data");
 
-		Span<byte> originalSpan = originalBuffer.AsSpan();
-		Span<byte> newSpan = newBuffer.AsSpan();
 		var slowCompareStart = 0;
 
-		if (originalSpan.Length >= sizeof(ulong))
+		if (originalBuffer.Length >= sizeof(ulong))
 		{
 			// Fast comparison by going 8 bytes at a time
-			var numChunks = originalSpan.Length / sizeof(ulong);
+			var numChunks = originalBuffer.Length / sizeof(ulong);
 			var chunkAlignedSize = numChunks * sizeof(ulong);
-			Span<byte> originalSpanAligned = originalSpan[..chunkAlignedSize];
-			Span<byte> newSpanAligned = newSpan[..chunkAlignedSize];
 
-			Span<ulong> originalSpanU64 = MemoryMarshal.Cast<byte, ulong>(originalSpanAligned);
-			Span<ulong> newSpanU64 = MemoryMarshal.Cast<byte, ulong>(newSpanAligned);
+			var originalSpanAligned = originalBuffer[..chunkAlignedSize];
+			var newSpanAligned = newBuffer[..chunkAlignedSize];
+
+			var originalSpanU64 = MemoryMarshal.Cast<byte, ulong>(originalSpanAligned);
+			var newSpanU64 = MemoryMarshal.Cast<byte, ulong>(newSpanAligned);
 
 			// Set "slowCompareStart" to the end of the U64-aligned chunks, in case
 			// there are extra bytes at the end (i.e. length not an even multiple of 8).

@@ -5,6 +5,8 @@ public class SlicedStream : Stream
 	private readonly long basePosition;
 	private readonly bool disposeInner;
 
+	private long length;
+
 	public SlicedStream(Stream baseStream, long start, long length, bool keepOpen = true)
 	{
 		if (!baseStream.CanRead)
@@ -16,18 +18,18 @@ public class SlicedStream : Stream
 		if (start + length > baseStream.Length)
 			throw new ArgumentException("Slice cannot extend beyond the bounds of the base stream");
 
-		Length = length;
 		BaseStream = baseStream;
 
 		this.basePosition = start;
 		this.disposeInner = !keepOpen;
+		this.length = length;
 	}
 
-	public override long Length { get; }
+	public override long Length => this.length;
 
 	public override bool CanRead  => true;
 	public override bool CanSeek  => BaseStream.CanSeek;
-	public override bool CanWrite => false;
+	public override bool CanWrite => BaseStream.CanWrite;
 
 	public override long Position
 	{
@@ -62,7 +64,26 @@ public class SlicedStream : Stream
 
 	public override void SetLength(long value) => throw new NotSupportedException();
 
-	public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+	public override void Write(byte[] buffer, int offset, int count)
+	{
+		EnsureWriteable();
+		BaseStream.Write(buffer, offset, count);
+		this.length += count;
+	}
+
+	public override void Write(ReadOnlySpan<byte> buffer)
+	{
+		EnsureWriteable();
+		BaseStream.Write(buffer);
+		this.length += buffer.Length;
+	}
+
+	public override void WriteByte(byte value)
+	{
+		EnsureWriteable();
+		BaseStream.WriteByte(value);
+		this.length++;
+	}
 
 	protected override void Dispose(bool disposing)
 	{
@@ -76,5 +97,11 @@ public class SlicedStream : Stream
 	{
 		GC.SuppressFinalize(this);
 		return this.disposeInner ? BaseStream.DisposeAsync() : base.DisposeAsync();
+	}
+
+	private void EnsureWriteable()
+	{
+		if (!BaseStream.CanWrite)
+			throw new NotSupportedException("Base stream is not writeable");
 	}
 }
