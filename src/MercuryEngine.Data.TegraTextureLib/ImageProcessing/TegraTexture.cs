@@ -5,50 +5,29 @@ using SkiaSharp;
 
 namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
-public sealed record TegraTexture(Xtx.TextureInfo Info, byte[] Data)
+public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 {
-	// Linear color space is used when decoding and converting textures so that we preserve the raw color ranges in the texture data.
-	private static readonly SKColorSpace LinearColorSpace = SKColorSpace.CreateRgb(SKColorSpaceTransferFn.Linear, SKColorSpaceXyz.Xyz);
+	private static readonly SKColorSpace LinearColorSpace = SKColorSpace.CreateRgb(SKColorSpaceTransferFn.Linear, SKColorSpaceXyz.Identity);
+	private static readonly SKColorSpace SrgbColorSpace   = SKColorSpace.CreateSrgb();
 
-	public SKBitmap ToBitmap()
+	public SKBitmap ToBitmap(bool isSrgb = true)
 	{
 		SKBitmap bitmap = null!;
 
-		using (var memoryOwner = DeswizzleAndDecode(out var textureFormatInfo))
+		using (var memoryOwner = DeswizzleAndDecode(out var textureFormatInfo, out var wasDecoded))
 		{
 			// First, load the data into a source bitmap with a color type corresponding to the source data
 			var bitmapData = memoryOwner.Span;
-			var sourceColorType = GetColorType(textureFormatInfo);
-			SKBitmap? sourceBitmap = null;
+			var sourceColorType = GetColorType(textureFormatInfo, wasDecoded);
 
-			try
+			bitmap = new SKBitmap((int) Info.Width, (int) Info.Height, sourceColorType, SKAlphaType.Unpremul, isSrgb ? SrgbColorSpace : LinearColorSpace);
+
+			unsafe
 			{
-				sourceBitmap = new SKBitmap((int) Info.Width, (int) Info.Height, sourceColorType, SKAlphaType.Unpremul, LinearColorSpace);
+				var bitmapPixels = bitmap.GetPixels();
+				var pixelsSpan = new Span<byte>(bitmapPixels.ToPointer(), bitmap.ByteCount);
 
-				unsafe
-				{
-					var bitmapPixels = sourceBitmap.GetPixels();
-					var pixelsSpan = new Span<byte>(bitmapPixels.ToPointer(), sourceBitmap.ByteCount);
-
-					bitmapData.CopyTo(pixelsSpan);
-				}
-
-				if (sourceColorType is SKColorType.Rgb888x or SKColorType.Rgba8888)
-				{
-					// Can use the source bitmap directly
-					bitmap = sourceBitmap;
-				}
-				else
-				{
-					// If necessary, copy the data to a new bitmap using a standard "Rgb888x" format that is more widely supported than the ones with fewer than 3 components
-					bitmap = new SKBitmap((int) Info.Width, (int) Info.Height, SKColorType.Rgb888x, SKAlphaType.Unpremul, LinearColorSpace);
-					sourceBitmap.CopyTo(bitmap, bitmap.ColorType);
-				}
-			}
-			finally
-			{
-				if (!ReferenceEquals(bitmap, sourceBitmap))
-					sourceBitmap?.Dispose();
+				bitmapData.CopyTo(pixelsSpan);
 			}
 		}
 
@@ -57,9 +36,9 @@ public sealed record TegraTexture(Xtx.TextureInfo Info, byte[] Data)
 	}
 
 	public IMemoryOwner<byte> ToRawData()
-		=> DeswizzleAndDecode(out _);
+		=> DeswizzleAndDecode(out _, out _);
 
-	private MemoryOwner<byte> DeswizzleAndDecode(out FormatInfo textureFormatInfo)
+	private MemoryOwner<byte> DeswizzleAndDecode(out FormatInfo textureFormatInfo, out bool wasDecoded)
 	{
 		var deswizzledData = SwizzleUtility.DeswizzleTextureData(this, 0, 0, out textureFormatInfo);
 		MemoryOwner<byte> memoryOwner;
@@ -68,11 +47,13 @@ public sealed record TegraTexture(Xtx.TextureInfo Info, byte[] Data)
 		{
 			// Decode BC1
 			memoryOwner = BCnDecoder.DecodeBC1(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1);
+			wasDecoded = true;
 		}
 		else if (Info.ImageFormat == XtxImageFormat.DXT5)
 		{
 			// Decode BC3
 			memoryOwner = BCnDecoder.DecodeBC3(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1);
+			wasDecoded = true;
 		}
 		else if (Info.ImageFormat is XtxImageFormat.BC4U or XtxImageFormat.BC4S)
 		{
@@ -80,6 +61,7 @@ public sealed record TegraTexture(Xtx.TextureInfo Info, byte[] Data)
 
 			// Decode BC4
 			memoryOwner = BCnDecoder.DecodeBC4(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1, signed);
+			wasDecoded = true;
 		}
 		else if (Info.ImageFormat is XtxImageFormat.BC5U or XtxImageFormat.BC5S)
 		{
@@ -87,21 +69,49 @@ public sealed record TegraTexture(Xtx.TextureInfo Info, byte[] Data)
 
 			// Decode BC5
 			memoryOwner = BCnDecoder.DecodeBC5(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1, signed);
+			wasDecoded = true;
 		}
 		else
 		{
 			// Raw data
 			memoryOwner = MemoryOwner<byte>.RentCopy(deswizzledData);
+			wasDecoded = false;
 		}
 
 		return memoryOwner;
 	}
 
-	private static SKColorType GetColorType(FormatInfo formatInfo)
-		=> formatInfo.Components switch {
-			1 => SKColorType.Gray8,
-			2 => SKColorType.Rg88,
-			3 => SKColorType.Rgb888x,
-			_ => SKColorType.Rgba8888,
+	private static SKColorType GetColorType(FormatInfo formatInfo, bool wasDecoded)
+	{
+		if (wasDecoded)
+		{
+			// Always 4 bytes per pixel after decoding
+
+			return formatInfo.Components switch {
+				1 => SKColorType.R8Unorm,
+				2 => SKColorType.Rg88,
+				3 => SKColorType.Rgb888x,
+				_ => SKColorType.Rgba8888,
+			};
+		}
+
+		return ( formatInfo.Components, formatInfo.BytesPerPixel ) switch {
+			// 1 Component
+			(1, 16) => SKColorType.Alpha16,
+			(1, _)  => SKColorType.R8Unorm,
+
+			// 2 Components
+			(2, 4) => SKColorType.Rg1616,
+			(2, _) => SKColorType.Rg88,
+
+			// 3 Components
+			(3, 4) => SKColorType.Rgb101010x,
+			(3, _) => SKColorType.Rgb565,
+
+			// 4 Components
+			(4, 16) => SKColorType.RgbaF32,
+			(4, 8)  => SKColorType.Rgba16161616, // Or is it F16?
+			(_, _)  => SKColorType.Rgba8888,
 		};
+	}
 }

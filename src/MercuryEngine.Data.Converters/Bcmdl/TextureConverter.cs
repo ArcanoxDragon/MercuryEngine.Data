@@ -4,9 +4,6 @@ namespace MercuryEngine.Data.Converters.Bcmdl;
 
 internal static class TextureConverter
 {
-	private static readonly SKColorSpace SrgbColorSpace   = SKColorSpace.CreateSrgb();
-	private static readonly SKColorSpace LinearColorSpace = SKColorSpace.CreateRgb(SKColorSpaceTransferFn.Linear, SKColorSpaceXyz.Xyz);
-
 	/// <summary>
 	/// Separates an RGBA texture into an RGB base color texture, and an RGB emissive texture using the A
 	/// component of the source texture to control the emissive amount.
@@ -21,7 +18,7 @@ internal static class TextureConverter
 		const string SubSamplingCode =
 			"result = half4(sample.rgb * sample.a, 1.0);";
 
-		return SeparateTexture(inputTexture, SrgbColorSpace, MainSamplingCode, SrgbColorSpace, SubSamplingCode);
+		return SeparateTexture(inputTexture, MainSamplingCode, SubSamplingCode);
 	}
 
 	/// <summary>
@@ -44,7 +41,7 @@ internal static class TextureConverter
 		const string SubSamplingCode =
 			"result = half4(sample.a, 0, 0, 1);";
 
-		return SeparateTexture(inputTexture, LinearColorSpace, MainSamplingCode, LinearColorSpace, SubSamplingCode);
+		return SeparateTexture(inputTexture, MainSamplingCode, SubSamplingCode);
 	}
 
 	public static SKBitmap ConvertNormalMap(SKBitmap inputTexture)
@@ -58,14 +55,12 @@ internal static class TextureConverter
 			result = half4((normal + 1.0) / 2.0, 1.0);
 			""";
 
-		return ConvertTexture(inputTexture, LinearColorSpace, SamplingCode);
+		return ConvertTexture(inputTexture, SamplingCode);
 	}
 
 	private static (SKBitmap, SKBitmap?) SeparateTexture(
 		SKBitmap inputTexture,
-		SKColorSpace mainColorSpace,
 		string mainSamplingCode,
-		SKColorSpace subColorSpace,
 		string subSamplingCode)
 	{
 		if (inputTexture.ColorType is not (SKColorType.Rgba8888 or SKColorType.Bgra8888))
@@ -73,8 +68,8 @@ internal static class TextureConverter
 
 		using var sourceImage = SKImage.FromBitmap(inputTexture);
 		using var inputImageShader = sourceImage.ToRawShader();
-		var mainTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque, mainColorSpace);
-		var subTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque, subColorSpace);
+		var mainTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque);
+		var subTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque);
 
 		RenderUsingShader(inputImageShader, mainTexture, mainSamplingCode);
 		RenderUsingShader(inputImageShader, subTexture, subSamplingCode);
@@ -82,11 +77,11 @@ internal static class TextureConverter
 		return ( mainTexture, subTexture );
 	}
 
-	private static SKBitmap ConvertTexture(SKBitmap inputTexture, SKColorSpace targetColorSpace, string samplingCode)
+	private static SKBitmap ConvertTexture(SKBitmap inputTexture, string samplingCode)
 	{
 		using var sourceImage = SKImage.FromBitmap(inputTexture);
 		using var inputImageShader = sourceImage.ToRawShader();
-		var outputTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque, targetColorSpace);
+		var outputTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque);
 
 		RenderUsingShader(inputImageShader, outputTexture, samplingCode);
 
