@@ -26,14 +26,14 @@ public class Bctex : BaseDataFormat
 
 	#region Data Fields
 
-	private uint   HeaderFlags   { get; set; } = 0x00080001;
-	public  byte   Unknown1      { get; set; }
-	public  bool   IsSrgb        { get; set; }
-	public  ushort Unknown2      { get; set; }
-	private int    Unknown3      { get; set; } = -1; // Padding?
-	private ulong  NameOffset    { get; set; }
-	private ulong  TextureOffset { get; set; }
-	private uint   TextureSize   { get; set; }
+	private uint               HeaderFlags   { get; set; } = 0x00080001;
+	public  MseTextureEncoding EncodingType  { get; set; }
+	public  bool               IsSrgb        { get; set; }
+	public  MseTextureKind     TextureKind   { get; set; }
+	private int                Unknown3      { get; set; } = -1; // Padding?
+	private ulong              NameOffset    { get; set; }
+	private ulong              TextureOffset { get; set; }
+	private uint               TextureSize   { get; set; }
 
 	#endregion
 
@@ -90,9 +90,9 @@ public class Bctex : BaseDataFormat
 		using var innerReader = new BinaryReader(decompressedStream, Encoding.UTF8);
 
 		TextureUsage = (TextureUsage) innerReader.ReadUInt32();
-		Unknown1 = innerReader.ReadByte();
+		EncodingType = (MseTextureEncoding) innerReader.ReadByte();
 		IsSrgb = innerReader.ReadBoolean();
-		Unknown2 = innerReader.ReadUInt16();
+		TextureKind = (MseTextureKind) innerReader.ReadUInt16();
 		Width = innerReader.ReadUInt32();
 		Height = innerReader.ReadUInt32();
 		MipCount = innerReader.ReadUInt32();
@@ -129,13 +129,13 @@ public class Bctex : BaseDataFormat
 		using var innerWriter = new BinaryWriter(innerStream);
 
 		innerWriter.Write((uint) TextureUsage);
-		innerWriter.Write(Unknown1); // TODO: Default value?
+		innerWriter.Write((byte) EncodingType);
 		innerWriter.Write(IsSrgb);
-		innerWriter.Write(Unknown2); // TODO: Default value?
+		innerWriter.Write((ushort) TextureKind);
 		innerWriter.Write(Width);
 		innerWriter.Write(Height);
 		innerWriter.Write(MipCount);
-		innerWriter.Write(Unknown3); // TODO: Default value?
+		innerWriter.Write(Unknown3);
 
 		var textureNameOffsetLocation = innerStream.Position; // We'll need to come back to this point later
 
@@ -273,9 +273,9 @@ public class Bctex : BaseDataFormat
 		using var innerReader = new BinaryReader(decompressedStream, Encoding.UTF8);
 
 		TextureUsage = (TextureUsage) innerReader.ReadUInt32();
-		Unknown1 = innerReader.ReadByte();
+		EncodingType = (MseTextureEncoding) innerReader.ReadByte();
 		IsSrgb = innerReader.ReadBoolean();
-		Unknown2 = innerReader.ReadUInt16();
+		TextureKind = (MseTextureKind) innerReader.ReadUInt16();
 		Width = innerReader.ReadUInt32();
 		Height = innerReader.ReadUInt32();
 		MipCount = innerReader.ReadUInt32();
@@ -317,13 +317,13 @@ public class Bctex : BaseDataFormat
 
 		// No benefit to using async when writing to a memory stream
 		innerWriter.Write((uint) TextureUsage);
-		innerWriter.Write(Unknown1); // TODO: Default value?
+		innerWriter.Write((byte) EncodingType);
 		innerWriter.Write(IsSrgb);
-		innerWriter.Write(Unknown2); // TODO: Default value?
+		innerWriter.Write((ushort) TextureKind);
 		innerWriter.Write(Width);
 		innerWriter.Write(Height);
 		innerWriter.Write(MipCount);
-		innerWriter.Write(Unknown3); // TODO: Default value?
+		innerWriter.Write(Unknown3);
 
 		var textureNameOffsetLocation = innerStream.Position; // We'll need to come back to this point later
 

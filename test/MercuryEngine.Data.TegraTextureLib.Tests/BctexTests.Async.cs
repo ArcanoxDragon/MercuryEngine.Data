@@ -1,5 +1,6 @@
 ﻿using ImageMagick;
 using MercuryEngine.Data.TegraTextureLib.Formats;
+using MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 using MercuryEngine.Data.Tests;
 
 namespace MercuryEngine.Data.TegraTextureLib.Tests;

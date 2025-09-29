@@ -1,6 +1,4 @@
-﻿using System.Text;
-using ImageMagick;
-using ImageMagick.Formats;
+﻿using ImageMagick;
 using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 using MercuryEngine.Data.Tests;
@@ -16,36 +14,6 @@ public partial class BctexTests : BaseMedTestFixture
 			yield return new TestCaseData(testCase.Arguments[0], RomFsPath) { TestName = testCase.TestName };
 	}
 
-	private readonly List<(string, Bctex)> debugValues = [];
-
-	[OneTimeSetUp]
-	public void OneTimeSetUp()
-	{
-		this.debugValues.Clear();
-	}
-
-	[OneTimeTearDown]
-	public void OneTimeTearDown()
-	{
-		var csvBuilder = new StringBuilder();
-
-		csvBuilder.AppendLine("Texture Name, Unknown1, Unknown2, Image Format, Mip Count, Full Texture Path");
-
-		foreach (var (texturePath, bctex) in this.debugValues)
-		{
-			var textureName = Path.GetFileName(texturePath);
-			var unknown1 = bctex.Unknown2;
-			var unknown2 = bctex.Unknown1;
-			var texture = bctex.Textures[0];
-
-			csvBuilder.AppendLine($"{textureName}, 0x{unknown1:X4}, 0x{unknown2:X2}, {texture.Info.ImageFormat}, {texture.Info.MipCount}, {texturePath}");
-		}
-
-		var csvPath = Path.Join(TestContext.CurrentContext.TestDirectory, "TestFiles", "BCTEX", "unknown1.csv");
-
-		File.WriteAllText(csvPath, csvBuilder.ToString());
-	}
-
 	[TestCaseSource(nameof(GetTestFiles)), Explicit, Parallelizable(ParallelScope.All)]
 	public void TestLoadBctex(string inFile, string relativeTo)
 	{
@@ -58,10 +26,6 @@ public partial class BctexTests : BaseMedTestFixture
 		{
 			bctex.Read(fileStream);
 
-			var relativePath = Path.GetRelativePath(relativeTo, inFile);
-
-			this.debugValues.Add(( relativePath, bctex ));
-
 			if (Global.WriteOutputFiles)
 				ConvertAndSaveTextures(bctex, inFile, relativeTo);
 		}
@@ -71,33 +35,6 @@ public partial class BctexTests : BaseMedTestFixture
 			TestContext.Error.WriteLine(ex);
 			throw;
 		}
-
-		var flag = false;
-
-		var textureCount = bctex.Textures.Count;
-
-		Assert.That(textureCount, Is.EqualTo(1));
-
-		var texture = bctex.Textures[0];
-		var textureFormat = texture.Info.ImageFormat.ToString();
-
-		if (texture.Info.ImageFormat == XtxImageFormat.DXT5 && bctex.Unknown2 != 0x2)
-			flag = true;
-		if (texture.Info.ImageFormat == XtxImageFormat.BC5U && bctex.Unknown2 != 0xC)
-			flag = true;
-		if (texture.Info.ImageFormat == XtxImageFormat.NvnFormatR8 && bctex.Unknown2 != 0x4)
-			flag = true;
-
-		var textureFormat2 = texture.Info.ImageFormat.ToTextureFormat();
-
-		Assert.That(FormatTable.TryGetTextureFormatInfo(textureFormat2, out var formatInfo));
-
-		var message = $"{textureCount,2} textures | {textureFormat} | {formatInfo.Format} @ {formatInfo.BytesPerPixel} | {texture.Info.MipCount} Mips | 0x{bctex.Unknown2:X4} | 0x{bctex.Unknown1:X2}";
-
-		if (flag)
-			Assert.Fail(message);
-		else
-			Assert.Pass(message);
 	}
 
 	[TestCaseSource(nameof(GetTestFiles)), Explicit, Parallelizable(ParallelScope.All)]
