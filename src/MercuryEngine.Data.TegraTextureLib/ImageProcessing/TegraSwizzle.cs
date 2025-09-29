@@ -31,4 +31,16 @@ public class TegraSwizzle
 		fixed (byte* destinationPtr = destination)
 			NativeMethods.deswizzle_block_linear(width, height, depth, sourcePtr, (nuint) source.Length, destinationPtr, (nuint) destination.Length, blockHeight, bytesPerPixel);
 	}
+
+	public static unsafe void SwizzleBlockLinear(uint width, uint height, uint depth, ReadOnlySpan<byte> source, Span<byte> destination, uint blockHeight, uint bytesPerPixel)
+	{
+		var expectedSize = width * height * depth * bytesPerPixel;
+
+		if (destination.Length < expectedSize)
+			throw new ArgumentException($"Destination must be at least {expectedSize} bytes, but was only {destination.Length}");
+
+		fixed (byte* sourcePtr = source)
+		fixed (byte* destinationPtr = destination)
+			NativeMethods.swizzle_block_linear(width, height, depth, sourcePtr, (nuint) source.Length, destinationPtr, (nuint) destination.Length, blockHeight, bytesPerPixel);
+	}
 }

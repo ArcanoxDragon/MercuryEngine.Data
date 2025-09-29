@@ -1,14 +1,75 @@
 ﻿using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using BCnEncoder.Encoder;
+using BCnEncoder.Shared;
 using ImageMagick;
+using MercuryEngine.Data.TegraTextureLib.Extensions;
 using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.TegraTextureLib.Utility;
+using Half = System.Half;
 
 namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
 public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 {
+	#region Static
+
+	public static TegraTexture FromImage(MagickImage image, PixelMapping channelMapping, CompressionFormat compressionFormat, CompressionQuality compressionQuality = CompressionQuality.Balanced)
+		=> FromImage(image, channelMapping.ToString(), compressionFormat, compressionQuality);
+
+	public static TegraTexture FromImage(MagickImage image, string channelMapping, CompressionFormat compressionFormat, CompressionQuality compressionQuality = CompressionQuality.Balanced)
+	{
+		// Do this first so we can throw early for bad inputs
+		var xtxImageFormat = compressionFormat.ToXtxImageFormat();
+
+		if (xtxImageFormat == default)
+			throw new ArgumentException($"Unsupported compression format \"{compressionFormat}\"");
+
+		using var imagePixels = image.GetPixels();
+		var imagePixelsData = imagePixels.ToByteArray(channelMapping);
+		var encoder = new BcEncoder(compressionFormat) {
+			OutputOptions = {
+				FileFormat = OutputFileFormat.Dds,
+				Quality = compressionQuality,
+				MaxMipMapLevel = XtxTextureInfo.MaxMipCount,
+			},
+		};
+		var ddsFile = encoder.EncodeToDds(imagePixelsData, (int) image.Width, (int) image.Height, channelMapping.Length >= 4 ? PixelFormat.Rgba32 : PixelFormat.Rgb24);
+
+		if (ddsFile.Faces.Count != 1)
+			// No support for encoding cubemaps currently
+			throw new ApplicationException("Expected exactly one DDS face");
+
+		var mainFace = ddsFile.Faces[0];
+		var textureInfo = new XtxTextureInfo {
+			Width = image.Width,
+			Height = image.Height,
+			MipCount = (uint) mainFace.MipMaps.Length,
+			ImageFormat = xtxImageFormat,
+		};
+		var totalSwizzledDataSize = Enumerable.Range(0, mainFace.MipMaps.Length).Select(mipLevel => SwizzleUtility.GetMipSize(textureInfo, mipLevel)).Sum(s => (long) s);
+
+		// Only one image in the texture, so the slice size is equal to the data size
+		textureInfo.DataSize = (uint) totalSwizzledDataSize;
+		textureInfo.SliceSize = (uint) totalSwizzledDataSize;
+
+		var overallData = new byte[totalSwizzledDataSize];
+		var overallDataSpan = overallData.AsSpan();
+
+		for (var mipLevel = 0; mipLevel < mainFace.MipMaps.Length; mipLevel++)
+		{
+			var mipData = mainFace.MipMaps[mipLevel].Data.AsSpan();
+			var mipOffset = SwizzleUtility.SwizzleTextureData(textureInfo, mipLevel, mipData, overallDataSpan);
+
+			textureInfo.MipOffsets[mipLevel] = mipOffset;
+		}
+
+		return new TegraTexture(textureInfo, overallData);
+	}
+
+	#endregion
+
 	public MagickImage ToImage(int arrayLevel = 0, int mipLevel = 0, bool isSrgb = true)
 	{
 		MagickImage image = null!;

@@ -14,9 +14,9 @@ public sealed class XtxTextureInfo : BaseDataFormat
 	public uint           Height         { get; set; }
 	public uint           Depth          { get; set; } = 1;
 	public uint           Target         { get; set; } = 1;
-	public XtxImageFormat ImageFormat    { get; private set; }
-	public uint           MipCount       { get; private set; }
-	public uint           SliceSize      { get; private set; }
+	public XtxImageFormat ImageFormat    { get; set; }
+	public uint           MipCount       { get; set; }
+	public uint           SliceSize      { get; set; }
 	public uint[]         MipOffsets     { get; }              = new uint[MaxMipCount];
 	public uint           TextureLayout1 { get; private set; } = 4; // TODO: Unknown value
 	public uint           TextureLayout2 { get; private set; } = 7; // TODO: Unknown value

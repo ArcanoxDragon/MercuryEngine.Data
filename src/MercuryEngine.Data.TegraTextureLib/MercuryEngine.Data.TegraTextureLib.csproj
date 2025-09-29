@@ -32,6 +32,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="BCnEncoder.Net" Version="2.2.1" />
 		<PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
 		<PackageReference Include="Magick.NET-Q16-HDRI-AnyCPU" Version="14.8.2" />
 		<PackageReference Include="Overby.Extensions.AsyncBinaryReaderWriter" Version="1.0.39" />
