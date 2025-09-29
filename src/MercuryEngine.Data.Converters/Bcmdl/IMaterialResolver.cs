@@ -1,10 +1,10 @@
 ﻿using MercuryEngine.Data.Formats;
-using SkiaSharp;
+using MercuryEngine.Data.TegraTextureLib.Formats;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
 
 public interface IMaterialResolver
 {
 	Bsmat? LoadMaterial(string path);
-	SKBitmap? LoadTexture(string path);
+	Bctex? LoadTexture(string path);
 }

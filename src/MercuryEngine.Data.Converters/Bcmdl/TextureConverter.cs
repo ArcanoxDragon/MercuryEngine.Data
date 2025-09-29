@@ -1,14 +1,20 @@
-﻿using SkiaSharp;
+﻿using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.Intrinsics;
+using ImageMagick;
+using MercuryEngine.Data.TegraTextureLib.Utility;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
 
 internal static class TextureConverter
 {
+	private delegate void ImageRenderFunction(in ReadOnlyRgba source, in Rgb dest);
+
 	/// <summary>
 	/// Separates an RGBA texture into an RGB base color texture, and an RGB emissive texture using the A
 	/// component of the source texture to control the emissive amount.
 	/// </summary>
-	public static (SKBitmap, SKBitmap?) SeparateBaseColorAndEmissive(SKBitmap inputTexture)
+	public static (MagickImage, MagickImage?) SeparateBaseColorAndEmissive(MagickImage inputTexture)
 	{
 		// Remove alpha channel of base color texture
 		const string MainSamplingCode =
@@ -18,7 +24,18 @@ internal static class TextureConverter
 		const string SubSamplingCode =
 			"result = half4(sample.rgb * sample.a, 1.0);";
 
-		return SeparateTexture(inputTexture, MainSamplingCode, SubSamplingCode);
+		return SeparateTexture(
+			inputTexture,
+			(in ReadOnlyRgba source, in Rgb dest) => {
+				dest.R = source.R;
+				dest.G = source.G;
+				dest.B = source.B;
+			},
+			(in ReadOnlyRgba source, in Rgb dest) => {
+				dest.R = source.R * source.A;
+				dest.G = source.G * source.A;
+				dest.B = source.B * source.A;
+			});
 	}
 
 	/// <summary>
@@ -27,7 +44,7 @@ internal static class TextureConverter
 	/// except that the G channel will be clamped to be at least 0.05f. The A channel of the source
 	/// texture will be transferred to the R channel of the occlusion texture.
 	/// </summary>
-	public static (SKBitmap, SKBitmap?) SeparateMetallicRoughnessAndOcclusion(SKBitmap inputTexture)
+	public static (MagickImage, MagickImage?) SeparateMetallicRoughnessAndOcclusion(MagickImage inputTexture)
 	{
 		// Clamp roughness to a minimum of 0.05, and keep metallic the same
 		const string MainSamplingCode =
@@ -41,10 +58,21 @@ internal static class TextureConverter
 		const string SubSamplingCode =
 			"result = half4(sample.a, 0, 0, 1);";
 
-		return SeparateTexture(inputTexture, MainSamplingCode, SubSamplingCode);
+		return SeparateTexture(
+			inputTexture,
+			(in ReadOnlyRgba source, in Rgb dest) => {
+				dest.R = 0.0f;
+				dest.G = Math.Max(0.05f, source.G);
+				dest.B = source.B;
+			},
+			(in ReadOnlyRgba source, in Rgb dest) => {
+				dest.R = source.A;
+				dest.G = 0.0f;
+				dest.B = 0.0f;
+			});
 	}
 
-	public static SKBitmap ConvertNormalMap(SKBitmap inputTexture)
+	public static MagickImage ConvertNormalMap(MagickImage inputTexture)
 	{
 		// Ensure B channel is fully saturated (Dread uses 2D normal maps, but most 3D software expects 3D maps)
 		const string SamplingCode =
@@ -55,62 +83,135 @@ internal static class TextureConverter
 			result = half4((normal + 1.0) / 2.0, 1.0);
 			""";
 
-		return ConvertTexture(inputTexture, SamplingCode);
+		return ConvertTexture(inputTexture, (in ReadOnlyRgba source, in Rgb dest) => {
+			var normalXY = ( new Vector2(source.R, source.G) * 2.0f ) - Vector2.One;
+			var normalZ = (float) Math.Sqrt(Math.Clamp(1.0f - ( normalXY.X * normalXY.X ) + ( normalXY.Y * normalXY.Y ), 0f, 1f));
+			var normal = new Vector3(normalXY, normalZ);
+
+			normal += Vector3.One;
+			normal /= 2.0f;
+
+			dest.R = normal.X;
+			dest.G = normal.Y;
+			dest.B = normal.Z;
+		});
 	}
 
-	private static (SKBitmap, SKBitmap?) SeparateTexture(
-		SKBitmap inputTexture,
-		string mainSamplingCode,
-		string subSamplingCode)
+	private static (MagickImage, MagickImage?) SeparateTexture(
+		MagickImage inputTexture,
+		ImageRenderFunction mainRenderFunction,
+		ImageRenderFunction subRenderFunction)
 	{
-		if (inputTexture.ColorType is not (SKColorType.Rgba8888 or SKColorType.Bgra8888))
+		if (inputTexture.ChannelCount != 4)
 			return ( inputTexture, null );
 
-		using var sourceImage = SKImage.FromBitmap(inputTexture);
-		using var inputImageShader = sourceImage.ToRawShader();
-		var mainTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque);
-		var subTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque);
-
-		RenderUsingShader(inputImageShader, mainTexture, mainSamplingCode);
-		RenderUsingShader(inputImageShader, subTexture, subSamplingCode);
+		var mainTexture = ConvertTexture(inputTexture, mainRenderFunction);
+		var subTexture = ConvertTexture(inputTexture, subRenderFunction);
 
 		return ( mainTexture, subTexture );
 	}
 
-	private static SKBitmap ConvertTexture(SKBitmap inputTexture, string samplingCode)
+	private static MagickImage ConvertTexture(MagickImage inputTexture, ImageRenderFunction renderFunction)
 	{
-		using var sourceImage = SKImage.FromBitmap(inputTexture);
-		using var inputImageShader = sourceImage.ToRawShader();
-		var outputTexture = new SKBitmap(inputTexture.Width, inputTexture.Height, SKColorType.Rgb888x, SKAlphaType.Opaque);
+		const int DestPixelSize = 3;
+		const float PreScale = 1f / 65535f;
+		const float PostScale = 65535f;
 
-		RenderUsingShader(inputImageShader, outputTexture, samplingCode);
+		using var sourcePixels = inputTexture.GetPixels();
+		var sourcePixelsData = sourcePixels.GetArea(0, 0, inputTexture.Width, inputTexture.Height)!;
+		var sourcePixelsSpan = sourcePixelsData.AsSpan();
+		var sourcePixelSize = (int) inputTexture.ChannelCount;
+		var destPixelMemory = MemoryOwner<float>.Rent((int) ( inputTexture.Width * inputTexture.Height * DestPixelSize ));
+		var destPixelsSpan = destPixelMemory.Span;
+		var destPixelStart = 0;
+
+		// Pre-scale the source pixels so they're in the range [0, 1]
+		ScaleValues(sourcePixelsSpan, PreScale);
+
+		for (var sourcePixelStart = 0; sourcePixelStart < sourcePixelsSpan.Length; sourcePixelStart += sourcePixelSize)
+		{
+			var sourcePixelEnd = sourcePixelStart + sourcePixelSize;
+			var sourcePixel = new ReadOnlyRgba(sourcePixelsSpan[sourcePixelStart..sourcePixelEnd]);
+			var destPixelEnd = destPixelStart + DestPixelSize;
+			var destPixel = new Rgb(destPixelsSpan[destPixelStart..destPixelEnd]);
+
+			renderFunction(in sourcePixel, in destPixel);
+			destPixelStart += DestPixelSize;
+		}
+
+		// Post-scale the dest pixels so they're in the range [0, 65535]
+		ScaleValues(destPixelsSpan, PostScale);
+
+		var outputTexture = new MagickImage();
+		var readSettings = new PixelReadSettings(inputTexture.Width, inputTexture.Height, StorageType.Quantum, PixelMapping.RGB) {
+			ReadSettings = {
+				ColorSpace = ColorSpace.Undefined,
+			},
+		};
+
+		outputTexture.ReadPixels(destPixelsSpan, readSettings);
 
 		return outputTexture;
 	}
 
-	private static void RenderUsingShader(SKShader inputImageShader, SKBitmap outputImage, string samplingCode)
+	private static void ScaleValues(Span<float> values, float scale)
 	{
-		var fullShaderSource =
-			$$"""
-			  uniform shader image;
+		if (values.Length % 16 == 0 && Vector256.IsHardwareAccelerated)
+		{
+			for (var i = 0; i < values.Length; i += 16)
+			{
+				var thisSpan = values[i..( i + 16 )];
+				var vector = Vector512.Create((ReadOnlySpan<float>) thisSpan);
 
-			  half4 main(float2 coord) {
-			    half4 sample = image.eval(coord);
-			    half4 result = half4(0, 0, 0, 1);
-			    {{samplingCode}}
-			    return result;
-			  }
-			  """;
-		using var effectBuilder = SKRuntimeEffect.BuildShader(fullShaderSource);
+				vector *= scale;
+				vector.CopyTo(thisSpan);
+			}
+		}
+		else if (values.Length % 8 == 0 && Vector256.IsHardwareAccelerated)
+		{
+			for (var i = 0; i < values.Length; i += 8)
+			{
+				var thisSpan = values[i..( i + 8 )];
+				var vector = Vector256.Create((ReadOnlySpan<float>) thisSpan);
 
-		effectBuilder.Children.Add("image", inputImageShader);
+				vector *= scale;
+				vector.CopyTo(thisSpan);
+			}
+		}
+		else if (values.Length % 4 == 0 && Vector128.IsHardwareAccelerated)
+		{
+			for (var i = 0; i < values.Length; i += 4)
+			{
+				var thisSpan = values[i..( i + 4 )];
+				var vector = Vector128.Create((ReadOnlySpan<float>) thisSpan);
 
-		using var shader = effectBuilder.Build();
-		using var canvas = new SKCanvas(outputImage);
-		using var paint = new SKPaint();
+				vector *= scale;
+				vector.CopyTo(thisSpan);
+			}
+		}
+		else
+		{
+			for (var i = 0; i < values.Length; i++)
+				values[i] *= scale;
+		}
+	}
 
-		paint.Shader = shader;
-		canvas.DrawPaint(paint);
-		canvas.Flush();
+	private readonly ref struct ReadOnlyRgba(ReadOnlySpan<float> channels)
+	{
+		private readonly ReadOnlySpan<float> channels = channels;
+
+		public ref readonly float R => ref this.channels[0];
+		public ref readonly float G => ref this.channels[1];
+		public ref readonly float B => ref this.channels[2];
+		public ref readonly float A => ref this.channels[3];
+	}
+
+	private readonly ref struct Rgb(Span<float> channels)
+	{
+		private readonly Span<float> channels = channels;
+
+		public ref float R => ref this.channels[0];
+		public ref float G => ref this.channels[1];
+		public ref float B => ref this.channels[2];
 	}
 }

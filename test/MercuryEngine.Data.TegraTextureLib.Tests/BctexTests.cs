@@ -1,5 +1,6 @@
 ﻿using System.Text;
-using SkiaSharp;
+using ImageMagick;
+using ImageMagick.Formats;
 using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 using MercuryEngine.Data.Tests;
@@ -173,9 +174,16 @@ public partial class BctexTests : BaseMedTestFixture
 
 		for (var arrayLevel = 0; arrayLevel < texture.Info.ArrayCount; arrayLevel++)
 		{
-			using var bitmap = texture.ToBitmap(arrayLevel, isSrgb: bctex.IsSrgb);
-			using var convertedBitmap = ConvertBitmapColors(bitmap);
-			var fileNameSuffix = texture.Info.ArrayCount == 1 ? ".png" : $".{arrayLevel}.png";
+			using var image = texture.ToImage(arrayLevel, isSrgb: bctex.IsSrgb);
+			// using var convertedBitmap = ConvertBitmapColors(bitmap);
+			var isHdr = texture.Info.ImageFormat == XtxImageFormat.BC6U;
+			string fileNameSuffix;
+
+			if (isHdr)
+				fileNameSuffix = texture.Info.ArrayCount == 1 ? ".hdr" : $".{arrayLevel}.hdr";
+			else
+				fileNameSuffix = texture.Info.ArrayCount == 1 ? ".dds" : $".{arrayLevel}.dds";
+
 			var outFileName = ( bctex.TextureName ?? sourceFileName ) + fileNameSuffix;
 			var outFilePath = Path.Join(outFileDir, outFileName);
 			var retry = false;
@@ -189,7 +197,7 @@ public partial class BctexTests : BaseMedTestFixture
 				{
 					using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
 
-					convertedBitmap.Encode(outFileStream, SKEncodedImageFormat.Png, 100);
+					image.Write(outFileStream, isHdr ? MagickFormat.Hdr : MagickFormat.Dds);
 				}
 				catch (IOException)
 				{
@@ -200,19 +208,4 @@ public partial class BctexTests : BaseMedTestFixture
 			while (retry && ( ++iterations <= 10 ));
 		}
 	}
-
-	private static SKBitmap ConvertBitmapColors(SKBitmap input)
-	{
-		if (input.ColorType is SKColorType.R8Unorm or SKColorType.Rg88)
-			return input.Copy(SKColorType.Rgb888x);
-
-		return input;
-	}
-
-	private static SKColorType GetColorType(XtxImageFormat format)
-		=> format switch {
-			XtxImageFormat.NvnFormatRGBA8 => SKColorType.Rgba8888,
-			// XtxImageFormat.DXT5           => SKColorType.Alpha8,
-			_ => SKColorType.Unknown,
-		};
 }

@@ -1,7 +1,7 @@
-﻿using MercuryEngine.Data.Formats;
+﻿using ImageMagick;
+using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Types.DreadTypes;
-using SkiaSharp;
 using MercuryEngine.Data.TegraTextureLib.Extensions;
 using MercuryEngine.Data.TegraTextureLib.Formats;
 
@@ -12,11 +12,11 @@ public class BmsssSpriteTests : BaseTestFixture
 {
 	private static IEnumerable<TestCaseData> GetTestFiles()
 	{
-		foreach (var testCase in BaseTestFixture.GetTestCasesFromRomFs("bmsss"))
+		foreach (var testCase in GetTestCasesFromRomFs("bmsss"))
 			yield return new TestCaseData(testCase.Arguments[0], RomFsPath) { TestName = testCase.TestName };
 	}
 
-	[TestCaseSource(nameof(BmsssSpriteTests.GetTestFiles)), Parallelizable]
+	[TestCaseSource(nameof(GetTestFiles)), Parallelizable]
 	public async Task DumpBmsssSprites(string inFile, string relativeTo)
 	{
 		TestContext.Progress.WriteLine("Loading BMSSS file: {0}", inFile);
@@ -54,7 +54,7 @@ public class BmsssSpriteTests : BaseTestFixture
 			await using (var fileStream = File.Open(bctexPath, FileMode.Open, FileAccess.Read, FileShare.Read))
 				await bctex.ReadAsync(fileStream).ConfigureAwait(false);
 
-			var spriteSheetBitmap = bctex.Textures.First().ToBitmap();
+			var spriteSheetImage = bctex.Textures.First().ToImage();
 
 			foreach (var (i, spriteItem) in spriteItems.Pairs())
 			{
@@ -65,26 +65,16 @@ public class BmsssSpriteTests : BaseTestFixture
 				var uvOffset = uvs.Offset ?? new Vector2();
 				var uvSize = uvs.Scale ?? new Vector2();
 
-				var sourceX = (int) ( uvOffset.X * spriteSheetBitmap.Width );
-				var sourceY = (int) ( uvOffset.Y * spriteSheetBitmap.Height );
-				var sourceWidth = (int) ( Math.Min(1, uvSize.X) * spriteSheetBitmap.Width );
-				var sourceHeight = (int) ( Math.Min(1, uvSize.Y) * spriteSheetBitmap.Height );
-				var sourceRect = new SKRectI(sourceX, sourceY, sourceX + sourceWidth, sourceY + sourceHeight);
-				var destRect = new SKRectI(0, 0, sourceWidth, sourceHeight);
+				var sourceX = (int) ( uvOffset.X * spriteSheetImage.Width );
+				var sourceY = (int) ( uvOffset.Y * spriteSheetImage.Height );
+				var sourceWidth = (uint) ( Math.Min(1, uvSize.X) * spriteSheetImage.Width );
+				var sourceHeight = (uint) ( Math.Min(1, uvSize.Y) * spriteSheetImage.Height );
 
-				var spriteBitmapInfo = spriteSheetBitmap.Info with {
-					Width = sourceRect.Width,
-					Height = sourceRect.Height,
-				};
-				using var spriteBitmap = new SKBitmap(spriteBitmapInfo);
-
-				using (var canvas = new SKCanvas(spriteBitmap))
-					canvas.DrawBitmap(spriteSheetBitmap, sourceRect, destRect);
-
+				using var spriteImage = spriteSheetImage.CloneArea(sourceX, sourceY, sourceWidth, sourceHeight);
 				var outFileName = Path.Join(spriteSheetDir, $"{sprite.ID ?? $"sprite_{i}"}.png");
 				await using var fileStream = File.Open(outFileName, FileMode.Create, FileAccess.Write);
 
-				spriteBitmap.Encode(fileStream, SKEncodedImageFormat.Png, 100);
+				await spriteImage.WriteAsync(fileStream, MagickFormat.Png);
 			}
 		}
 	}

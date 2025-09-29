@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using ImageMagick;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.Bcmdl;
@@ -15,7 +17,6 @@ using SharpGLTF.Memory;
 using SharpGLTF.Scenes;
 using SharpGLTF.Schema2;
 using SharpGLTF.Transforms;
-using SkiaSharp;
 using AlphaMode = SharpGLTF.Materials.AlphaMode;
 using MeshPrimitive = MercuryEngine.Data.Types.Bcmdl.MeshPrimitive;
 
@@ -317,14 +318,18 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 			if (!TryGetKnownChannel(sampler.Name, out var channel))
 				continue;
 
-			using var inputTexture = MaterialResolver?.LoadTexture(sampler.TexturePath);
+			var bctex = MaterialResolver?.LoadTexture(sampler.TexturePath);
 
-			if (inputTexture is null)
+			if (bctex is not { Textures.Count: 1 })
+			{
+				Warn($"Texture \"{sampler.TexturePath}\" not found or did not contain exactly one texture image");
 				continue;
+			}
 
 			var textureName = Path.GetFileNameWithoutExtension(sampler.TexturePath);
-			SKBitmap mainTexture;
-			SKBitmap? subTexture = null;
+			var inputTexture = bctex.Textures.Single().ToImage(isSrgb: bctex.IsSrgb);
+			MagickImage mainTexture;
+			MagickImage? subTexture = null;
 
 			if (channel == KnownChannel.BaseColor)
 				( mainTexture, subTexture ) = TextureConverter.SeparateBaseColorAndEmissive(inputTexture);
@@ -385,11 +390,11 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		return valid;
 	}
 
-	private static MemoryImage ToMemoryImage(SKBitmap bitmap)
+	private static MemoryImage ToMemoryImage(MagickImage image)
 	{
 		using var outputStream = new MemoryStream();
 
-		bitmap.Encode(outputStream, SKEncodedImageFormat.Png, 100);
+		image.Write(outputStream, MagickFormat.Png00);
 
 		return new MemoryImage(outputStream.ToArray());
 	}
@@ -642,6 +647,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 			throw new InvalidOperationException("A BCMDL has not yet been loaded");
 	}
 
+	[OverloadResolutionPriority(1)]
 	private void Warn(FormattableString message)
 		=> Warning?.Invoke(message.ToString());
 

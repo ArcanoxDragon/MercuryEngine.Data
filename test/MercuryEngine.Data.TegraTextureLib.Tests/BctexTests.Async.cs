@@ -1,7 +1,6 @@
-﻿using MercuryEngine.Data.TegraTextureLib.Extensions;
+﻿using ImageMagick;
 using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.Tests;
-using SkiaSharp;
 
 namespace MercuryEngine.Data.TegraTextureLib.Tests;
 
@@ -103,16 +102,42 @@ public partial class BctexTests
 
 		Directory.CreateDirectory(outFileDir);
 
-		foreach (var (i, texture) in bctex.Textures.Pairs())
+		var texture = bctex.Textures.Single();
+
+		for (var arrayLevel = 0; arrayLevel < texture.Info.ArrayCount; arrayLevel++)
 		{
-			using var bitmap = texture.ToBitmap();
+			using var image = texture.ToImage(arrayLevel, isSrgb: bctex.IsSrgb);
+			// using var convertedBitmap = ConvertBitmapColors(bitmap);
+			var isHdr = texture.Info.ImageFormat == XtxImageFormat.BC6U;
+			string fileNameSuffix;
 
-			var outFileNameSuffix = bctex.Textures.Count > 1 ? $".{i}.png" : ".png";
-			var outFileName = ( bctex.TextureName ?? sourceFileName ) + outFileNameSuffix;
+			if (isHdr)
+				fileNameSuffix = texture.Info.ArrayCount == 1 ? ".hdr" : $".{arrayLevel}.hdr";
+			else
+				fileNameSuffix = texture.Info.ArrayCount == 1 ? ".dds" : $".{arrayLevel}.dds";
+
+			var outFileName = ( bctex.TextureName ?? sourceFileName ) + fileNameSuffix;
 			var outFilePath = Path.Join(outFileDir, outFileName);
-			await using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
+			var retry = false;
+			var iterations = 0;
 
-			bitmap.Encode(outFileStream, SKEncodedImageFormat.Png, 100);
+			do
+			{
+				retry = false;
+
+				try
+				{
+					await using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write);
+
+					await image.WriteAsync(outFileStream, isHdr ? MagickFormat.Hdr : MagickFormat.Dds);
+				}
+				catch (IOException)
+				{
+					retry = true;
+					Thread.Sleep(1000);
+				}
+			}
+			while (retry && ( ++iterations <= 10 ));
 		}
 	}
 }

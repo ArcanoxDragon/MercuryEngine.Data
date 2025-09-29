@@ -1,44 +1,53 @@
 ﻿using System.Buffers;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using ImageMagick;
 using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.TegraTextureLib.Utility;
-using SkiaSharp;
 
 namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
 public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 {
-	private static readonly SKColorSpace LinearColorSpace = SKColorSpace.CreateRgb(SKColorSpaceTransferFn.Linear, SKColorSpaceXyz.Identity);
-	private static readonly SKColorSpace SrgbColorSpace   = SKColorSpace.CreateSrgb();
-
-	public SKBitmap ToBitmap(int arrayLevel = 0, int mipLevel = 0, bool isSrgb = true)
+	public MagickImage ToImage(int arrayLevel = 0, int mipLevel = 0, bool isSrgb = true)
 	{
-		SKBitmap bitmap = null!;
+		MagickImage image = null!;
 
-		using (var memoryOwner = DeswizzleAndDecode(arrayLevel, mipLevel, out var textureFormatInfo, out var wasDecoded))
+		using (var memoryOwner = DeswizzleAndDecode(arrayLevel, mipLevel, out var textureFormatInfo))
 		{
 			// First, load the data into a source bitmap with a color type corresponding to the source data
 			var bitmapData = memoryOwner.Span;
-			var sourceColorType = GetColorType(textureFormatInfo, wasDecoded);
+			var pixelMapping = GetPixelMapping(textureFormatInfo, out var storageType);
+			var readSettings = new PixelReadSettings(Info.Width, Info.Height, storageType, pixelMapping) {
+				ReadSettings = {
+					ColorSpace = ColorSpace.Undefined,
+				},
+			};
 
-			bitmap = new SKBitmap((int) Info.Width, (int) Info.Height, sourceColorType, SKAlphaType.Unpremul, isSrgb ? SrgbColorSpace : LinearColorSpace);
+			image = new MagickImage();
 
-			unsafe
+			if (Info.ImageFormat == XtxImageFormat.BC6U)
 			{
-				var bitmapPixels = bitmap.GetPixels();
-				var pixelsSpan = new Span<byte>(bitmapPixels.ToPointer(), bitmap.ByteCount);
+				var floatPixels = ConvertHdrPixels(bitmapData);
 
-				bitmapData.CopyTo(pixelsSpan);
+				image.ReadPixels(floatPixels.Span, readSettings);
 			}
+			else
+			{
+				image.ReadPixels(bitmapData, readSettings);
+			}
+
+			image.ColorSpace = isSrgb ? ColorSpace.sRGB : ColorSpace.Undefined;
 		}
 
 		GC.Collect();
-		return bitmap;
+		return image;
 	}
 
 	public IMemoryOwner<byte> ToRawData(int arrayLevel = 0, int mipLevel = 0)
-		=> DeswizzleAndDecode(arrayLevel, mipLevel, out _, out _);
+		=> DeswizzleAndDecode(arrayLevel, mipLevel, out _);
 
-	private MemoryOwner<byte> DeswizzleAndDecode(int arrayLevel, int mipLevel, out FormatInfo textureFormatInfo, out bool wasDecoded)
+	private MemoryOwner<byte> DeswizzleAndDecode(int arrayLevel, int mipLevel, out FormatInfo textureFormatInfo)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(arrayLevel);
 		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(arrayLevel, (int) Info.ArrayCount);
@@ -52,13 +61,11 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 		{
 			// Decode BC1
 			memoryOwner = BCnDecoder.DecodeBC1(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1);
-			wasDecoded = true;
 		}
 		else if (Info.ImageFormat == XtxImageFormat.DXT5)
 		{
 			// Decode BC3
 			memoryOwner = BCnDecoder.DecodeBC3(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1);
-			wasDecoded = true;
 		}
 		else if (Info.ImageFormat is XtxImageFormat.BC4U or XtxImageFormat.BC4S)
 		{
@@ -66,7 +73,6 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 
 			// Decode BC4
 			memoryOwner = BCnDecoder.DecodeBC4(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1, signed);
-			wasDecoded = true;
 		}
 		else if (Info.ImageFormat is XtxImageFormat.BC5U or XtxImageFormat.BC5S)
 		{
@@ -74,59 +80,89 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 
 			// Decode BC5
 			memoryOwner = BCnDecoder.DecodeBC5(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1, signed);
-			wasDecoded = true;
 		}
 		else if (Info.ImageFormat == XtxImageFormat.BC6U)
 		{
 			// Decode BC6
 			memoryOwner = BCnDecoder.DecodeBC6(deswizzledData, (int) Info.Width, (int) Info.Height, 1, 1, 1, false);
-			wasDecoded = true;
 		}
 		else
 		{
 			// Raw data
 			memoryOwner = MemoryOwner<byte>.RentCopy(deswizzledData);
-			wasDecoded = false;
 		}
 
 		return memoryOwner;
 	}
 
-	private static SKColorType GetColorType(FormatInfo formatInfo, bool wasDecoded)
+	private static MemoryOwner<float> ConvertHdrPixels(ReadOnlySpan<byte> rawData)
 	{
-		if (formatInfo.Format is TextureImageFormat.Bc6HSfloat or TextureImageFormat.Bc6HUfloat)
-			// HDR
-			return SKColorType.RgbaF16;
+		var halfPixels = MemoryMarshal.Cast<byte, Half>(rawData);
+		var floatMemory = MemoryOwner<float>.Rent(halfPixels.Length);
+		var floatSpan = floatMemory.Span;
 
-		if (wasDecoded)
+		// Try accelerated conversions before falling back to per-pixel conversions
+		if (halfPixels.Length % 8 == 0 && Vector256.IsHardwareAccelerated)
 		{
-			// Always 4 bytes per pixel after decoding
+			for (var i = 0; i < halfPixels.Length; i += 8)
+			{
+				floatSpan[i] = (float) halfPixels[i];
+				floatSpan[i + 1] = (float) halfPixels[i + 1];
+				floatSpan[i + 2] = (float) halfPixels[i + 2];
+				floatSpan[i + 3] = (float) halfPixels[i + 3];
+				floatSpan[i + 4] = (float) halfPixels[i + 4];
+				floatSpan[i + 5] = (float) halfPixels[i + 5];
+				floatSpan[i + 6] = (float) halfPixels[i + 6];
+				floatSpan[i + 7] = (float) halfPixels[i + 7];
 
-			return formatInfo.Components switch {
-				1 => SKColorType.R8Unorm,
-				2 => SKColorType.Rg88,
-				3 => SKColorType.Rgb888x,
-				_ => SKColorType.Rgba8888,
-			};
+				var thisSpan = floatSpan[i..( i + 8 )];
+				var values = Vector256.Create((ReadOnlySpan<float>) thisSpan);
+
+				values *= 65535f;
+				values.CopyTo(thisSpan);
+			}
+		}
+		else if (halfPixels.Length % 4 == 0 && Vector128.IsHardwareAccelerated)
+		{
+			for (var i = 0; i < halfPixels.Length; i += 4)
+			{
+				floatSpan[i] = (float) halfPixels[i];
+				floatSpan[i + 1] = (float) halfPixels[i + 1];
+				floatSpan[i + 2] = (float) halfPixels[i + 2];
+				floatSpan[i + 3] = (float) halfPixels[i + 3];
+
+				var thisSpan = floatSpan[i..( i + 4 )];
+				var values = Vector128.Create((ReadOnlySpan<float>) thisSpan);
+
+				values *= 65535f;
+				values.CopyTo(thisSpan);
+			}
+		}
+		else
+		{
+			for (var i = 0; i < halfPixels.Length; i++)
+				floatSpan[i] = (float) halfPixels[i] * 65535f;
 		}
 
-		return ( formatInfo.Components, formatInfo.BytesPerPixel ) switch {
-			// 1 Component
-			(1, 16) => SKColorType.Alpha16,
-			(1, _)  => SKColorType.R8Unorm,
+		return floatMemory;
+	}
 
-			// 2 Components
-			(2, 4) => SKColorType.Rg1616,
-			(2, _) => SKColorType.Rg88,
+	private static string GetPixelMapping(FormatInfo formatInfo, out StorageType storageType)
+	{
+		if (formatInfo.Format is TextureImageFormat.Bc6HSfloat or TextureImageFormat.Bc6HUfloat)
+		{
+			// HDR is always RGBA, 16-bits per component
+			storageType = StorageType.Quantum;
+			return "RGBA";
+		}
 
-			// 3 Components
-			(3, 4) => SKColorType.Rgb101010x,
-			(3, _) => SKColorType.Rgb565,
+		storageType = StorageType.Char;
 
-			// 4 Components
-			(4, 16) => SKColorType.RgbaF32,
-			(4, 8)  => SKColorType.Rgba16161616, // Or is it F16?
-			(_, _)  => SKColorType.Rgba8888,
+		return formatInfo.Components switch {
+			1 => "R",
+			2 => "RG",
+			3 => "RGB",
+			_ => "RGBA",
 		};
 	}
 }

@@ -1,11 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using MercuryEngine.Data.Converters.Bcmdl;
 using MercuryEngine.Data.Formats;
-using MercuryEngine.Data.TegraTextureLib;
 using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Types.Pkg;
-using SkiaSharp;
 
 namespace MercuryEngine.Data.Converters.Tests.Infrastructure;
 
@@ -33,7 +31,7 @@ public class TestMaterialResolver : IMaterialResolver
 		return bsmat;
 	}
 
-	public SKBitmap? LoadTexture(string path)
+	public Bctex? LoadTexture(string path)
 	{
 		var fullPath = Path.Join(Configuration.RomFsPath, "textures", path);
 
@@ -43,15 +41,12 @@ public class TestMaterialResolver : IMaterialResolver
 			return null;
 		}
 
+		using var fileStream = File.Open(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
 		var bctex = new Bctex();
 
-		using (var fileStream = File.Open(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-			bctex.Read(fileStream);
+		bctex.Read(fileStream);
 
-		if (bctex.Textures.Count == 0)
-			return null;
-
-		return bctex.Textures[0].ToBitmap();
+		return bctex;
 	}
 
 	private static bool FindPackageFile(string path, [NotNullWhen(true)] out string? packageFilePath, [NotNullWhen(true)] out PackageFile? file)
