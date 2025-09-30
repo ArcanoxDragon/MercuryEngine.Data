@@ -5,10 +5,10 @@ namespace MercuryEngine.Data.Types.Bsmat;
 
 public class DepthState : DataStructure<DepthState>
 {
-	public byte        DepthTest        { get; set; }
-	public byte        DepthWrite       { get; set; }
-	public CompareMode DepthCompareMode { get; set; }
-	public byte        ZPrePass         { get; set; }
+	public byte        DepthTest        { get; set; } = 1;
+	public byte        DepthWrite       { get; set; } = 1;
+	public CompareMode DepthCompareMode { get; set; } = CompareMode.Less;
+	public byte        ZPrePass         { get; set; } = 1;
 
 	protected override void Describe(DataStructureBuilder<DepthState> builder)
 	{

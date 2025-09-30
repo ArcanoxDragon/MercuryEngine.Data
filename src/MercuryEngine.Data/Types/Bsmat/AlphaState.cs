@@ -6,8 +6,8 @@ namespace MercuryEngine.Data.Types.Bsmat;
 public class AlphaState : DataStructure<AlphaState>
 {
 	public bool        Enabled     { get; set; }
-	public CompareMode CompareMode { get; set; }
-	public float       Threshold   { get; set; }
+	public CompareMode CompareMode { get; set; } = CompareMode.Greater;
+	public float       Threshold   { get; set; } = 0.5f;
 
 	protected override void Describe(DataStructureBuilder<AlphaState> builder)
 	{

@@ -6,9 +6,9 @@ namespace MercuryEngine.Data.Types.Bsmat;
 public class BlendState : DataStructure<BlendState>
 {
 	public bool           Enabled              { get; set; }
-	public BlendOperation BlendOperation       { get; set; }
-	public BlendMode      SourceBlendMode      { get; set; }
-	public BlendMode      DestinationBlendMode { get; set; }
+	public BlendOperation BlendOperation       { get; set; } = BlendOperation.Add;
+	public BlendMode      SourceBlendMode      { get; set; } = BlendMode.One;
+	public BlendMode      DestinationBlendMode { get; set; } = BlendMode.Zero;
 
 	protected override void Describe(DataStructureBuilder<BlendState> builder)
 	{

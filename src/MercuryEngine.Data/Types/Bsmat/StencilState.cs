@@ -6,13 +6,13 @@ namespace MercuryEngine.Data.Types.Bsmat;
 public class StencilState : DataStructure<StencilState>
 {
 	public bool             Enabled            { get; set; }
-	public int              Mask               { get; set; }
-	public int              Threshold          { get; set; }
-	public StencilOperation FailOperation      { get; set; }
-	public StencilOperation PassOperation      { get; set; }
-	public StencilOperation DepthFailOperation { get; set; }
-	public StencilOperation DepthPassOperation { get; set; }
-	public CompareMode      CompareMode        { get; set; }
+	public int              Mask               { get; set; } = 0xFFFFFF;
+	public int              Threshold          { get; set; } = -1;
+	public StencilOperation FailOperation      { get; set; } = StencilOperation.Zero;
+	public StencilOperation PassOperation      { get; set; } = StencilOperation.Zero;
+	public StencilOperation DepthFailOperation { get; set; } = StencilOperation.Zero;
+	public StencilOperation DepthPassOperation { get; set; } = StencilOperation.Zero;
+	public CompareMode      CompareMode        { get; set; } = CompareMode.Always;
 
 	protected override void Describe(DataStructureBuilder<StencilState> builder)
 	{
