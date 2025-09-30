@@ -35,7 +35,7 @@ where T : IBinaryField
 		ulong nextNodeAddress;
 
 		if (!reader.BaseStream.CanSeek)
-			throw new NotSupportedException($"Cannot read {nameof(LinkedListField<T>)} field because the underlying stream does not support seeking");
+			throw new NotSupportedException($"Cannot read {typeof(LinkedListField<T>).GetDisplayName()} field because the underlying stream does not support seeking");
 
 		Entries.Clear();
 
@@ -101,8 +101,10 @@ where T : IBinaryField
 			else
 			{
 				// Write the address where we will start the next node
-				DataMapper.PushRange($"{typeof(LinkedListField<T>).GetDisplayName()}[{i}]: pointer to next node @ 0x{targetAddress:X16}", writer);
-				writer.Write((ulong) ( writer.BaseStream.Position + sizeof(ulong) ));
+				var nextNodeAddress = (ulong) ( writer.BaseStream.Position + sizeof(ulong) );
+
+				DataMapper.PushRange($"{typeof(LinkedListField<T>).GetDisplayName()}[{i}]: pointer to next node @ 0x{nextNodeAddress:X16}", writer);
+				writer.Write(nextNodeAddress);
 			}
 
 			DataMapper.PopRange(writer);
@@ -115,7 +117,7 @@ where T : IBinaryField
 		ulong nextNodeAddress;
 
 		if (!reader.BaseStream.CanSeek)
-			throw new NotSupportedException($"Cannot read {nameof(LinkedListField<T>)} field because the underlying stream does not support seeking");
+			throw new NotSupportedException($"Cannot read {typeof(LinkedListField<T>).GetDisplayName()} field because the underlying stream does not support seeking");
 
 		Entries.Clear();
 
@@ -178,9 +180,10 @@ where T : IBinaryField
 			{
 				// Write the address where we will start the next node
 				var baseStream = await writer.GetBaseStreamAsync(cancellationToken).ConfigureAwait(false);
+				var nextNodeAddress = (ulong) ( baseStream.Position + sizeof(ulong) );
 
-				await DataMapper.PushRangeAsync($"{typeof(LinkedListField<T>).GetDisplayName()}[{i}]: pointer to next node @ 0x{targetAddress:X16}", writer, cancellationToken).ConfigureAwait(false);
-				await writer.WriteAsync((ulong) ( baseStream.Position + sizeof(ulong) ), cancellationToken).ConfigureAwait(false);
+				await DataMapper.PushRangeAsync($"{typeof(LinkedListField<T>).GetDisplayName()}[{i}]: pointer to next node @ 0x{nextNodeAddress:X16}", writer, cancellationToken).ConfigureAwait(false);
+				await writer.WriteAsync(nextNodeAddress, cancellationToken).ConfigureAwait(false);
 			}
 
 			await DataMapper.PopRangeAsync(writer, cancellationToken).ConfigureAwait(false);
@@ -190,7 +193,7 @@ where T : IBinaryField
 	private void SeekSafe(Stream stream, ulong address, FormattableString addressType)
 	{
 		if (address >= (ulong) stream.Length)
-			throw new IOException($"{addressType} of {nameof(LinkedListField<T>)} field was beyond the end of the stream");
+			throw new IOException($"{addressType} of {typeof(LinkedListField<T>).GetDisplayName()} field was beyond the end of the stream");
 
 		stream.Seek((long) address, SeekOrigin.Begin);
 	}
