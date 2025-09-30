@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Text;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Utility;
@@ -16,7 +17,7 @@ public partial class Pkg
 	/// </summary>
 	public static IEnumerable<PackageFile> EnumeratePackageFiles(Stream pkgStream)
 	{
-		using BinaryReader reader = new(pkgStream);
+		using BinaryReader reader = new(pkgStream, Encoding.UTF8, leaveOpen: true);
 		var context = new ReadContext(new HeapManager());
 
 		// Skip past HeaderSize and DataSectionSize
