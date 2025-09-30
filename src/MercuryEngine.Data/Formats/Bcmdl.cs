@@ -1,11 +1,12 @@
-﻿using System.Numerics;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 using MercuryEngine.Data.Types;
 using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
+using MercuryEngine.Data.Types.DreadTypes;
+using Vector3 = System.Numerics.Vector3;
 
 namespace MercuryEngine.Data.Formats;
 
@@ -15,6 +16,9 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 	public override string DisplayName => "BCMDL";
 
 	#region Public Properties
+
+	[JsonIgnore]
+	public FileVersion Version { get; } = new(1, 58, 0);
 
 	[JsonPropertyOrder(1)]
 	public IList<VertexBuffer?> VertexBuffers
@@ -178,7 +182,7 @@ public class Bcmdl : BinaryFormat<Bcmdl>
 	protected override void Describe(DataStructureBuilder<Bcmdl> builder)
 	{
 		builder.Constant("MMDL", "<magic>", terminated: false);
-		builder.Constant(0x003A0001, "<version>");
+		builder.RawProperty(m => m.Version);
 		builder.Pointer(m => m.VertexBuffersField, _ => LinkedListField.Create<VertexBuffer>());
 		builder.Pointer(m => m.IndexBuffersField, _ => LinkedListField.Create<IndexBuffer>());
 		builder.Pointer(m => m.MeshesField, _ => LinkedListField.Create<Mesh>());

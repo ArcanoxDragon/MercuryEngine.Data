@@ -61,6 +61,33 @@ public abstract class BaseTestFixture
 		}
 	}
 
+	protected static Stream OpenRomFsFile(string sourceFilePath, string? relativeTo, string dataFormatName, bool writeOriginal = true, bool overwriteOriginal = false)
+	{
+		var fileStream = File.Open(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+		if (Global.WriteOutputFiles && writeOriginal)
+		{
+			var relativeFileName = relativeTo is null ? sourceFilePath : Path.GetRelativePath(relativeTo, sourceFilePath);
+			var relativeDirectory = Path.GetDirectoryName(relativeFileName)!;
+			var outFileDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestFiles", dataFormatName, relativeDirectory);
+			var outFileName = Path.GetFileName(relativeFileName);
+			var outFilePath = Path.Combine(outFileDir, outFileName);
+
+			if (overwriteOriginal || !File.Exists(outFilePath))
+			{
+				Directory.CreateDirectory(outFileDir);
+
+				using var outFileStream = File.Open(outFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+
+				fileStream.CopyTo(outFileStream);
+				outFileStream.Flush();
+				fileStream.Seek(0, SeekOrigin.Begin);
+			}
+		}
+
+		return fileStream;
+	}
+
 	protected static Stream OpenPackageFile(string packageFilePath, PackageFile file, string dataFormatName, bool writeOriginal = true, bool overwriteOriginal = false)
 	{
 		var fileStream = PkgReader.OpenPackageFile(packageFilePath, file);
@@ -91,7 +118,8 @@ public abstract class BaseTestFixture
 	protected static T ReadWriteAndCompare<T>(string sourceFilePath, string? relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
-		using var fileStream = File.Open(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+		var dataFormatName = new T().DisplayName;
+		using var fileStream = OpenRomFsFile(sourceFilePath, relativeTo, dataFormatName);
 
 		return ReadWriteAndCompareCore<T>(fileStream, sourceFilePath, relativeTo, quiet, preCompareAction);
 	}
@@ -161,7 +189,8 @@ public abstract class BaseTestFixture
 	protected static async Task<T> ReadWriteAndCompareAsync<T>(string sourceFilePath, string? relativeTo, bool quiet = false, Func<bool>? preCompareAction = null)
 	where T : BinaryFormat<T>, new()
 	{
-		await using var fileStream = File.Open(sourceFilePath, FileMode.Open, FileAccess.Read);
+		var dataFormatName = new T().DisplayName;
+		await using var fileStream = OpenRomFsFile(sourceFilePath, relativeTo, dataFormatName);
 
 		return await ReadWriteAndCompareAsyncCore<T>(fileStream, sourceFilePath, relativeTo, quiet, preCompareAction);
 	}
