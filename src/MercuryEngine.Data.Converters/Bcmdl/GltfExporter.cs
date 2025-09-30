@@ -2,6 +2,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using ImageMagick;
+using MercuryEngine.Data.Converters.GameAssets;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.Bcmdl;
@@ -22,7 +23,7 @@ using MeshPrimitive = MercuryEngine.Data.Types.Bcmdl.MeshPrimitive;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
 
-public class GltfExporter(IMaterialResolver? materialResolver = null)
+public class GltfExporter(IGameAssetResolver? assetResolver = null)
 {
 	private const string TextureNameBaseColor  = "texBaseColor";
 	private const string TextureNameNormals    = "texNormals";
@@ -33,7 +34,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 	/// </summary>
 	public event Action<string>? Warning;
 
-	public IMaterialResolver? MaterialResolver { get; } = materialResolver;
+	public IGameAssetResolver? AssetResolver { get; } = assetResolver;
 
 	private Dictionary<string, NodeBuilder>      ArmatureNodeCache      { get; } = [];
 	private Dictionary<StrId, NodeBuilder>       ArmatureNodeCacheByCrc { get; } = [];
@@ -175,7 +176,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 		// Create and populate the MaterialBuilder
 		var materialBuilder = new MaterialBuilder(bcmdlNode.Material?.Name);
 
-		if (bcmdlNode.Material?.Path is { } materialPath && MaterialResolver?.LoadMaterial(materialPath) is { } material)
+		if (bcmdlNode.Material?.Path is { } materialPath && AssetResolver?.LoadMaterial(materialPath) is { } material)
 			AssignMaterials(materialBuilder, material);
 
 		// Add a mesh for each primitive (joint maps are stored per-primitive in BCMDL, but per mesh in glTF,
@@ -198,7 +199,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 			else
 			{
 				// Rigid mesh
-				var meshInstanceMatrix = GltfExporter.GetMeshTransformMatrix(bcmdlNode);
+				var meshInstanceMatrix = GetMeshTransformMatrix(bcmdlNode);
 				NodeBuilder meshParent;
 
 				// Unskinned meshes sometimes have a joint named the same as the mesh, which should be the mesh parent
@@ -318,7 +319,7 @@ public class GltfExporter(IMaterialResolver? materialResolver = null)
 			if (!TryGetKnownChannel(sampler.Name, out var channel))
 				continue;
 
-			var bctex = MaterialResolver?.LoadTexture(sampler.TexturePath);
+			var bctex = AssetResolver?.LoadTexture(sampler.TexturePath);
 
 			if (bctex is not { Textures.Count: 1 })
 			{

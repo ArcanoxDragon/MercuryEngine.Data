@@ -1,5 +1,5 @@
 ﻿using MercuryEngine.Data.Converters.Bcmdl;
-using MercuryEngine.Data.Converters.Tests.Infrastructure;
+using MercuryEngine.Data.Converters.GameAssets;
 using MercuryEngine.Data.Tests.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Types.Pkg;
@@ -37,7 +37,7 @@ public class GltfExporterTests : BaseTestFixture
 
 		Directory.CreateDirectory(outFileDir);
 
-		var textureResolver = new TestMaterialResolver();
+		var textureResolver = new DefaultGameAssetResolver(RomFsPath);
 		var exporter = new GltfExporter(textureResolver);
 
 		exporter.Warning += Assert.Warn;
