@@ -198,20 +198,20 @@ public class VertexData
 			yield return new VertexInfoDescription(VertexInfoType.Position);
 		if (Normal.HasValue)
 			yield return new VertexInfoDescription(VertexInfoType.Normal);
-		if (Color.HasValue)
-			yield return new VertexInfoDescription(VertexInfoType.Color);
 		if (UV1.HasValue)
 			yield return new VertexInfoDescription(VertexInfoType.UV1);
 		if (UV2.HasValue)
 			yield return new VertexInfoDescription(VertexInfoType.UV2);
 		if (UV3.HasValue)
 			yield return new VertexInfoDescription(VertexInfoType.UV3);
-		if (Tangent.HasValue)
-			yield return new VertexInfoDescription(VertexInfoType.Tangent);
+		if (Color.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.Color);
 		if (JointIndex.HasValue)
 			yield return new VertexInfoDescription(VertexInfoType.JointIndex);
 		if (JointWeight.HasValue)
 			yield return new VertexInfoDescription(VertexInfoType.JointWeight);
+		if (Tangent.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.Tangent);
 	}
 
 	internal void ValidateMatchesLayout(List<VertexInfoDescription> expectedSlots, uint vertexIndex)
