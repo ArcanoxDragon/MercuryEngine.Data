@@ -43,8 +43,9 @@ where T : DataStructure<T>
 		return totalSize;
 	}
 
-	[JsonIgnore]
-	public IDictionary<Guid, IBinaryField> BackingFields { get; } = new Dictionary<Guid, IBinaryField>();
+	private IDictionary<Guid, IBinaryField> BackingFields { get; } = new Dictionary<Guid, IBinaryField>();
+
+	IDictionary<Guid, IBinaryField> IDataStructure.BackingFields => BackingFields;
 
 	[JsonIgnore]
 	public DataMapper? DataMapper { get; set; }
