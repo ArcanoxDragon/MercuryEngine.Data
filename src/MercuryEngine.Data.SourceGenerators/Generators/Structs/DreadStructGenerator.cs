@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Definitions.DreadTypes;
 using MercuryEngine.Data.Definitions.Extensions;
 using MercuryEngine.Data.SourceGenerators.Extensions;
@@ -232,7 +233,7 @@ internal class DreadStructGenerator : BaseDreadGenerator<DreadStructType>
 
 	private string GeneratePropertyName(string fieldName)
 	{
-		if (FieldNameRegex.Match(fieldName) is not { Success: true } match)
+		if (!FieldNameRegex.IsMatch(fieldName, out var match))
 			throw new ArgumentException($"Invalid field name: {fieldName}", nameof(fieldName));
 
 		return match.Groups[1].Value;

@@ -21,6 +21,7 @@
 	<ItemGroup>
 		<Compile Include="..\MercuryEngine.Data.Core\Extensions\BinaryExtensions.cs" LinkBase="FromCore" />
 		<Compile Include="..\MercuryEngine.Data.Core\Extensions\Crc64Extensions.cs" LinkBase="FromCore" />
+		<Compile Include="..\MercuryEngine.Data.Core\Extensions\RegexExtensions.cs" LinkBase="FromCore" />
 		<Compile Include="..\MercuryEngine.Data.Core\Utility\Crc64.cs" LinkBase="FromCore" />
 	</ItemGroup>
 
