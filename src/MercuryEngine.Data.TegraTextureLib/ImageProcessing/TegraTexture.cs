@@ -15,10 +15,10 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 {
 	#region Static
 
-	public static TegraTexture FromImage(MagickImage image, PixelMapping channelMapping, CompressionFormat compressionFormat, CompressionQuality compressionQuality = CompressionQuality.Balanced)
-		=> FromImage(image, channelMapping.ToString(), compressionFormat, compressionQuality);
+	public static TegraTexture FromImage(MagickImage image, PixelMapping channelMapping, CompressionFormat compressionFormat, TextureEncodingOptions? options = null)
+		=> FromImage(image, channelMapping.ToString(), compressionFormat, options);
 
-	public static TegraTexture FromImage(MagickImage image, string channelMapping, CompressionFormat compressionFormat, CompressionQuality compressionQuality = CompressionQuality.Balanced)
+	public static TegraTexture FromImage(MagickImage image, string channelMapping, CompressionFormat compressionFormat, TextureEncodingOptions? options = null)
 	{
 		// Do this first so we can throw early for bad inputs
 		var xtxImageFormat = compressionFormat.ToXtxImageFormat();
@@ -26,13 +26,20 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 		if (xtxImageFormat == default)
 			throw new ArgumentException($"Unsupported compression format \"{compressionFormat}\"");
 
+		options ??= new TextureEncodingOptions();
+
 		using var imagePixels = image.GetPixels();
 		var imagePixelsData = imagePixels.ToByteArray(channelMapping);
 		var encoder = new BcEncoder(compressionFormat) {
+			Options = {
+				IsParallel = options.Parallel,
+				TaskCount = options.MaxParallelTasks,
+				Progress = options.Progress,
+			},
 			OutputOptions = {
 				FileFormat = OutputFileFormat.Dds,
-				Quality = compressionQuality,
-				MaxMipMapLevel = XtxTextureInfo.MaxMipCount,
+				Quality = options.CompressionQuality,
+				MaxMipMapLevel = Math.Min(XtxTextureInfo.MaxMipCount, options.MaxMipLevel),
 			},
 		};
 		var ddsFile = encoder.EncodeToDds(imagePixelsData, (int) image.Width, (int) image.Height, channelMapping.Length >= 4 ? PixelFormat.Rgba32 : PixelFormat.Rgb24);

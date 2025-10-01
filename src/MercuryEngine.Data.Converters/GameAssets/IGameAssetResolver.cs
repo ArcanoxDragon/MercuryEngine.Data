@@ -6,8 +6,11 @@ namespace MercuryEngine.Data.Converters.GameAssets;
 
 public interface IGameAssetResolver
 {
-	bool TryGetAsset(string relativePath, [NotNullWhen(true)] out GameAsset? assetLocation, bool forWriting = false);
-	GameAsset GetAsset(string relativePath, bool forWriting = false);
+	// TODO: Documentation
+
+	bool TryGetAsset(string relativePath, [NotNullWhen(true)] out GameAsset? assetLocation);
+	bool TryGetAsset(string relativePath, AssetAccessMode accessMode, [NotNullWhen(true)] out GameAsset? assetLocation);
+	GameAsset GetAsset(string relativePath, AssetAccessMode accessMode = AssetAccessMode.Read);
 	Bsmat? LoadMaterial(string path);
 	Bctex? LoadTexture(string path);
 }

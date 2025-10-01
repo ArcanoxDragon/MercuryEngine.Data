@@ -1,24 +1,24 @@
-﻿using MercuryEngine.Data.Core.Extensions;
-using MercuryEngine.Data.Core.Framework;
+﻿using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Converters.GameAssets;
 
-public sealed record GameAsset(AssetLocationType LocationType, string RelativePath, string? FullPath, string[]? FullPackageFilePaths)
+public sealed record GameAsset(AssetLocationType LocationType, string RelativePath, StrId AssetId, string? FullPath, string[]? FullPackageFilePaths)
 {
 	public GameAsset(string relativePath, string fullRomFsPath)
-		: this(AssetLocationType.RomFs, relativePath, fullRomFsPath, null) { }
+		: this(AssetLocationType.RomFs, relativePath, relativePath, fullRomFsPath, null) { }
 
-	public GameAsset(string relativePath, IEnumerable<string> fullPackageFilePaths)
-		: this(AssetLocationType.Package, relativePath, null, fullPackageFilePaths.ToArray()) { }
-
-	public StrId RelativePathHash { get; } = RelativePath.GetCrc64();
+	public GameAsset(StrId assetId, IEnumerable<string> fullPackageFilePaths)
+		: this(AssetLocationType.Package, assetId.IsKnown ? assetId.StringValue : string.Empty, assetId, null, fullPackageFilePaths.ToArray())
+	{
+		AssetId = assetId;
+	}
 
 	public T ReadAs<T>()
 	where T : IBinaryFormat, new()
 	{
-		using var stream = Open();
+		using var stream = OpenRead();
 		var result = new T();
 
 		result.Read(stream);
@@ -26,12 +26,31 @@ public sealed record GameAsset(AssetLocationType LocationType, string RelativePa
 		return result;
 	}
 
-	public Stream Open(bool forWriting = false)
+	public uint Write<T>(T data)
+	where T : IBinaryFormat
+	{
+		using var stream = OpenWrite();
+
+		data.Write(stream);
+
+		return (uint) stream.Position;
+	}
+
+	public Stream OpenRead() => OpenCore(false);
+	public Stream OpenWrite() => OpenCore(true);
+
+	private Stream OpenCore(bool forWriting)
 	{
 		if (LocationType == AssetLocationType.RomFs)
 		{
+			if (string.IsNullOrEmpty(RelativePath))
+				// Should, in theory, never happen
+				throw new InvalidOperationException("Asset has an empty relative path!");
 			if (string.IsNullOrEmpty(FullPath))
 				throw new InvalidOperationException($"RomFS asset location missing {nameof(FullPath)}");
+
+			if (Path.GetDirectoryName(FullPath) is { } directoryName)
+				Directory.CreateDirectory(directoryName);
 
 			return File.Open(
 				FullPath,
@@ -71,7 +90,7 @@ public sealed record GameAsset(AssetLocationType LocationType, string RelativePa
 				currentPackageStream?.Dispose();
 				currentPackageStream = File.Open(packageFilePath, fileStreamOptions);
 
-				var candidateFile = Pkg.EnumeratePackageFiles(currentPackageStream).FirstOrDefault(f => f.Name == RelativePathHash);
+				var candidateFile = Pkg.EnumeratePackageFiles(currentPackageStream).FirstOrDefault(f => f.Name == AssetId);
 
 				if (candidateFile != null)
 					return Pkg.OpenPackageFile(currentPackageStream, candidateFile);

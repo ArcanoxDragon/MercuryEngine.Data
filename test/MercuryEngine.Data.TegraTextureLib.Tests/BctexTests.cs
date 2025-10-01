@@ -35,6 +35,8 @@ public partial class BctexTests : BaseMedTestFixture
 			TestContext.Error.WriteLine(ex);
 			throw;
 		}
+
+		Assert.Pass($"Kind: {bctex.TextureKind} | Encoding: {bctex.EncodingType} | Usage: {bctex.TextureUsage} | Format: {bctex.Textures[0].Info.ImageFormat}");
 	}
 
 	[TestCaseSource(nameof(GetTestFiles)), Explicit, Parallelizable(ParallelScope.All)]

@@ -2,13 +2,13 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using ImageMagick;
+using JetBrains.Annotations;
 using MercuryEngine.Data.Converters.GameAssets;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
 using MercuryEngine.Data.Types.Bcskla;
-using MercuryEngine.Data.Types.Bsmat;
 using MercuryEngine.Data.Types.Fields;
 using SharpGLTF.Animations;
 using SharpGLTF.Geometry;
@@ -23,12 +23,8 @@ using MeshPrimitive = MercuryEngine.Data.Types.Bcmdl.MeshPrimitive;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
 
-public class GltfExporter(IGameAssetResolver? assetResolver = null)
+public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDisposable
 {
-	private const string TextureNameBaseColor  = "texBaseColor";
-	private const string TextureNameNormals    = "texNormals";
-	private const string TextureNameAttributes = "texAttributes";
-
 	/// <summary>
 	/// Raised when a non-fatal warning is encountered during BCMDL import or glTF export.
 	/// </summary>
@@ -36,9 +32,11 @@ public class GltfExporter(IGameAssetResolver? assetResolver = null)
 
 	public IGameAssetResolver? AssetResolver { get; } = assetResolver;
 
-	private Dictionary<string, NodeBuilder>      ArmatureNodeCache      { get; } = [];
-	private Dictionary<StrId, NodeBuilder>       ArmatureNodeCacheByCrc { get; } = [];
-	private Dictionary<ArmatureJoint, Matrix4x4> JointMatrixCache       { get; } = [];
+	private Dictionary<string, NodeBuilder>            ArmatureNodeCache      { get; } = [];
+	private Dictionary<StrId, NodeBuilder>             ArmatureNodeCacheByCrc { get; } = [];
+	private Dictionary<ArmatureJoint, Matrix4x4>       JointMatrixCache       { get; } = [];
+	private Dictionary<TextureCacheKey, CachedTexture> TextureCache           { get; } = [];
+	private List<IDisposable>                          Disposables            { get; } = [];
 
 	private SceneBuilder? CurrentScene        { get; set; }
 	private Armature?     CurrentArmature     { get; set; }
@@ -49,6 +47,9 @@ public class GltfExporter(IGameAssetResolver? assetResolver = null)
 
 	public void LoadBcmdl(Formats.Bcmdl bcmdl, string? sceneName = null)
 	{
+		// Clean up beforehand, in case anything got left behind from a previous run
+		Dispose();
+
 		CurrentScene = new SceneBuilder(sceneName);
 
 		// Build the armature first
@@ -318,62 +319,28 @@ public class GltfExporter(IGameAssetResolver? assetResolver = null)
 		{
 			if (!TryGetKnownChannel(sampler.Name, out var channel))
 				continue;
-
-			var bctex = AssetResolver?.LoadTexture(sampler.TexturePath);
-
-			if (bctex is not { Textures.Count: 1 })
-			{
-				Warn($"Texture \"{sampler.TexturePath}\" not found or did not contain exactly one texture image");
+			if (LoadAndPrepareTexture(channel, sampler.TexturePath) is not { } cachedTexture)
 				continue;
-			}
 
-			var textureName = Path.GetFileNameWithoutExtension(sampler.TexturePath);
-			var inputTexture = bctex.Textures.Single().ToImage(isSrgb: bctex.IsSrgb);
-			MagickImage mainTexture;
-			MagickImage? subTexture = null;
+			var (mainImageBuilder, subImageBuilder) = cachedTexture;
+			var channelBuilder = materialBuilder.UseChannel(channel);
 
-			if (channel == KnownChannel.BaseColor)
-				( mainTexture, subTexture ) = TextureConverter.SeparateBaseColorAndEmissive(inputTexture);
-			else if (channel == KnownChannel.MetallicRoughness)
-				( mainTexture, subTexture ) = TextureConverter.SeparateMetallicRoughnessAndOcclusion(inputTexture);
+			channelBuilder
+				.UseTexture()
+				.WithPrimaryImage(mainImageBuilder)
+				.WithSampler(
+					sampler.TilingModeU.ToTextureWrapMode(),
+					sampler.TilingModeV.ToTextureWrapMode(),
+					sampler.MagnificationFilter.ToTextureMipMapFilter(),
+					sampler.MinificationFilter.ToTextureInterpolationFilter()
+				);
+
+			if (channel == KnownChannel.BaseColor && subImageBuilder != null)
+				materialBuilder.WithEmissive(subImageBuilder, Vector3.One);
 			else if (channel == KnownChannel.Normal)
-				mainTexture = TextureConverter.ConvertNormalMap(inputTexture);
-			else
-				mainTexture = inputTexture;
-
-			using (mainTexture)
-			using (subTexture)
-			{
-				var mainImage = ToMemoryImage(mainTexture);
-				var mainImageBuilder = ImageBuilder.From(mainImage, textureName);
-				var subImage = default(MemoryImage);
-				var subImageBuilder = default(ImageBuilder);
-				var channelBuilder = materialBuilder.UseChannel(channel);
-
-				if (subTexture != null)
-				{
-					subImage = ToMemoryImage(subTexture);
-					subImageBuilder = ImageBuilder.From(subImage, $"{textureName}.2");
-				}
-
-				channelBuilder
-					.UseTexture()
-					.WithPrimaryImage(mainImageBuilder)
-					.WithSampler(GetWrapMode(sampler.TilingModeU), GetWrapMode(sampler.TilingModeV), GetMipMapFilter(sampler.MagnificationFilter), GetInterpolationFilter(sampler.MinificationFilter));
-
-				if (channel == KnownChannel.BaseColor && subImageBuilder != null)
-				{
-					materialBuilder.WithEmissive(subImageBuilder, Vector3.One);
-				}
-				else if (channel == KnownChannel.Normal)
-				{
-					materialBuilder.WithChannelParam(KnownChannel.Normal, KnownProperty.NormalScale, 1f);
-				}
-				else if (channel == KnownChannel.MetallicRoughness && subImageBuilder != null)
-				{
-					materialBuilder.WithOcclusion(subImageBuilder);
-				}
-			}
+				materialBuilder.WithChannelParam(KnownChannel.Normal, KnownProperty.NormalScale, 1f);
+			else if (channel == KnownChannel.MetallicRoughness)
+				materialBuilder.WithOcclusion(mainImageBuilder); // Same texture for both - Red = AO, Green/Blue = M/R
 		}
 	}
 
@@ -381,14 +348,76 @@ public class GltfExporter(IGameAssetResolver? assetResolver = null)
 	{
 		bool valid;
 
+		// TODO: The "textureN" ones aren't always correct, and there can be duplicates (e.g. "texBaseColor1")
+		//  This probably needs to be reworked, and it will likely never be 100% correct due to the shaders all being different.
 		( valid, channel ) = textureName switch {
-			TextureNameBaseColor  => ( true, KnownChannel.BaseColor ),
-			TextureNameNormals    => ( true, KnownChannel.Normal ),
-			TextureNameAttributes => ( true, KnownChannel.MetallicRoughness ), // This is technically correct, but must be split as it also contains occlusion
-			_                     => ( false, default ),
+			KnownSamplerNames.Texture0 or KnownSamplerNames.BaseColor  => ( true, KnownChannel.BaseColor ),
+			KnownSamplerNames.Texture1 or KnownSamplerNames.Attributes => ( true, KnownChannel.MetallicRoughness ), // This is technically correct, but must be split as it also contains occlusion
+			KnownSamplerNames.Texture2 or KnownSamplerNames.Normals    => ( true, KnownChannel.Normal ),
+			_                                                          => ( false, default ),
 		};
 
 		return valid;
+	}
+
+	private CachedTexture? LoadAndPrepareTexture(KnownChannel forChannel, string bctexPath)
+	{
+		var cacheKey = new TextureCacheKey(forChannel, bctexPath);
+
+		if (TextureCache.TryGetValue(cacheKey, out var cachedTexture))
+			return cachedTexture;
+
+		var bctex = AssetResolver?.LoadTexture(bctexPath);
+
+		if (bctex is not { Textures.Count: 1 })
+		{
+			Warn($"Texture \"{bctexPath}\" not found or did not contain exactly one texture image");
+			return null;
+		}
+
+		var inputTexture = bctex.Textures.Single().ToImage(isSrgb: bctex.IsSrgb);
+		var textureName = Path.GetFileNameWithoutExtension(bctexPath);
+		var subTextureName = textureName;
+		MagickImage mainImage;
+		MagickImage? subImage = null;
+
+		if (forChannel == KnownChannel.BaseColor)
+		{
+			( mainImage, subImage ) = TextureConverter.SeparateBaseColorAndEmissive(inputTexture);
+			subTextureName = ReplaceOrAddSuffix(textureName, "_bc", "_em");
+		}
+		else if (forChannel == KnownChannel.MetallicRoughness)
+		{
+			/*( mainImage, subImage ) = TextureConverter.SeparateMetallicRoughnessAndOcclusion(inputTexture);
+			subTextureName = ReplaceOrAddSuffix(textureName, "_at", "_ao");*/
+			mainImage = inputTexture;
+		}
+		else if (forChannel == KnownChannel.Normal)
+		{
+			mainImage = TextureConverter.ConvertNormalMapFromDread(inputTexture);
+		}
+		else
+		{
+			mainImage = inputTexture;
+		}
+
+		var mainMemoryImage = ToMemoryImage(mainImage);
+		var mainImageBuilder = ImageBuilder.From(mainMemoryImage, textureName);
+		var subMemoryImage = default(MemoryImage);
+		var subImageBuilder = default(ImageBuilder);
+
+		Disposables.Add(mainImage);
+
+		if (subImage != null)
+		{
+			Disposables.Add(subImage);
+			subMemoryImage = ToMemoryImage(subImage);
+			subImageBuilder = ImageBuilder.From(subMemoryImage, subTextureName);
+		}
+
+		cachedTexture = new CachedTexture(mainImageBuilder, subImageBuilder);
+		TextureCache[cacheKey] = cachedTexture;
+		return cachedTexture;
 	}
 
 	private static MemoryImage ToMemoryImage(MagickImage image)
@@ -400,31 +429,12 @@ public class GltfExporter(IGameAssetResolver? assetResolver = null)
 		return new MemoryImage(outputStream.ToArray());
 	}
 
-	private static TextureWrapMode GetWrapMode(TilingMode tilingMode)
-		=> tilingMode switch {
-			TilingMode.ClampToColor   => TextureWrapMode.CLAMP_TO_EDGE,
-			TilingMode.Repeat         => TextureWrapMode.REPEAT,
-			TilingMode.MirroredRepeat => TextureWrapMode.MIRRORED_REPEAT,
-			_                         => TextureWrapMode.CLAMP_TO_EDGE,
-		};
+	private static string ReplaceOrAddSuffix(string input, string oldSuffix, string newSuffix)
+	{
+		input = input.Replace(oldSuffix, "");
 
-	private static TextureMipMapFilter GetMipMapFilter(FilterMode magnificationFilter)
-		=> magnificationFilter switch {
-			FilterMode.Nearest           => TextureMipMapFilter.NEAREST,
-			FilterMode.Linear            => TextureMipMapFilter.LINEAR,
-			FilterMode.NearestMipNearest => TextureMipMapFilter.NEAREST_MIPMAP_NEAREST,
-			FilterMode.NearestMipLinear  => TextureMipMapFilter.NEAREST_MIPMAP_LINEAR,
-			FilterMode.LinearMipNearest  => TextureMipMapFilter.LINEAR_MIPMAP_NEAREST,
-			FilterMode.LinearMipLinear   => TextureMipMapFilter.LINEAR_MIPMAP_LINEAR,
-			_                            => TextureMipMapFilter.DEFAULT,
-		};
-
-	private static TextureInterpolationFilter GetInterpolationFilter(FilterMode minifactionFilter)
-		=> minifactionFilter switch {
-			FilterMode.Nearest => TextureInterpolationFilter.NEAREST,
-			FilterMode.Linear  => TextureInterpolationFilter.LINEAR,
-			_                  => TextureInterpolationFilter.DEFAULT,
-		};
+		return $"{input}{newSuffix}";
+	}
 
 	#endregion
 
@@ -658,4 +668,30 @@ public class GltfExporter(IGameAssetResolver? assetResolver = null)
 	private static Vector3 ScalePosition(Vector3 rawPosition)
 		// Scale cm to meters
 		=> new(rawPosition.X / 100f, rawPosition.Y / 100f, rawPosition.Z / 100f);
+
+	#region IDisposable
+
+	public void Dispose()
+	{
+		ArmatureNodeCache.Clear();
+		ArmatureNodeCacheByCrc.Clear();
+		JointMatrixCache.Clear();
+		TextureCache.Clear();
+
+		foreach (var disposable in Disposables)
+			disposable.Dispose();
+
+		Disposables.Clear();
+	}
+
+	#endregion
+
+	#region Helper Types
+
+	[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+	private record struct TextureCacheKey(KnownChannel Channel, string TexturePath);
+
+	private sealed record CachedTexture(ImageBuilder MainImageBuilder, ImageBuilder? SubImageBuilder);
+
+	#endregion
 }

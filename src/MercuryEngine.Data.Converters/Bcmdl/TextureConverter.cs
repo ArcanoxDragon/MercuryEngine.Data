@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.Intrinsics;
 using ImageMagick;
+using MercuryEngine.Data.Converters.Utility;
 using MercuryEngine.Data.TegraTextureLib.Utility;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
@@ -10,20 +10,16 @@ internal static class TextureConverter
 {
 	private delegate void ImageRenderFunction(in ReadOnlyRgba source, in Rgb dest);
 
+	private delegate void ImageCombineFunction(in ReadOnlyRgb main, in ReadOnlyRgb sub, in Rgba dest);
+
+	#region Base Color and Emissive
+
 	/// <summary>
 	/// Separates an RGBA texture into an RGB base color texture, and an RGB emissive texture using the A
 	/// component of the source texture to control the emissive amount.
 	/// </summary>
 	public static (MagickImage, MagickImage?) SeparateBaseColorAndEmissive(MagickImage inputTexture)
 	{
-		// Remove alpha channel of base color texture
-		const string MainSamplingCode =
-			"result = half4(sample.rgb, 1.0);";
-
-		// Premultiply emissive color using alpha channel of base color texture
-		const string SubSamplingCode =
-			"result = half4(sample.rgb * sample.a, 1.0);";
-
 		return SeparateTexture(
 			inputTexture,
 			(in ReadOnlyRgba source, in Rgb dest) => {
@@ -39,6 +35,27 @@ internal static class TextureConverter
 	}
 
 	/// <summary>
+	/// Combines an RGB base color texture with an RGB emissive texture to produce an RGBA texture
+	/// where the Alpha channel represents the amount of emissivity. The emissive color is always
+	/// determined by the base color.
+	/// </summary>
+	public static MagickImage CombineBaseColorAndEmissive(MagickImage baseColor, MagickImage emissive)
+	{
+		return CombineTextures(baseColor, emissive, (in ReadOnlyRgb main, in ReadOnlyRgb sub, in Rgba dest) => {
+			var emissiveAmount = sub.Luminosity;
+
+			dest.R = main.R;
+			dest.G = main.G;
+			dest.B = main.B;
+			dest.A = emissiveAmount;
+		});
+	}
+
+	#endregion
+
+	#region Metallic/Roughness and AO
+
+	/// <summary>
 	/// Separates an RGBA texture into an RGB metallic/roughness texture and an RGB occlusion texture.
 	/// The G and B channels of the source texture will be preserved to the metallic/roughness texture,
 	/// except that the G channel will be clamped to be at least 0.05f. The A channel of the source
@@ -46,18 +63,6 @@ internal static class TextureConverter
 	/// </summary>
 	public static (MagickImage, MagickImage?) SeparateMetallicRoughnessAndOcclusion(MagickImage inputTexture)
 	{
-		// Clamp roughness to a minimum of 0.05, and keep metallic the same
-		const string MainSamplingCode =
-			"""
-			float clampedRoughness = max(sample.g, 0.05);
-
-			result = half4(0, clampedRoughness, sample.b, 1.0);
-			""";
-
-		// Move occlusion to its own texture as the R channel
-		const string SubSamplingCode =
-			"result = half4(sample.a, 0, 0, 1);";
-
 		return SeparateTexture(
 			inputTexture,
 			(in ReadOnlyRgba source, in Rgb dest) => {
@@ -72,18 +77,32 @@ internal static class TextureConverter
 			});
 	}
 
-	public static MagickImage ConvertNormalMap(MagickImage inputTexture)
+	/// <summary>
+	/// Combines an RGB metallic/roughness texture and a texture where the Red channel represents ambient
+	/// occlusion into a single RGBA texture where the Alpha channel represents ambient occlusion.
+	/// </summary>
+	public static MagickImage CombineMetallicRoughnessAndOcclusion(MagickImage baseColor, MagickImage emissive)
 	{
-		// Ensure B channel is fully saturated (Dread uses 2D normal maps, but most 3D software expects 3D maps)
-		const string SamplingCode =
-			"""
-			half2 normalXY = sample.rg * 2.0 - 1.0;
-			half normalZ = sqrt(saturate(1.0 - normalXY.x * normalXY.x + normalXY.y * normalXY.y));
-			half3 normal = half3(normalXY, normalZ);
-			result = half4((normal + 1.0) / 2.0, 1.0);
-			""";
+		return CombineTextures(baseColor, emissive, (in ReadOnlyRgb main, in ReadOnlyRgb sub, in Rgba dest) => {
+			dest.R = main.R;
+			dest.G = main.G;
+			dest.B = main.B;
+			dest.A = sub.R;
+		});
+	}
 
-		return ConvertTexture(inputTexture, (in ReadOnlyRgba source, in Rgb dest) => {
+	#endregion
+
+	#region Normal Maps
+
+	/// <summary>
+	/// Converts a two-channel normal map (in the style of Dread) to a 3-channel normal map by
+	/// using the X and Y coordinates from the source map and inferring a Z coordinate that would
+	/// result in a normalized 3-dimensional normal vector.
+	/// </summary>
+	public static MagickImage ConvertNormalMapFromDread(MagickImage inputTexture)
+	{
+		return ConvertTexture(inputTexture, "RGB", (in ReadOnlyRgba source, in Rgb dest) => {
 			var normalXY = ( new Vector2(source.R, source.G) * 2.0f ) - Vector2.One;
 			var normalZ = (float) Math.Sqrt(Math.Clamp(1.0f - ( normalXY.X * normalXY.X ) + ( normalXY.Y * normalXY.Y ), 0f, 1f));
 			var normal = new Vector3(normalXY, normalZ);
@@ -97,6 +116,25 @@ internal static class TextureConverter
 		});
 	}
 
+	/// <summary>
+	/// Converts a three-channel normal map to a two-channel map (like Dread expects) by simply
+	/// taking the X and Y coordinates from the source map and normalizing them as a 2-dimensional
+	/// vector.
+	/// </summary>
+	public static MagickImage ConvertNormalMapToDread(MagickImage inputTexture)
+	{
+		return ConvertTexture(inputTexture, "RG", (in ReadOnlyRgba source, in Rgb dest) => {
+			var normalXY = new Vector2(source.R, source.G);
+
+			normalXY = Vector2.Normalize(normalXY);
+
+			dest.R = normalXY.X;
+			dest.G = normalXY.Y;
+		});
+	}
+
+	#endregion
+
 	private static (MagickImage, MagickImage?) SeparateTexture(
 		MagickImage inputTexture,
 		ImageRenderFunction mainRenderFunction,
@@ -105,15 +143,73 @@ internal static class TextureConverter
 		if (inputTexture.ChannelCount != 4)
 			return ( inputTexture, null );
 
-		var mainTexture = ConvertTexture(inputTexture, mainRenderFunction);
-		var subTexture = ConvertTexture(inputTexture, subRenderFunction);
+		var mainTexture = ConvertTexture(inputTexture, "RGB", mainRenderFunction);
+		var subTexture = ConvertTexture(inputTexture, "RGB", subRenderFunction);
 
 		return ( mainTexture, subTexture );
 	}
 
-	private static MagickImage ConvertTexture(MagickImage inputTexture, ImageRenderFunction renderFunction)
+	private static MagickImage CombineTextures(MagickImage mainTexture, MagickImage subTexture, ImageCombineFunction combineFunction)
 	{
-		const int DestPixelSize = 3;
+		const int DestPixelSize = 4;
+		const float PreScale = 1f / 65535f;
+		const float PostScale = 65535f;
+
+		if (mainTexture.Width != subTexture.Width || mainTexture.Height != subTexture.Height)
+			throw new ArgumentException("Both input textures must have the same dimensions");
+
+		using var mainPixels = mainTexture.GetPixels();
+		var mainPixelsData = mainPixels.GetArea(0, 0, mainTexture.Width, mainTexture.Height)!;
+		var mainPixelsSpan = mainPixelsData.AsSpan();
+		var mainPixelSize = (int) mainTexture.ChannelCount;
+
+		using var subPixels = subTexture.GetPixels();
+		var subPixelsData = subPixels.GetArea(0, 0, subTexture.Width, subTexture.Height)!;
+		var subPixelsSpan = subPixelsData.AsSpan();
+		var subPixelSize = (int) subTexture.ChannelCount;
+		var subPixelStart = 0;
+
+		var destPixelMemory = MemoryOwner<float>.Rent((int) ( mainTexture.Width * mainTexture.Height * DestPixelSize ));
+		var destPixelsSpan = destPixelMemory.Span;
+		var destPixelStart = 0;
+
+		// Pre-scale the main pixels so they're in the range [0, 1]
+		ScaleValues(mainPixelsSpan, PreScale);
+		ScaleValues(subPixelsSpan, PreScale);
+
+		for (var mainPixelStart = 0; mainPixelStart < mainPixelsSpan.Length; mainPixelStart += mainPixelSize)
+		{
+			var mainPixelEnd = mainPixelStart + mainPixelSize;
+			var mainPixel = new ReadOnlyRgb(mainPixelsSpan[mainPixelStart..mainPixelEnd]);
+
+			var subPixelEnd = subPixelStart + subPixelSize;
+			var subPixel = new ReadOnlyRgb(subPixelsSpan[subPixelStart..subPixelEnd]);
+
+			var destPixelEnd = destPixelStart + DestPixelSize;
+			var destPixel = new Rgba(destPixelsSpan[destPixelStart..destPixelEnd]);
+
+			combineFunction(in mainPixel, in subPixel, in destPixel);
+			subPixelStart += subPixelSize;
+			destPixelStart += DestPixelSize;
+		}
+
+		// Post-scale the dest pixels so they're in the range [0, 65535]
+		ScaleValues(destPixelsSpan, PostScale);
+
+		var outputTexture = new MagickImage();
+		var readSettings = new PixelReadSettings(mainTexture.Width, mainTexture.Height, StorageType.Quantum, PixelMapping.RGBA) {
+			ReadSettings = {
+				ColorSpace = ColorSpace.Undefined,
+			},
+		};
+
+		outputTexture.ReadPixels(destPixelsSpan, readSettings);
+
+		return outputTexture;
+	}
+
+	private static MagickImage ConvertTexture(MagickImage inputTexture, string destChannels, ImageRenderFunction renderFunction)
+	{
 		const float PreScale = 1f / 65535f;
 		const float PostScale = 65535f;
 
@@ -121,7 +217,8 @@ internal static class TextureConverter
 		var sourcePixelsData = sourcePixels.GetArea(0, 0, inputTexture.Width, inputTexture.Height)!;
 		var sourcePixelsSpan = sourcePixelsData.AsSpan();
 		var sourcePixelSize = (int) inputTexture.ChannelCount;
-		var destPixelMemory = MemoryOwner<float>.Rent((int) ( inputTexture.Width * inputTexture.Height * DestPixelSize ));
+		var destPixelSize = destChannels.Length;
+		var destPixelMemory = MemoryOwner<float>.Rent((int) ( inputTexture.Width * inputTexture.Height * destPixelSize ));
 		var destPixelsSpan = destPixelMemory.Span;
 		var destPixelStart = 0;
 
@@ -132,18 +229,18 @@ internal static class TextureConverter
 		{
 			var sourcePixelEnd = sourcePixelStart + sourcePixelSize;
 			var sourcePixel = new ReadOnlyRgba(sourcePixelsSpan[sourcePixelStart..sourcePixelEnd]);
-			var destPixelEnd = destPixelStart + DestPixelSize;
+			var destPixelEnd = destPixelStart + destPixelSize;
 			var destPixel = new Rgb(destPixelsSpan[destPixelStart..destPixelEnd]);
 
 			renderFunction(in sourcePixel, in destPixel);
-			destPixelStart += DestPixelSize;
+			destPixelStart += destPixelSize;
 		}
 
 		// Post-scale the dest pixels so they're in the range [0, 65535]
 		ScaleValues(destPixelsSpan, PostScale);
 
 		var outputTexture = new MagickImage();
-		var readSettings = new PixelReadSettings(inputTexture.Width, inputTexture.Height, StorageType.Quantum, PixelMapping.RGB) {
+		var readSettings = new PixelReadSettings(inputTexture.Width, inputTexture.Height, StorageType.Quantum, destChannels) {
 			ReadSettings = {
 				ColorSpace = ColorSpace.Undefined,
 			},
@@ -204,6 +301,31 @@ internal static class TextureConverter
 		public ref readonly float G => ref this.channels[1];
 		public ref readonly float B => ref this.channels[2];
 		public ref readonly float A => ref this.channels[3];
+
+		public float Luminosity => ColorUtility.RgbToHsl(R, G, B).L;
+	}
+
+	private readonly ref struct ReadOnlyRgb(ReadOnlySpan<float> channels)
+	{
+		private readonly ReadOnlySpan<float> channels = channels;
+
+		public ref readonly float R => ref this.channels[0];
+		public ref readonly float G => ref this.channels[1];
+		public ref readonly float B => ref this.channels[2];
+
+		public float Luminosity => ColorUtility.RgbToHsl(R, G, B).L;
+	}
+
+	private readonly ref struct Rgba(Span<float> channels)
+	{
+		private readonly Span<float> channels = channels;
+
+		public ref float R => ref this.channels[0];
+		public ref float G => ref this.channels[1];
+		public ref float B => ref this.channels[2];
+		public ref float A => ref this.channels[3];
+
+		public float Luminosity => ColorUtility.RgbToHsl(R, G, B).L;
 	}
 
 	private readonly ref struct Rgb(Span<float> channels)
@@ -213,5 +335,7 @@ internal static class TextureConverter
 		public ref float R => ref this.channels[0];
 		public ref float G => ref this.channels[1];
 		public ref float B => ref this.channels[2];
+
+		public float Luminosity => ColorUtility.RgbToHsl(R, G, B).L;
 	}
 }

@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.TegraTextureLib.Formats;
+using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Converters.GameAssets;
 
@@ -20,6 +20,10 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 		RecurseSubdirectories = true,
 	};
 
+	private readonly Dictionary<StrId, GameAsset> packageAssetsCache = [];
+
+	private bool packageCacheBuilt;
+
 	/// <summary>
 	/// Gets the path of the RomFS root directory from which game assets are resolved.
 	/// </summary>
@@ -30,11 +34,23 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 	/// </summary>
 	public string? OutputPath { get; set; }
 
-	public bool TryGetAsset(string relativePath, [NotNullWhen(true)] out GameAsset? assetLocation, bool forWriting = false)
+	/// <summary>
+	/// Gets or sets whether the set of files present in packages is cached for the lifetime of this <see cref="DefaultGameAssetResolver"/>.
+	/// </summary>
+	/// <remarks>
+	/// Default is <see langword="true"/>. This should be set to <see langword="false"/> if the contents of PKG files or of RomFS may change
+	/// during the lifetime of this <see cref="DefaultGameAssetResolver"/>.
+	/// </remarks>
+	public bool UsePackageCache { get; set; } = true;
+
+	public bool TryGetAsset(string relativePath, [NotNullWhen(true)] out GameAsset? assetLocation)
+		=> TryGetAsset(relativePath, AssetAccessMode.Read, out assetLocation);
+
+	public bool TryGetAsset(string relativePath, AssetAccessMode accessMode, [NotNullWhen(true)] out GameAsset? assetLocation)
 	{
 		try
 		{
-			assetLocation = GetAsset(relativePath, forWriting);
+			assetLocation = GetAsset(relativePath, accessMode);
 			return true;
 		}
 		catch
@@ -44,20 +60,24 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 		}
 	}
 
-	public GameAsset GetAsset(string relativePath, bool forWriting = false)
+	public GameAsset GetAsset(string relativePath, AssetAccessMode accessMode = AssetAccessMode.Read)
 	{
 		relativePath = NormalizePath(relativePath);
 
-		if (forWriting)
+		// Writing always uses a RomFS location in a separate RomFS hierarchy (in OutputPath)
+		bool useOutputPath = accessMode == AssetAccessMode.Write;
+
+		if (accessMode == AssetAccessMode.ReadModified)
 		{
-			// Writing always uses RomFS
+			var fullOutputPath = GetFullOutputPath();
 
-			if (string.IsNullOrEmpty(OutputPath))
-				throw new InvalidOperationException($"Assets cannot be written because an {nameof(OutputPath)} has not been set");
-			if (!Directory.Exists(OutputPath))
-				throw new DirectoryNotFoundException($"Output folder \"{OutputPath}\" does not exist");
+			if (File.Exists(fullOutputPath))
+				useOutputPath = true;
+		}
 
-			var fullOutputPath = Path.Join(OutputPath, relativePath);
+		if (useOutputPath)
+		{
+			var fullOutputPath = GetFullOutputPath();
 
 			return new GameAsset(relativePath, fullOutputPath);
 		}
@@ -69,14 +89,25 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 			return new GameAsset(relativePath, romfsCandidatePath);
 
 		// Look for asset in packages
-		var packagesWithFile = FindPackagesWithFile(relativePath).ToList();
+		var assetFromPackages = FindPackageAsset(relativePath);
 
-		if (packagesWithFile.Count > 0)
-			return new GameAsset(relativePath, packagesWithFile);
+		if (assetFromPackages != null)
+			return assetFromPackages;
 
 		throw new FileNotFoundException($"Could not find asset with path \"{relativePath}\"", relativePath);
+
+		string GetFullOutputPath()
+		{
+			if (string.IsNullOrEmpty(OutputPath))
+				throw new InvalidOperationException($"{nameof(AssetAccessMode)} \"{accessMode}\" cannot be used because an {nameof(OutputPath)} has not been set");
+			if (!Directory.Exists(OutputPath))
+				throw new DirectoryNotFoundException($"Output folder \"{OutputPath}\" does not exist");
+
+			return Path.Join(OutputPath, relativePath);
+		}
 	}
 
+	// TODO: Move to extension method in MercuryEngine.Data.Converters so this class can move to MercuryEngine.Data(.Core?)
 	public Bsmat? LoadMaterial(string path)
 	{
 		if (!TryGetAsset(path, out var bsmatAsset))
@@ -86,6 +117,7 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 		return bsmatAsset.ReadAs<Bsmat>();
 	}
 
+	// TODO: Move to extension method in MercuryEngine.Data.Converters so this class can move to MercuryEngine.Data(.Core?)
 	public Bctex? LoadTexture(string path)
 	{
 		// Textures are referenced without the first "textures" folder throughout the game
@@ -98,17 +130,71 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 		return bctexLocation.ReadAs<Bctex>();
 	}
 
-	private IEnumerable<string> FindPackagesWithFile(string relativePath)
+	private GameAsset? FindPackageAsset(string relativePath)
 	{
-		var relativePathCrc = NormalizePath(relativePath).GetCrc64();
+		var assetId = (StrId) NormalizePath(relativePath);
 
+		if (UsePackageCache)
+		{
+			if (!this.packageCacheBuilt)
+			{
+				lock (this.packageAssetsCache)
+				{
+					if (this.packageCacheBuilt)
+						// In case somebody else built it while we were waiting for the lock
+						return GetAssetFromPackageCache(assetId);
+
+					BuildPackageCache();
+					this.packageCacheBuilt = true;
+				}
+			}
+
+			return GetAssetFromPackageCache(assetId);
+		}
+
+		var packagesWithFile = FindPackagesWithFileUncached(assetId).ToList();
+
+		return packagesWithFile.Count > 0 ? new GameAsset(assetId, packagesWithFile) : null;
+	}
+
+	private GameAsset? GetAssetFromPackageCache(StrId assetId)
+		=> this.packageAssetsCache.GetValueOrDefault(assetId);
+
+	private void BuildPackageCache()
+	{
+		var packagesWithFile = new Dictionary<StrId, List<string>>();
+
+		foreach (var curPackageFilePath in Directory.EnumerateFiles(RomFsPath, "*.pkg", PkgEnumerationOptions))
+		{
+			using var packageStream = File.Open(curPackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+			foreach (var packageFileEntry in Pkg.EnumeratePackageFiles(packageStream))
+			{
+				if (!packagesWithFile.TryGetValue(packageFileEntry.Name, out var packagesList))
+				{
+					packagesList = [];
+					packagesWithFile[packageFileEntry.Name] = packagesList;
+				}
+
+				packagesList.Add(curPackageFilePath);
+			}
+		}
+
+		this.packageAssetsCache.Clear();
+
+		foreach (var (assetId, packages) in packagesWithFile)
+			this.packageAssetsCache.Add(assetId, new GameAsset(assetId, packages));
+	}
+
+	private IEnumerable<string> FindPackagesWithFileUncached(StrId assetId)
+	{
 		foreach (var curPackageFilePath in Directory.EnumerateFiles(RomFsPath, "*.pkg", PkgEnumerationOptions))
 		{
 			using var fileStream = File.Open(curPackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
 			foreach (var candidate in Pkg.EnumeratePackageFiles(fileStream))
 			{
-				if (candidate.Name.Value == relativePathCrc)
+				if (candidate.Name == assetId)
 				{
 					yield return curPackageFilePath;
 					break; // Move onto the next package

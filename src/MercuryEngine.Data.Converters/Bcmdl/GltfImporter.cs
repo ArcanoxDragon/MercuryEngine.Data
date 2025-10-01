@@ -1,13 +1,28 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using MercuryEngine.Data.Core.Utility;
+using System.Text.RegularExpressions;
+using BCnEncoder.Shared;
+using ImageMagick;
+using MercuryEngine.Data.Converters.Extensions;
+using MercuryEngine.Data.Converters.GameAssets;
+using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.TegraTextureLib.Formats;
+using MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
+using MercuryEngine.Data.Types.Bsmat;
+using SharpGLTF.Materials;
 using SharpGLTF.Memory;
 using SharpGLTF.Schema2;
 using SharpGLTF.Validation;
+using MathHelper = MercuryEngine.Data.Core.Utility.MathHelper;
+using Material = MercuryEngine.Data.Types.Bcmdl.Material;
 using Mesh = MercuryEngine.Data.Types.Bcmdl.Mesh;
 using MeshPrimitive = MercuryEngine.Data.Types.Bcmdl.MeshPrimitive;
+using SGMaterial = SharpGLTF.Schema2.Material;
 using SGMesh = SharpGLTF.Schema2.Mesh;
 using SGMeshPrimitive = SharpGLTF.Schema2.MeshPrimitive;
 using SysVector2 = System.Numerics.Vector2;
@@ -17,21 +32,71 @@ using Vector3 = MercuryEngine.Data.Types.DreadTypes.Vector3;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
 
-public class GltfImporter
+public partial class GltfImporter(IGameAssetResolver assetResolver)
 {
-	private GltfImportResult?       CurrentResult            { get; set; }
-	private Dictionary<int, uint>   JointIndexTranslationMap { get; } = [];
-	private Dictionary<uint, Joint> JointsByIndex            { get; } = [];
+	/// <summary>
+	/// This shader supports a base color with an emissive layer, normal maps, and PBR metallic/roughness/AO.
+	/// </summary>
+	private const string InitialDefaultShader = "system/shd/mp_opaque_constant_selfilum.bshdat";
 
-	public GltfImportResult ImportGltf(string sourceFilePath)
+	private int nextUnknownTextureId = 1;
+
+	/// <summary>
+	/// Raised when a non-fatal warning is encountered during glTF import.
+	/// </summary>
+	public event Action<string>? Warning;
+
+	public IGameAssetResolver AssetResolver { get; } = assetResolver;
+
+	/// <summary>
+	/// The shader to use for materials without a custom shader path specified.
+	/// </summary>
+	public string DefaultShader { get; set; } = InitialDefaultShader;
+
+	/// <summary>
+	/// Gets or sets the <see cref="TegraTextureLib.ImageProcessing.TextureEncodingOptions"/> to use when encoding model textures.
+	/// </summary>
+	public TextureEncodingOptions TextureEncodingOptions { get; set; } = new();
+
+	private GltfImportResult?               CurrentResult            { get; set; }
+	private Dictionary<int, uint>           JointIndexTranslationMap { get; } = [];
+	private Dictionary<uint, Joint>         JointsByIndex            { get; } = [];
+	private Dictionary<string, MagickImage> DecodedImages            { get; } = [];
+	private List<IDisposable>               Disposables              { get; } = [];
+
+	private Dictionary<Texture, MagickImage>             ConvertedTextureCache { get; } = [];
+	private Dictionary<(Texture, Texture?), MagickImage> CombinedTextureCache  { get; } = [];
+	private Dictionary<MagickImage, Bctex>               EncodedTextureCache   { get; } = [];
+
+	private ActorType CurrentActorType => CurrentResult?.ActorType ?? throw new InvalidOperationException("A glTF file has not been loaded");
+	private string    CurrentActorName => CurrentResult?.ActorName ?? throw new InvalidOperationException("A glTF file has not been loaded");
+	private string    CurrentModelName => CurrentResult?.ModelName ?? throw new InvalidOperationException("A glTF file has not been loaded");
+
+	private string CurrentRomFsSubfolder => $"actors/{CurrentActorType.GetRomFsFolder()}/{CurrentActorName}";
+
+	public GltfImportResult ImportGltf(ActorType actorType, string actorName, string sourceFilePath)
+	{
+		var modelName = Path.GetFileNameWithoutExtension(sourceFilePath);
+
+		return ImportGltf(actorType, actorName, modelName, sourceFilePath);
+	}
+
+	public GltfImportResult ImportGltf(ActorType actorType, string actorName, string modelName, string sourceFilePath)
 	{
 		try
 		{
 			var targetModel = new Formats.Bcmdl();
+			var finalBcmdlPath = $"actors/{actorType.GetRomFsFolder()}/{actorName}/models/{modelName}.bcmdl";
+			var bcmdlAsset = AssetResolver.GetAsset(finalBcmdlPath, AssetAccessMode.Write);
 
-			CurrentResult = new GltfImportResult(targetModel);
+			CurrentResult = new GltfImportResult(actorType, actorName, modelName, targetModel, bcmdlAsset);
 			JointIndexTranslationMap.Clear();
 			JointsByIndex.Clear();
+			DecodedImages.Clear();
+			Disposables.Clear();
+			ConvertedTextureCache.Clear();
+			CombinedTextureCache.Clear();
+			EncodedTextureCache.Clear();
 
 			var readSettings = new ReadSettings {
 				ImageDecoder = DecodeTextureImage,
@@ -44,27 +109,64 @@ public class GltfImporter
 				ImportJointsFromNodeHierarchy(node);
 
 			// Create MeshNodes from the scene's visual children
-			foreach (var node in modelRoot.DefaultScene.VisualChildren)
-				ImportMeshesFromNodeHierarchy(node);
+			var allMeshes = modelRoot.DefaultScene.VisualChildren
+				.SelectMany(FindMeshesInNodeHierarchy)
+				.ToList();
 
-			// Fill in JointFlags with all falses
-			/*if (targetModel.JointsInfo is { } jointsInfo)
-				Array.Fill(jointsInfo.JointFlags, false);*/
+			ImportMeshes(allMeshes);
+
+			// TODO: Materials and Textures
 
 			return CurrentResult;
 		}
 		finally
 		{
+			// Clean up
 			CurrentResult = null;
 			JointIndexTranslationMap.Clear();
 			JointsByIndex.Clear();
+			DecodedImages.Clear();
+			ConvertedTextureCache.Clear();
+			CombinedTextureCache.Clear();
+			EncodedTextureCache.Clear();
+
+			foreach (var disposable in Disposables)
+				disposable.Dispose();
+
+			Disposables.Clear();
 		}
 	}
 
 	private bool DecodeTextureImage(Image image)
 	{
-		// TODO: Decode to BCTEX
-		return false;
+		if (string.IsNullOrEmpty(image.Name))
+		{
+			Warn("Image found without a name - this image will be skipped");
+			return false;
+		}
+
+		if (image.Content is not { IsPng: true, IsValid: true })
+		{
+			Warn($"Image \"{image.Name}\" is not a valid PNG image and will be skipped");
+			return false;
+		}
+
+		try
+		{
+			MagickImage magickImage;
+
+			using (var imageStream = image.Content.Open())
+				magickImage = new MagickImage(imageStream);
+
+			DecodedImages[image.Name] = magickImage;
+			Disposables.Add(magickImage);
+			return true;
+		}
+		catch (Exception ex)
+		{
+			Warn($"Exception decoding image \"{image.Name}\": {ex}");
+			return false;
+		}
 	}
 
 	#region Joints
@@ -121,19 +223,47 @@ public class GltfImporter
 
 	#region Meshes
 
-	private void ImportMeshesFromNodeHierarchy(Node node)
+	private static IEnumerable<NodeWithMesh> FindMeshesInNodeHierarchy(Node node)
 	{
 		if (node.Mesh is { } mesh)
-			ImportMeshNode(node, mesh);
+		{
+			var meshName = node.Name ?? mesh.Name;
+
+			// Try and remove a numeric suffix, e.g. ".001" (these will be combined into a single mesh node in BCMDL)
+			if (MeshNameRegex.IsMatch(meshName, out var match))
+				meshName = match.Groups["Name"].Value;
+
+			yield return new NodeWithMesh(meshName, node, mesh);
+		}
 
 		foreach (var child in node.VisualChildren)
-			ImportMeshesFromNodeHierarchy(child);
+		foreach (var result in FindMeshesInNodeHierarchy(child))
+			yield return result;
 	}
 
-	private void ImportMeshNode(Node node, SGMesh mesh)
+	private void ImportMeshes(List<NodeWithMesh> allMeshes)
+	{
+		// First, identify all distinct materials and convert them to BSMATs
+		var distinctMaterials = allMeshes.SelectMany(m => m.Mesh.Primitives).Select(p => p.Material).Where(m => m != null).Distinct().ToList();
+
+		foreach (var material in distinctMaterials)
+			ImportMaterial(material);
+
+		foreach (var (_, node, mesh) in allMeshes)
+		{
+			// Group the mesh's primitives by material. Primitives with different materials will be in different BCMDL mesh nodes.
+			var primitivesByMaterial = mesh.Primitives.GroupBy(p => p.Material);
+
+			foreach (var primitiveGroup in primitivesByMaterial)
+				ImportMeshNode(node, mesh, primitiveGroup.Key, primitiveGroup);
+		}
+	}
+
+	private void ImportMeshNode(Node node, SGMesh mesh, SGMaterial material, IEnumerable<SGMeshPrimitive> primitives)
 	{
 		var meshNodeName = node.Name ?? mesh.Name;
 		var meshNode = new MeshNode {
+			Material = CurrentResult!.Model.Materials.SingleOrDefault(m => m?.Name == material.Name),
 			Mesh = new Mesh {
 				Translation = new Vector3(ScalePosition(node.LocalTransform.Translation)),
 			},
@@ -141,11 +271,10 @@ public class GltfImporter
 
 		// Fix the scale of the transform matrix's translation
 		var meshMatrix = new Matrix4x4 {
-			Translation = GltfImporter.ScalePosition(node.WorldMatrix.Translation),
+			Translation = ScalePosition(node.WorldMatrix.Translation),
 		};
 
 		meshNode.Mesh.TransformMatrix = meshMatrix;
-		meshNode.Mesh.Translation.SetFrom(ScalePosition(node.LocalTransform.Translation));
 
 		if (meshNodeName != null)
 			meshNode.Id = CurrentResult!.Model.GetOrCreateNodeId(meshNodeName);
@@ -153,7 +282,7 @@ public class GltfImporter
 		var indices = new List<ushort>();
 		var vertices = new List<VertexData>();
 
-		foreach (var primitive in mesh.Primitives)
+		foreach (var primitive in primitives)
 		{
 			if (primitive.DrawPrimitiveType != PrimitiveType.TRIANGLES)
 				// TODO: It's possible the BCMDL format encodes the primitive geometry type in an unidentified field
@@ -351,6 +480,300 @@ public class GltfImporter
 
 	#endregion
 
+	#region Materials
+
+	private void ImportMaterial(SGMaterial material)
+	{
+		if (CurrentResult!.Materials.ContainsKey(material.Name))
+		{
+			Warn($"Skipping duplicate material \"{material.Name}\"");
+			return;
+		}
+
+		if (!TryGetShaderForMaterial(material, out var shaderLocation))
+			// Can't import materials without a valid shader
+			return;
+
+		if (!TryGetPrototypeMaterialForShader(shaderLocation, out var prototypeMaterialLocation))
+		{
+			// Can't import materials without a prototype to start with
+			Warn($"Prototype material not found for shader \"{shaderLocation.RelativePath}\" (referenced by material \"{material.Name}\")");
+			return;
+		}
+
+		// Dread names the actual material files (both the filename, and the name stored in the BSMAT file) as "modelname_materialname"
+		var fullMaterialName = $"{CurrentModelName}_{material.Name}";
+		var prototypeMaterial = prototypeMaterialLocation.ReadAs<Bsmat>();
+
+		// Create a BCMDL Material resource as well
+		var bcmdlMaterial = new Material {
+			Name = material.Name,
+		};
+
+		// Apply the material being imported onto the prototype
+		prototypeMaterial.Name = fullMaterialName;
+
+		foreach (var stage in prototypeMaterial.ShaderStages)
+		foreach (var sampler in stage.Samplers)
+		{
+			Texture? mainTexture;
+			Texture? subTexture;
+
+			switch (sampler.Name)
+			{
+				case KnownSamplerNames.Texture0 or KnownSamplerNames.BaseColor:
+					mainTexture = material.GetDiffuseTexture();
+					subTexture = material.FindChannel(nameof(KnownChannel.Emissive))?.Texture;
+
+					if (mainTexture != null)
+					{
+						BindBaseColorTexture(material, mainTexture, subTexture, sampler);
+						bcmdlMaterial.Tex1Name = mainTexture.GetName() ?? string.Empty;
+					}
+
+					break;
+				case KnownSamplerNames.Texture1 or KnownSamplerNames.Attributes:
+					mainTexture = material.FindChannel(nameof(KnownChannel.MetallicRoughness))?.Texture;
+					subTexture = material.FindChannel(nameof(KnownChannel.Occlusion))?.Texture;
+
+					if (mainTexture != null)
+					{
+						BindAttributesTexture(material, mainTexture, subTexture, sampler);
+
+						// Attributes are 3 in BCMDL material even though they're 2 in BSMAT...
+						// TODO: Not sure if this matters?
+						bcmdlMaterial.Tex3Name = mainTexture.GetName() ?? string.Empty;
+					}
+
+					break;
+				case KnownSamplerNames.Texture2 or KnownSamplerNames.Normals:
+					mainTexture = material.FindChannel(nameof(KnownChannel.Normal))?.Texture;
+
+					if (mainTexture != null)
+					{
+						BindNormalsTexture(material, mainTexture, sampler);
+						bcmdlMaterial.Tex2Name = mainTexture.GetName() ?? string.Empty;
+					}
+
+					break;
+				default:
+					Warn($"Ignoring unknown sampler \"{sampler.Name}\" in material \"{prototypeMaterialLocation.RelativePath}\" (unknown texture binding)");
+					break;
+			}
+		}
+
+		// TODO: Merge uniform overrides from Extras
+
+		// Assign a path to the material and store it in results
+		var materialAssetPath = $"{CurrentRomFsSubfolder}/models/imats/{fullMaterialName}.bsmat";
+		var materialAsset = AssetResolver.GetAsset(materialAssetPath, AssetAccessMode.Write);
+
+		bcmdlMaterial.Path = materialAssetPath;
+		CurrentResult!.Model.Materials.Add(bcmdlMaterial);
+		CurrentResult!.Materials[material.Name] = ( prototypeMaterial, materialAsset );
+	}
+
+	private bool TryGetShaderForMaterial(SGMaterial material, [NotNullWhen(true)] out GameAsset? shaderAsset)
+	{
+		string shaderPath;
+
+		if (material.Extras.TryGetProperty(GltfProperties.CustomShader, out string? customShader))
+			shaderPath = customShader;
+		else
+			shaderPath = DefaultShader;
+
+		if (!AssetResolver.TryGetAsset(shaderPath, out shaderAsset))
+		{
+			if (shaderPath == DefaultShader)
+			{
+				Warn($"Cannot find default shader \"{DefaultShader}\"! Materials cannot be imported.");
+				return false;
+			}
+
+			Warn($"Material \"{material.Name}\" referenced invalid shader \"{shaderAsset}\". This material will use the default shader.");
+			shaderPath = DefaultShader;
+		}
+
+		// Check again in case the previous unresolved asset location was custom. If this fails, it means the default shader also cannot be found.
+		if (!AssetResolver.TryGetAsset(shaderPath, out shaderAsset))
+		{
+			Warn($"Cannot find default shader \"{DefaultShader}\"! Materials cannot be imported.");
+			return false;
+		}
+
+		return true;
+	}
+
+	private bool TryGetPrototypeMaterialForShader(GameAsset shaderAsset, [NotNullWhen(true)] out GameAsset? prototypeMaterialAsset)
+	{
+		prototypeMaterialAsset = null;
+
+		if (!ShaderNameRegex.IsMatch(shaderAsset.RelativePath, out var match))
+			return false;
+
+		var shaderName = match.Groups["Name"].Value;
+		var materialName = $"system/engine/surfaces/{shaderName}.bsmat";
+
+		return AssetResolver.TryGetAsset(materialName, out prototypeMaterialAsset);
+	}
+
+	private void BindBaseColorTexture(SGMaterial material, Texture mainTexture, Texture? subTexture, Sampler sampler)
+	{
+		var combinedImage = GetCombinedImage(material, mainTexture, subTexture, TextureConverter.CombineBaseColorAndEmissive);
+
+		if (combinedImage is null)
+			return;
+
+		BindTextureToSampler(mainTexture, sampler, combinedImage, useSrgb: true);
+	}
+
+	private void BindAttributesTexture(SGMaterial material, Texture mainTexture, Texture? subTexture, Sampler sampler)
+	{
+		var combinedImage = GetCombinedImage(material, mainTexture, subTexture, TextureConverter.CombineMetallicRoughnessAndOcclusion);
+
+		if (combinedImage is null)
+			return;
+
+		BindTextureToSampler(mainTexture, sampler, combinedImage, useSrgb: false);
+	}
+
+	private void BindNormalsTexture(SGMaterial material, Texture mainTexture, Sampler sampler)
+	{
+		var convertedImage = GetConvertedImage(material, mainTexture, TextureConverter.ConvertNormalMapToDread);
+
+		if (convertedImage is null)
+			return;
+
+		BindTextureToSampler(mainTexture, sampler, convertedImage, useSrgb: false);
+	}
+
+	private void BindTextureToSampler(Texture texture, Sampler sampler, MagickImage image, bool useSrgb)
+	{
+		// Get/encode the texture as BCTEX
+		EncodeTextureImage(texture.GetName() ?? GetUnknownTextureName(), image, useSrgb, out var bctexPath);
+
+		sampler.TexturePath = bctexPath;
+
+		// Assign glTF sampler settings to BSMAT sampler
+		var gltfSampler = texture.Sampler;
+
+		sampler.TilingModeU = gltfSampler.WrapS.ToTilingMode();
+		sampler.TilingModeV = gltfSampler.WrapT.ToTilingMode();
+		sampler.MagnificationFilter = gltfSampler.MagFilter.ToFilterMode();
+		sampler.MinificationFilter = gltfSampler.MinFilter.ToFilterMode();
+		sampler.MipmapFilter = gltfSampler.MinFilter.ToFilterMode();
+	}
+
+	private MagickImage? GetCombinedImage(SGMaterial material, Texture mainTexture, Texture? subTexture, Func<MagickImage, MagickImage, MagickImage> combineImages)
+	{
+		if (CombinedTextureCache.TryGetValue(( mainTexture, subTexture ), out var combinedImage))
+			return combinedImage;
+
+		if (!DecodedImages.TryGetValue(mainTexture.PrimaryImage.Name, out var mainImage))
+		{
+			Warn($"Skipping texture \"{mainTexture.GetName()}\" for material \"{material.Name}\" because the texture image could not be found or decoded");
+			return null;
+		}
+
+		// Different textures can use the same image, such as in the case of AO and PBR, where the Red channel of the image is AO
+		// and the Green/Blue channels are PBR Metallic/Roughness. We don't need to combine them in this case.
+		if (subTexture != null && !ReferenceEquals(mainTexture.PrimaryImage, subTexture.PrimaryImage))
+		{
+			if (DecodedImages.TryGetValue(subTexture.PrimaryImage.Name, out var subImage))
+			{
+				// Combine the textures
+				mainImage = combineImages(mainImage, subImage);
+				Disposables.Add(mainImage);
+			}
+			else
+			{
+				Warn($"Skipping secondary texture \"{subTexture.GetName()}\" for material \"{material.Name}\" because the texture image could not be found or decoded");
+			}
+		}
+
+		CombinedTextureCache[( mainTexture, subTexture )] = mainImage;
+		return mainImage;
+	}
+
+	private MagickImage? GetConvertedImage(SGMaterial material, Texture mainTexture, Func<MagickImage, MagickImage> convertSingleTexture)
+	{
+		if (ConvertedTextureCache.TryGetValue(mainTexture, out var convertedImage))
+			return convertedImage;
+
+		if (!DecodedImages.TryGetValue(mainTexture.PrimaryImage.Name, out var mainImage))
+		{
+			Warn($"Skipping texture \"{mainTexture.GetName()}\" for material \"{material.Name}\" because the texture image could not be found or decoded");
+			return null;
+		}
+
+		// Convert the main texture
+		mainImage = convertSingleTexture(mainImage);
+		Disposables.Add(mainImage);
+		ConvertedTextureCache[mainTexture] = mainImage;
+		return mainImage;
+	}
+
+	private void EncodeTextureImage(string name, MagickImage image, bool useSrgb, out string texturePath)
+	{
+		texturePath = $"{CurrentRomFsSubfolder}/models/textures/{name}.bctex";
+
+		if (EncodedTextureCache.ContainsKey(image))
+			return;
+
+		var compressionFormat = image.ChannelCount switch {
+			1 => CompressionFormat.Bc4,
+			2 => CompressionFormat.Bc5,
+			_ => CompressionFormat.Bc3,
+		};
+		var channelMapping = image.ChannelCount switch {
+			1 => "R",
+			2 => "RG",
+			3 => "RGB",
+			_ => "RGBA",
+		};
+		var newTexture = TegraTexture.FromImage(image, channelMapping, compressionFormat, TextureEncodingOptions);
+		var bctex = new Bctex {
+			TextureName = name,
+			Width = image.Width,
+			Height = image.Height,
+			MipCount = newTexture.Info.MipCount,
+			EncodingType = MseTextureEncoding.Dds,
+			IsSrgb = useSrgb,
+			TextureKind = image.ChannelCount switch {
+				1 => MseTextureKind.OneChannel,
+				2 => MseTextureKind.TwoChannelCompressed,
+				3 => MseTextureKind.OpaqueRgb,
+				_ => MseTextureKind.Rgba,
+			},
+			TextureUsage = TextureUsage.Normal,
+			Textures = { newTexture },
+		};
+
+		// Get an asset instance for the BCTEX that we can use for writing it out later
+		var assetPath = $"textures/{texturePath}";
+		var bctexAsset = AssetResolver.GetAsset(assetPath, AssetAccessMode.Write);
+
+		// Add the BCTEX to the current result and store it in the cache
+		CurrentResult!.Textures[name] = ( bctex, bctexAsset );
+		EncodedTextureCache[image] = bctex;
+	}
+
+	private string GetUnknownTextureName()
+	{
+		var thisId = this.nextUnknownTextureId++;
+
+		return $"texture{thisId:D3}";
+	}
+
+	#endregion
+
+	[OverloadResolutionPriority(1)]
+	private void Warn(FormattableString message)
+		=> Warning?.Invoke(message.ToString());
+
+	private void Warn(string message)
+		=> Warning?.Invoke(message);
+
 	private static SysVector3 ScalePosition(SysVector3 position)
 		// Scales standard glTF meter units to Dread centimeter units
 		=> position * 100;
@@ -362,4 +785,24 @@ public class GltfImporter
 			node.Camera is null &&
 			node.PunctualLight is null
 		);
+
+	#region Helper Types
+
+	[SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Local")]
+	private record struct NodeWithMesh(string MeshName, Node Node, SGMesh Mesh);
+
+	#endregion
+
+	#region Regular Expressions
+
+	[GeneratedRegex(@"^(?<Name>.*?)(?:\.(?<Index>\d+))?$")]
+	private static partial Regex GetMeshNameRegex();
+
+	[GeneratedRegex(@"^system/shd/(?<Name>.+)\.bshdat$")]
+	private static partial Regex GetShaderNameRegex();
+
+	private static readonly Regex MeshNameRegex   = GetMeshNameRegex();
+	private static readonly Regex ShaderNameRegex = GetShaderNameRegex();
+
+	#endregion
 }

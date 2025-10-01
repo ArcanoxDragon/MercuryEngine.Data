@@ -1,4 +1,8 @@
 ﻿using MercuryEngine.Data.Types.Bcmdl;
+using MercuryEngine.Data.Types.Bsmat;
+using SharpGLTF.Schema2;
+using Material = MercuryEngine.Data.Types.Bcmdl.Material;
+using Mesh = MercuryEngine.Data.Types.Bcmdl.Mesh;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
 
@@ -40,4 +44,58 @@ public static class BcmdlExtensions
 
 		return BcmdlMaterialType.Color1;
 	}
+
+	#region Sampler Enums
+
+	public static TextureWrapMode ToTextureWrapMode(this TilingMode tilingMode)
+		=> tilingMode switch {
+			TilingMode.ClampToColor   => TextureWrapMode.CLAMP_TO_EDGE,
+			TilingMode.Repeat         => TextureWrapMode.REPEAT,
+			TilingMode.MirroredRepeat => TextureWrapMode.MIRRORED_REPEAT,
+			_                         => TextureWrapMode.CLAMP_TO_EDGE,
+		};
+
+	public static TilingMode ToTilingMode(this TextureWrapMode textureWrapMode)
+		=> textureWrapMode switch {
+			TextureWrapMode.REPEAT          => TilingMode.Repeat,
+			TextureWrapMode.MIRRORED_REPEAT => TilingMode.MirroredRepeat,
+			_                               => TilingMode.Clamp,
+		};
+
+	public static TextureMipMapFilter ToTextureMipMapFilter(this FilterMode magnificationFilter)
+		=> magnificationFilter switch {
+			FilterMode.Nearest           => TextureMipMapFilter.NEAREST,
+			FilterMode.Linear            => TextureMipMapFilter.LINEAR,
+			FilterMode.NearestMipNearest => TextureMipMapFilter.NEAREST_MIPMAP_NEAREST,
+			FilterMode.NearestMipLinear  => TextureMipMapFilter.NEAREST_MIPMAP_LINEAR,
+			FilterMode.LinearMipNearest  => TextureMipMapFilter.LINEAR_MIPMAP_NEAREST,
+			FilterMode.LinearMipLinear   => TextureMipMapFilter.LINEAR_MIPMAP_LINEAR,
+			_                            => TextureMipMapFilter.DEFAULT,
+		};
+
+	public static FilterMode ToFilterMode(this TextureMipMapFilter textureMipMapFilter)
+		=> textureMipMapFilter switch {
+			TextureMipMapFilter.LINEAR                 => FilterMode.Linear,
+			TextureMipMapFilter.NEAREST                => FilterMode.Nearest,
+			TextureMipMapFilter.NEAREST_MIPMAP_NEAREST => FilterMode.NearestMipNearest,
+			TextureMipMapFilter.LINEAR_MIPMAP_NEAREST  => FilterMode.LinearMipNearest,
+			TextureMipMapFilter.LINEAR_MIPMAP_LINEAR   => FilterMode.LinearMipLinear,
+			_                                          => FilterMode.NearestMipLinear,
+		};
+
+	public static TextureInterpolationFilter ToTextureInterpolationFilter(this FilterMode minifactionFilter)
+		=> minifactionFilter switch {
+			FilterMode.Nearest => TextureInterpolationFilter.NEAREST,
+			FilterMode.Linear  => TextureInterpolationFilter.LINEAR,
+			_                  => TextureInterpolationFilter.DEFAULT,
+		};
+
+	public static FilterMode ToFilterMode(this TextureInterpolationFilter textureInterpolationFilter)
+		=> textureInterpolationFilter switch {
+			TextureInterpolationFilter.LINEAR  => FilterMode.Linear,
+			TextureInterpolationFilter.NEAREST => FilterMode.Nearest,
+			_                                  => FilterMode.NearestMipLinear,
+		};
+
+	#endregion
 }
