@@ -11,17 +11,17 @@ public class Bsmat : BinaryFormat<Bsmat>
 	[JsonIgnore]
 	public override string DisplayName => "BSMAT";
 
-	public FileVersion     Version      { get; }      = new(2, 17, 0);
-	public string          Name         { get; set; } = string.Empty;
-	public MaterialType    Type         { get; set; } = MaterialType.Unknown1;
-	public int             RenderLayer  { get; set; }
-	public string          ShaderPath   { get; set; } = string.Empty;
-	public BlendState      BlendState   { get; set; } = new();
-	public PolygonCullMode CullMode     { get; set; } = PolygonCullMode.Front; // TODO: ?? Really? The default is front-face culling? Maybe the enum is swapped
-	public StencilState    StencilState { get; set; } = new();
-	public AlphaState      AlphaState   { get; set; } = new();
-	public FillMode        FillMode     { get; set; } = FillMode.Solid;
-	public DepthState      DepthState   { get; set; } = new();
+	public FileVersion      Version      { get; }      = new(2, 17, 0);
+	public string           Name         { get; set; } = string.Empty;
+	public TranslucencyType Type         { get; set; } = TranslucencyType.Opaque;
+	public int              RenderLayer  { get; set; }
+	public string           ShaderPath   { get; set; } = string.Empty;
+	public BlendState       BlendState   { get; set; } = new();
+	public PolygonCullMode  CullMode     { get; set; } = PolygonCullMode.Front; // TODO: ?? Really? The default is front-face culling? Maybe the enum is swapped
+	public StencilState     StencilState { get; set; } = new();
+	public AlphaState       AlphaState   { get; set; } = new();
+	public FillMode         FillMode     { get; set; } = FillMode.Solid;
+	public DepthState       DepthState   { get; set; } = new();
 
 	public List<ShaderStage> ShaderStages { get; } = [];
 

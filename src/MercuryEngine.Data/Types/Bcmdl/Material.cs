@@ -58,7 +58,7 @@ public class Material : DataStructure<Material>
 		}
 	}
 
-	public TextureParameters? Tex1Parameters { get; set; }
+	public TextureParameters? Tex1Parameters { get; set; } = new();
 
 	public string? Tex2Name
 	{
@@ -72,7 +72,7 @@ public class Material : DataStructure<Material>
 		}
 	}
 
-	public TextureParameters? Tex2Parameters { get; set; }
+	public TextureParameters? Tex2Parameters { get; set; } = new();
 
 	public string? Tex3Name
 	{
@@ -86,18 +86,18 @@ public class Material : DataStructure<Material>
 		}
 	}
 
-	public TextureParameters? Tex3Parameters { get; set; }
+	public TextureParameters? Tex3Parameters { get; set; } = new();
 
 	public MaterialFlags Flags { get; } = new();
 
 	#region Private Fields
 
-	private TerminatedStringField? NameField     { get; set; }
-	private TerminatedStringField? PathField     { get; set; }
-	private TerminatedStringField? PrefixField   { get; set; }
-	private TerminatedStringField? Tex1NameField { get; set; }
-	private TerminatedStringField? Tex2NameField { get; set; }
-	private TerminatedStringField? Tex3NameField { get; set; }
+	private TerminatedStringField? NameField     { get; set; } = new();
+	private TerminatedStringField? PathField     { get; set; } = new();
+	private TerminatedStringField? PrefixField   { get; set; } = new();
+	private TerminatedStringField? Tex1NameField { get; set; } = new();
+	private TerminatedStringField? Tex2NameField { get; set; } = new();
+	private TerminatedStringField? Tex3NameField { get; set; } = new();
 
 	#endregion
 
