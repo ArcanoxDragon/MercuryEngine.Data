@@ -17,6 +17,8 @@ public class StrId(ulong value) : UInt64Field(value)
 
 	public string StringValue => KnownStrings.Get(Value);
 
+	public bool IsKnown => KnownStrings.TryGet(Value, out _);
+
 	public override string ToString()
 	{
 		if (KnownStrings.TryGet(Value, out var str))
