@@ -1,15 +1,30 @@
 ﻿using MercuryEngine.Data.Core.Extensions;
+using MercuryEngine.Data.Core.Framework;
 using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.Types.Fields;
 
 namespace MercuryEngine.Data.Converters.GameAssets;
 
-public sealed record AssetLocation(AssetLocationType LocationType, string RelativePath, string? FullPath, string[]? FullPackageFilePaths)
+public sealed record GameAsset(AssetLocationType LocationType, string RelativePath, string? FullPath, string[]? FullPackageFilePaths)
 {
-	public AssetLocation(string relativePath, string fullRomFsPath)
+	public GameAsset(string relativePath, string fullRomFsPath)
 		: this(AssetLocationType.RomFs, relativePath, fullRomFsPath, null) { }
 
-	public AssetLocation(string relativePath, IEnumerable<string> fullPackageFilePaths)
+	public GameAsset(string relativePath, IEnumerable<string> fullPackageFilePaths)
 		: this(AssetLocationType.Package, relativePath, null, fullPackageFilePaths.ToArray()) { }
+
+	public StrId RelativePathHash { get; } = RelativePath.GetCrc64();
+
+	public T ReadAs<T>()
+	where T : IBinaryFormat, new()
+	{
+		using var stream = Open();
+		var result = new T();
+
+		result.Read(stream);
+
+		return result;
+	}
 
 	public Stream Open(bool forWriting = false)
 	{
@@ -41,7 +56,6 @@ public sealed record AssetLocation(AssetLocationType LocationType, string Relati
 		if (FullPackageFilePaths is null or { Length: 0 })
 			throw new InvalidOperationException($"RomFS asset location does not have any {nameof(FullPackageFilePaths)}");
 
-		var relativePathCrc = RelativePath.GetCrc64();
 		var fileStreamOptions = new FileStreamOptions {
 			Mode = FileMode.Open,
 			Access = FileAccess.Read,
@@ -57,7 +71,7 @@ public sealed record AssetLocation(AssetLocationType LocationType, string Relati
 				currentPackageStream?.Dispose();
 				currentPackageStream = File.Open(packageFilePath, fileStreamOptions);
 
-				var candidateFile = Pkg.EnumeratePackageFiles(currentPackageStream).FirstOrDefault(f => f.Name.Value == relativePathCrc);
+				var candidateFile = Pkg.EnumeratePackageFiles(currentPackageStream).FirstOrDefault(f => f.Name == RelativePathHash);
 
 				if (candidateFile != null)
 					return Pkg.OpenPackageFile(currentPackageStream, candidateFile);

@@ -11,7 +11,7 @@ namespace MercuryEngine.Data.Core.Framework;
 public abstract class BinaryFormat<
 	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
 	T
-> : DataStructure<T>
+> : DataStructure<T>, IBinaryFormat
 where T : BinaryFormat<T>, new()
 {
 	#region Static Factory

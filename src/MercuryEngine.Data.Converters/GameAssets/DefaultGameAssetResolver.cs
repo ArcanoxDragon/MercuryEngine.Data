@@ -30,11 +30,11 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 	/// </summary>
 	public string? OutputPath { get; set; }
 
-	public bool TryGetAssetLocation(string relativePath, [NotNullWhen(true)] out AssetLocation? assetLocation, bool forWriting = false)
+	public bool TryGetAsset(string relativePath, [NotNullWhen(true)] out GameAsset? assetLocation, bool forWriting = false)
 	{
 		try
 		{
-			assetLocation = GetAssetLocation(relativePath, forWriting);
+			assetLocation = GetAsset(relativePath, forWriting);
 			return true;
 		}
 		catch
@@ -44,8 +44,10 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 		}
 	}
 
-	public AssetLocation GetAssetLocation(string relativePath, bool forWriting = false)
+	public GameAsset GetAsset(string relativePath, bool forWriting = false)
 	{
+		relativePath = NormalizePath(relativePath);
+
 		if (forWriting)
 		{
 			// Writing always uses RomFS
@@ -57,36 +59,31 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 
 			var fullOutputPath = Path.Join(OutputPath, relativePath);
 
-			return new AssetLocation(relativePath, fullOutputPath);
+			return new GameAsset(relativePath, fullOutputPath);
 		}
 
 		var romfsCandidatePath = Path.Join(RomFsPath, relativePath);
 
 		if (File.Exists(romfsCandidatePath))
 			// Asset exists as a bare RomFS file - always prefer that
-			return new AssetLocation(relativePath, romfsCandidatePath);
+			return new GameAsset(relativePath, romfsCandidatePath);
 
 		// Look for asset in packages
 		var packagesWithFile = FindPackagesWithFile(relativePath).ToList();
 
 		if (packagesWithFile.Count > 0)
-			return new AssetLocation(relativePath, packagesWithFile);
+			return new GameAsset(relativePath, packagesWithFile);
 
 		throw new FileNotFoundException($"Could not find asset with path \"{relativePath}\"", relativePath);
 	}
 
 	public Bsmat? LoadMaterial(string path)
 	{
-		if (!TryGetAssetLocation(path, out var bsmatLocation))
+		if (!TryGetAsset(path, out var bsmatAsset))
 			// TODO: Event?
 			return null;
 
-		using var bsmatStream = bsmatLocation.Open();
-		var bsmat = new Bsmat();
-
-		bsmat.Read(bsmatStream);
-
-		return bsmat;
+		return bsmatAsset.ReadAs<Bsmat>();
 	}
 
 	public Bctex? LoadTexture(string path)
@@ -94,21 +91,16 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 		// Textures are referenced without the first "textures" folder throughout the game
 		var fullRelativePath = Path.Join("textures", path);
 
-		if (!TryGetAssetLocation(fullRelativePath, out var bctexLocation))
+		if (!TryGetAsset(fullRelativePath, out var bctexLocation))
 			// TODO: Event?
 			return null;
 
-		using var bctexStream = bctexLocation.Open();
-		var bctex = new Bctex();
-
-		bctex.Read(bctexStream);
-
-		return bctex;
+		return bctexLocation.ReadAs<Bctex>();
 	}
 
 	private IEnumerable<string> FindPackagesWithFile(string relativePath)
 	{
-		var relativePathCrc = relativePath.GetCrc64();
+		var relativePathCrc = NormalizePath(relativePath).GetCrc64();
 
 		foreach (var curPackageFilePath in Directory.EnumerateFiles(RomFsPath, "*.pkg", PkgEnumerationOptions))
 		{
@@ -123,5 +115,16 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 				}
 			}
 		}
+	}
+
+	private static string NormalizePath(string path)
+	{
+		var normalized = path.Replace('\\', '/');
+
+		if (normalized.StartsWith("./"))
+			// Can't use "TrimStart", as it could erroneously remove "../"
+			normalized = normalized[2..];
+
+		return normalized.TrimStart('/');
 	}
 }
