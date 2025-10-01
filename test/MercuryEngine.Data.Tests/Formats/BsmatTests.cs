@@ -9,17 +9,31 @@ namespace MercuryEngine.Data.Tests.Formats;
 public class BsmatTests : BaseTestFixture
 {
 	private static IEnumerable<TestCaseData> GetTestFiles()
-		=> GetTestCasesFromPackages("bsmat");
+	{
+		foreach (var testCase in GetTestCasesFromPackages("bsmat"))
+		{
+			var packageFile = (PackageFile) testCase.Arguments[1]!;
+			var fileName = packageFile.Name.ToString();
+
+			yield return new TestCaseData(fileName, null, testCase.Arguments[0], testCase.Arguments[1]) { TestName = testCase.TestName };
+		}
+
+		foreach (var testCase in GetTestCasesFromRomFs("bsmat"))
+			yield return new TestCaseData(testCase.Arguments[0], RomFsPath, null, null) { TestName = testCase.TestName };
+	}
 
 	[TestCaseSource(nameof(GetTestFiles))]
-	public void TestLoadBsmat(string packageFilePath, PackageFile packageFile)
+	public void TestLoadBsmat(string fileName, string? relativeTo, string? packageFilePath, PackageFile? packageFile)
 	{
-		var fileName = packageFile.Name.ToString();
-
 		TestContext.Progress.WriteLine("Loading BSMAT file: {0}", fileName);
 
 		var bsmat = new Bsmat();
-		var stream = OpenPackageFile(packageFilePath, packageFile, bsmat.DisplayName);
+		Stream stream;
+
+		if (packageFile != null)
+			stream = OpenPackageFile(packageFilePath!, packageFile, bsmat.DisplayName);
+		else
+			stream = OpenRomFsFile(fileName, relativeTo, bsmat.DisplayName);
 
 		try
 		{
@@ -40,6 +54,11 @@ public class BsmatTests : BaseTestFixture
 	}
 
 	[TestCaseSource(nameof(GetTestFiles))]
-	public void TestCompareBsmat(string packageFilePath, PackageFile packageFile)
-		=> ReadWriteAndCompare<Bsmat>(packageFilePath, packageFile);
+	public void TestCompareBsmat(string fileName, string? relativeTo, string? packageFilePath, PackageFile? packageFile)
+	{
+		if (packageFile != null)
+			ReadWriteAndCompare<Bsmat>(packageFilePath!, packageFile);
+		else
+			ReadWriteAndCompare<Bsmat>(fileName, relativeTo);
+	}
 }
