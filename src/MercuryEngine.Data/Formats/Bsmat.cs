@@ -23,13 +23,7 @@ public class Bsmat : BinaryFormat<Bsmat>
 	public FillMode        FillMode     { get; set; } = FillMode.Solid;
 	public DepthState      DepthState   { get; set; } = new();
 
-	private uint Unknown0 { get; set; }
-	private uint Unknown1 { get; set; }
-	private uint Unknown2 { get; set; }
-
-	public List<UniformParameter> AdditionalUniforms { get; } = [];
-	public List<Sampler>          AdditionalSamplers { get; } = [];
-	public List<ShaderStage>      ShaderStages       { get; } = [];
+	public List<ShaderStage> ShaderStages { get; } = [];
 
 	protected override void Describe(DataStructureBuilder<Bsmat> builder)
 	{
@@ -45,16 +39,7 @@ public class Bsmat : BinaryFormat<Bsmat>
 		builder.RawProperty(m => m.AlphaState);
 		builder.Property(m => m.FillMode);
 		builder.RawProperty(m => m.DepthState);
-
-		//builder.Property(m => m.Unknown0);
-		//builder.Property(m => m.Unknown1);
-		//builder.Property(m => m.Unknown2);
-
-		builder.Constant(0); // Unknown purpose
-		builder.Constant(2); // Unknown purpose
-		builder.Constant(0); // Unknown purpose
-		builder.Array(m => m.AdditionalUniforms);
-		builder.Array(m => m.AdditionalSamplers);
+		builder.Padding(4);
 		builder.Array(m => m.ShaderStages);
 	}
 }
