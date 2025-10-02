@@ -1,5 +1,5 @@
-﻿using MercuryEngine.Data.Converters.GameAssets;
-using MercuryEngine.Data.Formats;
+﻿using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.GameAssets;
 using MercuryEngine.Data.TegraTextureLib.Formats;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;

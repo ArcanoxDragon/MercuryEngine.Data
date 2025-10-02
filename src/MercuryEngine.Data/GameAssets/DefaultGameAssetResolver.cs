@@ -1,9 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using MercuryEngine.Data.Formats;
-using MercuryEngine.Data.TegraTextureLib.Formats;
+﻿using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.Types.Fields;
 
-namespace MercuryEngine.Data.Converters.GameAssets;
+namespace MercuryEngine.Data.GameAssets;
 
 /// <summary>
 /// Resolves assets using conventional paths and locations from a folder containing an extracted RomFS.
@@ -43,91 +41,38 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 	/// </remarks>
 	public bool UsePackageCache { get; set; } = true;
 
-	public bool TryGetAsset(string relativePath, [NotNullWhen(true)] out GameAsset? assetLocation)
-		=> TryGetAsset(relativePath, AssetAccessMode.Read, out assetLocation);
-
-	public bool TryGetAsset(string relativePath, AssetAccessMode accessMode, [NotNullWhen(true)] out GameAsset? assetLocation)
+	public bool TryGetExistingAsset(string relativePath, out GameAsset assetLocation, bool includeOutputAssets = false)
 	{
-		try
-		{
-			assetLocation = GetAsset(relativePath, accessMode);
-			return true;
-		}
-		catch
-		{
-			assetLocation = null;
-			return false;
-		}
+		assetLocation = GetAsset(relativePath);
+		return includeOutputAssets ? assetLocation.Exists : assetLocation.ExistsInBaseGame;
 	}
 
-	public GameAsset GetAsset(string relativePath, AssetAccessMode accessMode = AssetAccessMode.Read)
+	public GameAsset GetAsset(string relativePath)
 	{
 		relativePath = NormalizePath(relativePath);
 
-		// Writing always uses a RomFS location in a separate RomFS hierarchy (in OutputPath)
-		bool useOutputPath = accessMode == AssetAccessMode.Write;
+		var fullOutputPath = string.IsNullOrEmpty(OutputPath) ? null : Path.Join(OutputPath, relativePath);
 
-		if (accessMode == AssetAccessMode.ReadModified)
+		return GetAssetCore() with { OutputPath = fullOutputPath };
+
+		GameAsset GetAssetCore()
 		{
-			var fullOutputPath = GetFullOutputPath();
+			var romfsCandidatePath = Path.Join(RomFsPath, relativePath);
 
-			if (File.Exists(fullOutputPath))
-				useOutputPath = true;
+			if (File.Exists(romfsCandidatePath))
+				// Asset exists as a bare RomFS file - always prefer that
+				return new GameAsset(relativePath, romfsCandidatePath);
+
+			// Look for asset in packages
+			var assetFromPackages = FindPackageAsset(relativePath);
+
+			if (assetFromPackages != null)
+				return assetFromPackages;
+
+			// Asset does not exist in RomFS or in any PKG files, meaning
+			// it's a non-existent or new asset.
+			return new GameAsset(relativePath);
 		}
-
-		if (useOutputPath)
-		{
-			var fullOutputPath = GetFullOutputPath();
-
-			return new GameAsset(relativePath, fullOutputPath);
-		}
-
-		var romfsCandidatePath = Path.Join(RomFsPath, relativePath);
-
-		if (File.Exists(romfsCandidatePath))
-			// Asset exists as a bare RomFS file - always prefer that
-			return new GameAsset(relativePath, romfsCandidatePath);
-
-		// Look for asset in packages
-		var assetFromPackages = FindPackageAsset(relativePath);
-
-		if (assetFromPackages != null)
-			return assetFromPackages;
-
-		throw new FileNotFoundException($"Could not find asset with path \"{relativePath}\"", relativePath);
-
-		string GetFullOutputPath()
-		{
-			if (string.IsNullOrEmpty(OutputPath))
-				throw new InvalidOperationException($"{nameof(AssetAccessMode)} \"{accessMode}\" cannot be used because an {nameof(OutputPath)} has not been set");
-			if (!Directory.Exists(OutputPath))
-				throw new DirectoryNotFoundException($"Output folder \"{OutputPath}\" does not exist");
-
-			return Path.Join(OutputPath, relativePath);
-		}
-	}
-
-	// TODO: Move to extension method in MercuryEngine.Data.Converters so this class can move to MercuryEngine.Data(.Core?)
-	public Bsmat? LoadMaterial(string path)
-	{
-		if (!TryGetAsset(path, out var bsmatAsset))
-			// TODO: Event?
-			return null;
-
-		return bsmatAsset.ReadAs<Bsmat>();
-	}
-
-	// TODO: Move to extension method in MercuryEngine.Data.Converters so this class can move to MercuryEngine.Data(.Core?)
-	public Bctex? LoadTexture(string path)
-	{
-		// Textures are referenced without the first "textures" folder throughout the game
-		var fullRelativePath = Path.Join("textures", path);
-
-		if (!TryGetAsset(fullRelativePath, out var bctexLocation))
-			// TODO: Event?
-			return null;
-
-		return bctexLocation.ReadAs<Bctex>();
 	}
 
 	private GameAsset? FindPackageAsset(string relativePath)

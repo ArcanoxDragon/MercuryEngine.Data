@@ -6,9 +6,9 @@ using System.Text.RegularExpressions;
 using BCnEncoder.Shared;
 using ImageMagick;
 using MercuryEngine.Data.Converters.Extensions;
-using MercuryEngine.Data.Converters.GameAssets;
 using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.GameAssets;
 using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 using MercuryEngine.Data.Types.Bcmdl;
@@ -87,7 +87,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		{
 			var targetModel = new Formats.Bcmdl();
 			var finalBcmdlPath = $"actors/{actorType.GetRomFsFolder()}/{actorName}/models/{modelName}.bcmdl";
-			var bcmdlAsset = AssetResolver.GetAsset(finalBcmdlPath, AssetAccessMode.Write);
+			var bcmdlAsset = AssetResolver.GetAsset(finalBcmdlPath);
 
 			CurrentResult = new GltfImportResult(actorType, actorName, modelName, targetModel, bcmdlAsset);
 			JointIndexTranslationMap.Clear();
@@ -582,7 +582,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		else
 			shaderPath = DefaultShader;
 
-		if (!AssetResolver.TryGetAsset(shaderPath, out shaderAsset))
+		if (!AssetResolver.TryGetExistingAsset(shaderPath, out shaderAsset))
 		{
 			if (shaderPath == DefaultShader)
 			{
@@ -595,7 +595,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		}
 
 		// Check again in case the previous unresolved asset location was custom. If this fails, it means the default shader also cannot be found.
-		if (!AssetResolver.TryGetAsset(shaderPath, out shaderAsset))
+		if (!AssetResolver.TryGetExistingAsset(shaderPath, out shaderAsset))
 		{
 			Warn($"Cannot find default shader \"{DefaultShader}\"! Materials cannot be imported.");
 			return false;
@@ -614,7 +614,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		var shaderName = match.Groups["Name"].Value;
 		var materialName = $"system/engine/surfaces/{shaderName}.bsmat";
 
-		return AssetResolver.TryGetAsset(materialName, out prototypeMaterialAsset);
+		return AssetResolver.TryGetExistingAsset(materialName, out prototypeMaterialAsset);
 	}
 
 	private void BindBaseColorTexture(SGMaterial material, Texture mainTexture, Texture? subTexture, Sampler sampler)
@@ -751,7 +751,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 
 		// Get an asset instance for the BCTEX that we can use for writing it out later
 		var assetPath = $"textures/{texturePath}";
-		var bctexAsset = AssetResolver.GetAsset(assetPath, AssetAccessMode.Write);
+		var bctexAsset = AssetResolver.GetAsset(assetPath);
 
 		// Add the BCTEX to the current result and store it in the cache
 		CurrentResult!.Textures[name] = ( bctex, bctexAsset );

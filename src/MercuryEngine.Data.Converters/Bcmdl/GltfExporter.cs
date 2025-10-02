@@ -3,9 +3,9 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using ImageMagick;
 using JetBrains.Annotations;
-using MercuryEngine.Data.Converters.GameAssets;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Formats;
+using MercuryEngine.Data.GameAssets;
 using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
 using MercuryEngine.Data.Types.Bcskla;
@@ -177,7 +177,7 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 		// Create and populate the MaterialBuilder
 		var materialBuilder = new MaterialBuilder(bcmdlNode.Material?.Name);
 
-		if (bcmdlNode.Material?.Path is { } materialPath && AssetResolver?.LoadMaterial(materialPath) is { } material)
+		if (bcmdlNode.Material?.Path is { } materialPath && TryLoadMaterial(materialPath, out var material))
 			AssignMaterials(materialBuilder, material);
 
 		// Add a mesh for each primitive (joint maps are stored per-primitive in BCMDL, but per mesh in glTF,
@@ -367,9 +367,7 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 		if (TextureCache.TryGetValue(cacheKey, out var cachedTexture))
 			return cachedTexture;
 
-		var bctex = AssetResolver?.LoadTexture(bctexPath);
-
-		if (bctex is not { Textures.Count: 1 })
+		if (!TryLoadTexture(bctexPath, out var bctex) || bctex is not { Textures.Count: 1 })
 		{
 			Warn($"Texture \"{bctexPath}\" not found or did not contain exactly one texture image");
 			return null;
@@ -418,6 +416,39 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 		cachedTexture = new CachedTexture(mainImageBuilder, subImageBuilder);
 		TextureCache[cacheKey] = cachedTexture;
 		return cachedTexture;
+	}
+
+	private bool TryLoadMaterial(string materialPath, [NotNullWhen(true)] out Bsmat? material)
+	{
+		material = null;
+
+		if (AssetResolver is null)
+			return false;
+
+		var materialAsset = AssetResolver.GetAsset(materialPath);
+
+		if (!materialAsset.Exists)
+			return false;
+
+		material = materialAsset.ReadAs<Bsmat>(useExistingOutput: true);
+		return true;
+	}
+
+	private bool TryLoadTexture(string texturePath, [NotNullWhen(true)] out Bctex? texture)
+	{
+		texture = null;
+
+		if (AssetResolver is null)
+			return false;
+
+		// Textures are referenced without the first "textures" folder throughout the game
+		var textureAsset = AssetResolver.GetAsset($"textures/{texturePath}");
+
+		if (!textureAsset.Exists)
+			return false;
+
+		texture = textureAsset.ReadAs<Bctex>(useExistingOutput: true);
+		return true;
 	}
 
 	private static MemoryImage ToMemoryImage(MagickImage image)

@@ -1,5 +1,5 @@
 ﻿using MercuryEngine.Data.Converters.Bcmdl;
-using MercuryEngine.Data.Converters.GameAssets;
+using MercuryEngine.Data.GameAssets;
 using MercuryEngine.Data.Tests.Formats;
 using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Types.Pkg;
