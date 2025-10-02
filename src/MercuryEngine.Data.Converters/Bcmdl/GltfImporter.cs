@@ -2,6 +2,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using BCnEncoder.Shared;
 using ImageMagick;
@@ -493,7 +494,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			return;
 		}
 
-		if (!TryGetShaderForMaterial(material, out var shaderLocation))
+		if (!TryGetShaderForMaterial(material, out var shaderLocation, out _)) // TODO: Use shader for reflection info
 			// Can't import materials without a valid shader
 			return;
 
@@ -522,65 +523,121 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			Texture? mainTexture;
 			Texture? subTexture;
 
-			switch (sampler.Name)
+			if (material.Extras.TryGetProperty(GltfProperties.SamplerTexturePath(sampler.Name), out string? bctexPath))
 			{
-				case KnownSamplerNames.BaseColor:
-					mainTexture = material.GetDiffuseTexture();
-					subTexture = material.FindChannel(nameof(KnownChannel.Emissive))?.Texture;
+				// Material points to an existing BCTEX for this sampler
 
-					if (mainTexture != null)
-					{
-						BindBaseColorTexture(material, mainTexture, subTexture, sampler);
-						bcmdlMaterial.Tex1Name = mainTexture.GetName() ?? string.Empty;
-					}
+				if (string.IsNullOrEmpty(bctexPath) || AssetResolver.TryGetExistingAsset($"textures/{bctexPath}", out _))
+					sampler.TexturePath = bctexPath;
+				else
+					Warn($"Material \"{material.Name}\" referenced non-existent texture \"{bctexPath}\" for sampler \"{sampler.Name}\"");
+			}
+			else
+			{
+				// Try to figure out which channel's image to bind to this sampler
 
-					break;
-				case KnownSamplerNames.Attributes:
-					mainTexture = material.FindChannel(nameof(KnownChannel.MetallicRoughness))?.Texture;
-					subTexture = material.FindChannel(nameof(KnownChannel.Occlusion))?.Texture;
+				switch (sampler.Name)
+				{
+					case KnownSamplerNames.BaseColor:
+						mainTexture = material.GetDiffuseTexture();
+						subTexture = material.FindChannel(nameof(KnownChannel.Emissive))?.Texture;
 
-					if (mainTexture != null)
-					{
-						BindAttributesTexture(material, mainTexture, subTexture, sampler);
+						if (mainTexture != null)
+						{
+							BindBaseColorTexture(material, mainTexture, subTexture, sampler);
+							bcmdlMaterial.Tex1Name = mainTexture.GetName() ?? string.Empty;
+						}
 
-						// Attributes are 3 in BCMDL material even though they're 2 in BSMAT...
-						// TODO: Not sure if this matters?
-						bcmdlMaterial.Tex3Name = mainTexture.GetName() ?? string.Empty;
-					}
+						break;
+					case KnownSamplerNames.Attributes:
+						mainTexture = material.FindChannel(nameof(KnownChannel.MetallicRoughness))?.Texture;
+						subTexture = material.FindChannel(nameof(KnownChannel.Occlusion))?.Texture;
 
-					break;
-				case KnownSamplerNames.Normals:
-					mainTexture = material.FindChannel(nameof(KnownChannel.Normal))?.Texture;
+						if (mainTexture != null)
+						{
+							BindAttributesTexture(material, mainTexture, subTexture, sampler);
 
-					if (mainTexture != null)
-					{
-						BindNormalsTexture(material, mainTexture, sampler);
-						bcmdlMaterial.Tex2Name = mainTexture.GetName() ?? string.Empty;
-					}
+							// Attributes are 3 in BCMDL material even though they're 2 in BSMAT...
+							// TODO: Not sure if this matters?
+							bcmdlMaterial.Tex3Name = mainTexture.GetName() ?? string.Empty;
+						}
 
-					break;
-				default:
-					Warn($"Ignoring unknown sampler \"{sampler.Name}\" in material \"{prototypeMaterialLocation.RelativePath}\" (unknown texture binding)");
-					break;
+						break;
+					case KnownSamplerNames.Normals:
+						mainTexture = material.FindChannel(nameof(KnownChannel.Normal))?.Texture;
+
+						if (mainTexture != null)
+						{
+							BindNormalsTexture(material, mainTexture, sampler);
+							bcmdlMaterial.Tex2Name = mainTexture.GetName() ?? string.Empty;
+						}
+
+						break;
+					default:
+						Warn($"Ignoring unknown sampler \"{sampler.Name}\" in material \"{prototypeMaterialLocation.RelativePath}\" (unknown texture binding)");
+						break;
+				}
 			}
 		}
 
-		// TODO: Merge uniform overrides from Extras
+		if (material.Extras is JsonObject extras)
+		{
+			// Extra properties that start with lowercase "f", "v", or "i" are interpreted as uniforms
+			// TODO: Use shader reflection info to figure these out exactly, and map them to the correct stage instead of assuming Fragment
+
+			foreach (var (name, node) in extras)
+			{
+				if (name.Length == 0 || node is not (JsonValue or JsonArray))
+					continue;
+				if (name[0] is not ('f' or 'v' or 'i'))
+					continue;
+
+				foreach (var fragmentStage in prototypeMaterial.ShaderStages.Where(s => s.Type == ShaderType.Pixel))
+				{
+					var parameter = fragmentStage.Uniforms.FirstOrDefault(u => u.Name == name);
+
+					if (parameter is null)
+					{
+						parameter = new UniformParameter { Name = name };
+						fragmentStage.Uniforms.Add(parameter);
+					}
+
+					if (name[0] is 'f' or 'v')
+						parameter.FloatValues = GetValueAsArray<float>();
+					else // 'i' for int32
+						parameter.SignedIntValues = GetValueAsArray<int>();
+				}
+
+				T[] GetValueAsArray<T>()
+				{
+					T[] values = [];
+
+					if (node is JsonArray array)
+						values = array.OfType<JsonValue>().TrySelect<JsonValue, T>((v, out f) => v.TryGetValue(out f)).ToArray();
+					else if (node is JsonValue value)
+						values = value.TryGetValue<T>(out var v) ? [v] : [];
+
+					return values;
+				}
+			}
+		}
 
 		// Assign a path to the material and store it in results
 		var materialAssetPath = $"{CurrentRomFsSubfolder}/models/imats/{fullMaterialName}.bsmat";
-		var materialAsset = AssetResolver.GetAsset(materialAssetPath, AssetAccessMode.Write);
+		var materialAsset = AssetResolver.GetAsset(materialAssetPath);
 
 		bcmdlMaterial.Path = materialAssetPath;
 		CurrentResult!.Model.Materials.Add(bcmdlMaterial);
 		CurrentResult!.Materials[material.Name] = ( prototypeMaterial, materialAsset );
 	}
 
-	private bool TryGetShaderForMaterial(SGMaterial material, [NotNullWhen(true)] out GameAsset? shaderAsset)
+	private bool TryGetShaderForMaterial(SGMaterial material, out GameAsset shaderAsset, [NotNullWhen(true)] out Bshdat? shader)
 	{
 		string shaderPath;
 
-		if (material.Extras.TryGetProperty(GltfProperties.CustomShader, out string? customShader))
+		shader = null;
+
+		if (material.Extras.TryGetProperty(GltfProperties.ShaderPath, out string? customShader))
 			shaderPath = customShader;
 		else
 			shaderPath = DefaultShader;
@@ -604,7 +661,16 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			return false;
 		}
 
-		return true;
+		try
+		{
+			shader = shaderAsset.ReadAs<Bshdat>();
+			return true;
+		}
+		catch (Exception ex)
+		{
+			Warn($"Error loading shader \"{shaderPath}\": {ex}");
+			return false;
+		}
 	}
 
 	private bool TryGetPrototypeMaterialForShader(GameAsset shaderAsset, [NotNullWhen(true)] out GameAsset? prototypeMaterialAsset)
@@ -627,7 +693,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		if (combinedImage is null)
 			return;
 
-		BindTextureToSampler(mainTexture, sampler, combinedImage, useSrgb: true);
+		BindTextureImageToSampler(mainTexture, sampler, combinedImage, useSrgb: true);
 	}
 
 	private void BindAttributesTexture(SGMaterial material, Texture mainTexture, Texture? subTexture, Sampler sampler)
@@ -637,7 +703,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		if (combinedImage is null)
 			return;
 
-		BindTextureToSampler(mainTexture, sampler, combinedImage, useSrgb: false);
+		BindTextureImageToSampler(mainTexture, sampler, combinedImage, useSrgb: false);
 	}
 
 	private void BindNormalsTexture(SGMaterial material, Texture mainTexture, Sampler sampler)
@@ -647,10 +713,10 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		if (convertedImage is null)
 			return;
 
-		BindTextureToSampler(mainTexture, sampler, convertedImage, useSrgb: false, isNormalMap: true);
+		BindTextureImageToSampler(mainTexture, sampler, convertedImage, useSrgb: false, isNormalMap: true);
 	}
 
-	private void BindTextureToSampler(Texture texture, Sampler sampler, MagickImage image, bool useSrgb, bool isNormalMap = false)
+	private void BindTextureImageToSampler(Texture texture, Sampler sampler, MagickImage image, bool useSrgb, bool isNormalMap = false)
 	{
 		// Get/encode the texture as BCTEX
 		EncodeTextureImage(texture.GetName() ?? GetUnknownTextureName(), image, useSrgb, isNormalMap, out var bctexPath);
@@ -658,13 +724,16 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		sampler.TexturePath = bctexPath;
 
 		// Assign glTF sampler settings to BSMAT sampler
-		var gltfSampler = texture.Sampler;
+		ApplySamplerSettings(sampler, texture.Sampler);
+	}
 
-		sampler.TilingModeU = gltfSampler.WrapS.ToTilingMode();
-		sampler.TilingModeV = gltfSampler.WrapT.ToTilingMode();
-		sampler.MagnificationFilter = gltfSampler.MagFilter.ToFilterMode();
-		sampler.MinificationFilter = gltfSampler.MinFilter.ToFilterMode();
-		sampler.MipmapFilter = gltfSampler.MinFilter.ToFilterMode();
+	private static void ApplySamplerSettings(Sampler bsmatSampler, TextureSampler gltfSampler)
+	{
+		bsmatSampler.TilingModeU = gltfSampler.WrapS.ToTilingMode();
+		bsmatSampler.TilingModeV = gltfSampler.WrapT.ToTilingMode();
+		bsmatSampler.MagnificationFilter = gltfSampler.MagFilter.ToFilterMode();
+		bsmatSampler.MinificationFilter = gltfSampler.MinFilter.ToFilterMode();
+		bsmatSampler.MipmapFilter = gltfSampler.MinFilter.ToFilterMode();
 	}
 
 	private MagickImage? GetCombinedImage(SGMaterial material, Texture mainTexture, Texture? subTexture, Func<MagickImage, MagickImage, MagickImage> combineImages)

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Nodes;
 using ImageMagick;
 using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Utility;
@@ -341,35 +342,68 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 	{
 		materialBuilder.WithAlpha(material.AlphaState.Enabled ? AlphaMode.BLEND : AlphaMode.OPAQUE, material.AlphaState.Threshold);
 
+		var materialExtras = materialBuilder.Extras ??= new JsonObject();
+
+		materialExtras[GltfProperties.ShaderPath] = material.ShaderPath;
+
 		foreach (var shaderStage in material.ShaderStages)
-		foreach (var sampler in shaderStage.Samplers.OrderBy(s => s.Index))
 		{
-			if (!TryGetKnownChannel(sampler.Name, out var channel))
-				continue;
-			if (LoadAndPrepareTexture(channel, sampler.TexturePath) is not { } cachedTexture)
-				continue;
+			// Populate the material's Extras field with uniforms
+			foreach (var uniform in shaderStage.Uniforms)
+				materialExtras[uniform.Name] = ConvertUniformValuesToJson(uniform);
 
-			var (mainImageBuilder, subImageBuilder) = cachedTexture;
-			var channelBuilder = materialBuilder.UseChannel(channel);
+			// Map samplers/textures to glTF channels
+			foreach (var sampler in shaderStage.Samplers.OrderBy(s => s.Index))
+			{
+				// Store the texture path as an extra property named after the sampler.
+				// This can help round-trip more specialized materials, or use existing
+				// game materials when importing.
+				materialExtras[GltfProperties.SamplerTexturePath(sampler.Name)] = sampler.TexturePath;
 
-			channelBuilder
-				.UseTexture()
-				.WithPrimaryImage(mainImageBuilder)
-				.WithSampler(
-					sampler.TilingModeU.ToTextureWrapMode(),
-					sampler.TilingModeV.ToTextureWrapMode(),
-					sampler.MagnificationFilter.ToTextureMipMapFilter(),
-					sampler.MinificationFilter.ToTextureInterpolationFilter()
-				);
+				if (!TryGetKnownChannel(sampler.Name, out var channel))
+				{
+					Warn($"Not sure how to map sampler \"{sampler.Name}\" to a glTF texture channel. This sampler will be unmapped in the glTF output.");
+					continue;
+				}
 
-			if (channel == KnownChannel.BaseColor && subImageBuilder != null)
-				materialBuilder.WithEmissive(subImageBuilder, Vector3.One);
-			else if (channel == KnownChannel.Normal)
-				materialBuilder.WithChannelParam(KnownChannel.Normal, KnownProperty.NormalScale, 1f);
-			else if (channel == KnownChannel.MetallicRoughness)
-				materialBuilder.WithOcclusion(mainImageBuilder); // Same texture for both - Red = AO, Green/Blue = M/R
+				if (LoadAndPrepareTexture(channel, sampler.TexturePath) is not { } cachedTexture)
+					continue;
+
+				var (mainImageBuilder, subImageBuilder) = cachedTexture;
+				var channelBuilder = materialBuilder.UseChannel(channel);
+				var textureBuilder = channelBuilder
+					.UseTexture()
+					.WithPrimaryImage(mainImageBuilder)
+					.WithSampler(
+						sampler.TilingModeU.ToTextureWrapMode(),
+						sampler.TilingModeV.ToTextureWrapMode(),
+						sampler.MagnificationFilter.ToTextureMipMapFilter(),
+						sampler.MinificationFilter.ToTextureInterpolationFilter()
+					);
+
+				// Store the BCTEX path on an extra field on the texture, which can allow us
+				// to reuse an existing BCTEX if re-importing the model later.
+				textureBuilder.Extras = new JsonObject {
+					[GltfProperties.TexturePath] = sampler.TexturePath,
+				};
+
+				if (channel == KnownChannel.BaseColor && subImageBuilder != null)
+					materialBuilder.WithEmissive(subImageBuilder, Vector3.One);
+				else if (channel == KnownChannel.Normal)
+					materialBuilder.WithChannelParam(KnownChannel.Normal, KnownProperty.NormalScale, 1f);
+				else if (channel == KnownChannel.MetallicRoughness)
+					materialBuilder.WithOcclusion(mainImageBuilder); // Same texture for both - Red = AO, Green/Blue = M/R
+			}
 		}
 	}
+
+	private static JsonArray ConvertUniformValuesToJson(UniformParameter uniform)
+		=> uniform.Type switch {
+			UniformParameter.TypeFloat       => new JsonArray(uniform.FloatValues.Select(v => JsonValue.Create(v)).ToArray()),
+			UniformParameter.TypeSignedInt   => new JsonArray(uniform.SignedIntValues.Select(v => JsonValue.Create(v)).ToArray()),
+			UniformParameter.TypeUnsignedInt => new JsonArray(uniform.UnsignedIntValues.Select(v => JsonValue.Create(v)).ToArray()),
+			_                                => [],
+		};
 
 	private static bool TryGetKnownChannel(string textureName, out KnownChannel channel)
 	{
