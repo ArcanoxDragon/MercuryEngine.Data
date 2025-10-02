@@ -206,12 +206,12 @@ public class VertexData
 			yield return new VertexInfoDescription(VertexInfoType.UV3);
 		if (Color.HasValue)
 			yield return new VertexInfoDescription(VertexInfoType.Color);
+		if (Tangent.HasValue)
+			yield return new VertexInfoDescription(VertexInfoType.Tangent);
 		if (JointIndex.HasValue)
 			yield return new VertexInfoDescription(VertexInfoType.JointIndex);
 		if (JointWeight.HasValue)
 			yield return new VertexInfoDescription(VertexInfoType.JointWeight);
-		if (Tangent.HasValue)
-			yield return new VertexInfoDescription(VertexInfoType.Tangent);
 	}
 
 	internal void ValidateMatchesLayout(List<VertexInfoDescription> expectedSlots, uint vertexIndex)

@@ -33,16 +33,23 @@ public static class BcmdlExtensions
 		};
 	}
 
-	public static BcmdlMaterialType GetMaterialType(this Material material)
+	public static BcmdlMaterialType GetMaterialType(this VertexBuffer vertexBuffer)
 	{
-		if (material is { Tex3Name: not null, Tex3Parameters: not null })
-			return BcmdlMaterialType.Color1Texture3;
-		if (material is { Tex2Name: not null, Tex2Parameters: not null })
-			return BcmdlMaterialType.Color1Texture2;
-		if (material is { Tex1Name: not null, Tex1Parameters: not null })
-			return BcmdlMaterialType.Color1Texture1;
+		var hasColor = vertexBuffer.VertexInfoSlots.Any(s => s.Type == VertexInfoType.Color);
+		var hasUV1 = vertexBuffer.VertexInfoSlots.Any(s => s.Type == VertexInfoType.UV1);
+		var hasUV2 = vertexBuffer.VertexInfoSlots.Any(s => s.Type == VertexInfoType.UV2);
+		var hasUV3 = vertexBuffer.VertexInfoSlots.Any(s => s.Type == VertexInfoType.UV3);
 
-		return BcmdlMaterialType.Color1;
+		return ( hasColor, hasUV1, hasUV2, hasUV3 ) switch {
+			(true, true, true, true)    => BcmdlMaterialType.Color1Texture3,
+			(true, true, true, false)   => BcmdlMaterialType.Color1Texture2,
+			(true, true, false, false)  => BcmdlMaterialType.Color1Texture1,
+			(true, false, false, false) => BcmdlMaterialType.Color1,
+			(false, true, true, true)   => BcmdlMaterialType.Texture3,
+			(false, true, true, false)  => BcmdlMaterialType.Texture2,
+			(false, true, false, false) => BcmdlMaterialType.Texture1,
+			_                           => BcmdlMaterialType.None,
+		};
 	}
 
 	#region Sampler Enums

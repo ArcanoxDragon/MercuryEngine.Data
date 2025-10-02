@@ -22,12 +22,12 @@ internal static class TextureConverter
 	{
 		return SeparateTexture(
 			inputTexture,
-			(in ReadOnlyRgba source, in Rgb dest) => {
+			(in source, in dest) => {
 				dest.R = source.R;
 				dest.G = source.G;
 				dest.B = source.B;
 			},
-			(in ReadOnlyRgba source, in Rgb dest) => {
+			(in source, in dest) => {
 				dest.R = source.R * source.A;
 				dest.G = source.G * source.A;
 				dest.B = source.B * source.A;
@@ -41,7 +41,7 @@ internal static class TextureConverter
 	/// </summary>
 	public static MagickImage CombineBaseColorAndEmissive(MagickImage baseColor, MagickImage emissive)
 	{
-		return CombineTextures(baseColor, emissive, (in ReadOnlyRgb main, in ReadOnlyRgb sub, in Rgba dest) => {
+		return CombineTextures(baseColor, emissive, (in main, in sub, in dest) => {
 			var emissiveAmount = sub.Luminosity;
 
 			dest.R = main.R;
@@ -65,12 +65,12 @@ internal static class TextureConverter
 	{
 		return SeparateTexture(
 			inputTexture,
-			(in ReadOnlyRgba source, in Rgb dest) => {
+			(in source, in dest) => {
 				dest.R = 0.0f;
 				dest.G = Math.Max(0.05f, source.G);
 				dest.B = source.B;
 			},
-			(in ReadOnlyRgba source, in Rgb dest) => {
+			(in source, in dest) => {
 				dest.R = source.A;
 				dest.G = 0.0f;
 				dest.B = 0.0f;
@@ -83,7 +83,7 @@ internal static class TextureConverter
 	/// </summary>
 	public static MagickImage CombineMetallicRoughnessAndOcclusion(MagickImage baseColor, MagickImage emissive)
 	{
-		return CombineTextures(baseColor, emissive, (in ReadOnlyRgb main, in ReadOnlyRgb sub, in Rgba dest) => {
+		return CombineTextures(baseColor, emissive, (in main, in sub, in dest) => {
 			dest.R = main.R;
 			dest.G = main.G;
 			dest.B = main.B;
@@ -102,7 +102,7 @@ internal static class TextureConverter
 	/// </summary>
 	public static MagickImage ConvertNormalMapFromDread(MagickImage inputTexture)
 	{
-		return ConvertTexture(inputTexture, "RGB", (in ReadOnlyRgba source, in Rgb dest) => {
+		return ConvertTexture(inputTexture, (in source, in dest) => {
 			var normalXY = ( new Vector2(source.R, source.G) * 2.0f ) - Vector2.One;
 			var normalZ = (float) Math.Sqrt(Math.Clamp(1.0f - ( normalXY.X * normalXY.X ) + ( normalXY.Y * normalXY.Y ), 0f, 1f));
 			var normal = new Vector3(normalXY, normalZ);
@@ -123,13 +123,14 @@ internal static class TextureConverter
 	/// </summary>
 	public static MagickImage ConvertNormalMapToDread(MagickImage inputTexture)
 	{
-		return ConvertTexture(inputTexture, "RG", (in ReadOnlyRgba source, in Rgb dest) => {
+		return ConvertTexture(inputTexture, (in source, in dest) => {
 			var normalXY = new Vector2(source.R, source.G);
 
 			normalXY = Vector2.Normalize(normalXY);
 
 			dest.R = normalXY.X;
 			dest.G = normalXY.Y;
+			dest.B = 0f;
 		});
 	}
 
@@ -143,8 +144,8 @@ internal static class TextureConverter
 		if (inputTexture.ChannelCount != 4)
 			return ( inputTexture, null );
 
-		var mainTexture = ConvertTexture(inputTexture, "RGB", mainRenderFunction);
-		var subTexture = ConvertTexture(inputTexture, "RGB", subRenderFunction);
+		var mainTexture = ConvertTexture(inputTexture, mainRenderFunction);
+		var subTexture = ConvertTexture(inputTexture, subRenderFunction);
 
 		return ( mainTexture, subTexture );
 	}
@@ -208,8 +209,9 @@ internal static class TextureConverter
 		return outputTexture;
 	}
 
-	private static MagickImage ConvertTexture(MagickImage inputTexture, string destChannels, ImageRenderFunction renderFunction)
+	private static MagickImage ConvertTexture(MagickImage inputTexture, ImageRenderFunction renderFunction)
 	{
+		const int DestPixelSize = 3;
 		const float PreScale = 1f / 65535f;
 		const float PostScale = 65535f;
 
@@ -217,8 +219,7 @@ internal static class TextureConverter
 		var sourcePixelsData = sourcePixels.GetArea(0, 0, inputTexture.Width, inputTexture.Height)!;
 		var sourcePixelsSpan = sourcePixelsData.AsSpan();
 		var sourcePixelSize = (int) inputTexture.ChannelCount;
-		var destPixelSize = destChannels.Length;
-		var destPixelMemory = MemoryOwner<float>.Rent((int) ( inputTexture.Width * inputTexture.Height * destPixelSize ));
+		var destPixelMemory = MemoryOwner<float>.Rent((int) ( inputTexture.Width * inputTexture.Height * DestPixelSize ));
 		var destPixelsSpan = destPixelMemory.Span;
 		var destPixelStart = 0;
 
@@ -229,18 +230,18 @@ internal static class TextureConverter
 		{
 			var sourcePixelEnd = sourcePixelStart + sourcePixelSize;
 			var sourcePixel = new ReadOnlyRgba(sourcePixelsSpan[sourcePixelStart..sourcePixelEnd]);
-			var destPixelEnd = destPixelStart + destPixelSize;
+			var destPixelEnd = destPixelStart + DestPixelSize;
 			var destPixel = new Rgb(destPixelsSpan[destPixelStart..destPixelEnd]);
 
 			renderFunction(in sourcePixel, in destPixel);
-			destPixelStart += destPixelSize;
+			destPixelStart += DestPixelSize;
 		}
 
 		// Post-scale the dest pixels so they're in the range [0, 65535]
 		ScaleValues(destPixelsSpan, PostScale);
 
 		var outputTexture = new MagickImage();
-		var readSettings = new PixelReadSettings(inputTexture.Width, inputTexture.Height, StorageType.Quantum, destChannels) {
+		var readSettings = new PixelReadSettings(inputTexture.Width, inputTexture.Height, StorageType.Quantum, PixelMapping.RGB) {
 			ReadSettings = {
 				ColorSpace = ColorSpace.Undefined,
 			},
@@ -258,7 +259,7 @@ internal static class TextureConverter
 			for (var i = 0; i < values.Length; i += 16)
 			{
 				var thisSpan = values[i..( i + 16 )];
-				var vector = Vector512.Create((ReadOnlySpan<float>) thisSpan);
+				var vector = Vector512.Create(thisSpan);
 
 				vector *= scale;
 				vector.CopyTo(thisSpan);
@@ -269,7 +270,7 @@ internal static class TextureConverter
 			for (var i = 0; i < values.Length; i += 8)
 			{
 				var thisSpan = values[i..( i + 8 )];
-				var vector = Vector256.Create((ReadOnlySpan<float>) thisSpan);
+				var vector = Vector256.Create(thisSpan);
 
 				vector *= scale;
 				vector.CopyTo(thisSpan);
@@ -280,7 +281,7 @@ internal static class TextureConverter
 			for (var i = 0; i < values.Length; i += 4)
 			{
 				var thisSpan = values[i..( i + 4 )];
-				var vector = Vector128.Create((ReadOnlySpan<float>) thisSpan);
+				var vector = Vector128.Create(thisSpan);
 
 				vector *= scale;
 				vector.CopyTo(thisSpan);

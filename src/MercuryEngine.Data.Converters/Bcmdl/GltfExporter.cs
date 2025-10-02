@@ -6,9 +6,11 @@ using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.GameAssets;
+using MercuryEngine.Data.TegraTextureLib.Formats;
 using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bcmdl.Wrappers;
 using MercuryEngine.Data.Types.Bcskla;
+using MercuryEngine.Data.Types.Bsmat;
 using MercuryEngine.Data.Types.Fields;
 using SharpGLTF.Animations;
 using SharpGLTF.Geometry;
@@ -218,50 +220,75 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 
 	private static bool TryCreateMeshBuilder(MeshNode node, string? name, [NotNullWhen(true)] out IMeshBuilder<MaterialBuilder>? meshBuilder)
 	{
-		if (node is not { Material: { } material, Mesh: { VertexBuffer: { } vertexBuffer } mesh })
+		if (node is not { Mesh: { VertexBuffer: { } vertexBuffer } mesh })
 		{
 			meshBuilder = null;
 			return false;
 		}
 
 		var geometryType = vertexBuffer.GetGeometryType();
-		var materialType = material.GetMaterialType();
+		var materialType = vertexBuffer.GetMaterialType();
 		var isSkinned = mesh.IsSkinned();
 
+		// Holy hell
 		meshBuilder = ( geometryType, materialType, isSkinned ) switch {
 			// Non-skinned
 			//   Position-only vertices
-			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1, false)         => new MeshBuilder<VertexPosition, VertexColor1>(name),
-			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture1, false) => new MeshBuilder<VertexPosition, VertexColor1Texture1>(name),
-			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture2, false) => new MeshBuilder<VertexPosition, VertexColor1Texture2>(name),
 			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture3, false) => new MeshBuilder<VertexPosition, VertexColor1Texture3>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture2, false) => new MeshBuilder<VertexPosition, VertexColor1Texture2>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture1, false) => new MeshBuilder<VertexPosition, VertexColor1Texture1>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Texture3, false)       => new MeshBuilder<VertexPosition, VertexTexture3>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Texture2, false)       => new MeshBuilder<VertexPosition, VertexTexture2>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Texture1, false)       => new MeshBuilder<VertexPosition, VertexTexture1>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1, false)         => new MeshBuilder<VertexPosition, VertexColor1>(name),
+			(BcmdlGeometryType.Position, _, false)                                => new MeshBuilder<VertexPosition, VertexEmpty>(name),
 			//   Position-Normal vertices
-			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1, false)         => new MeshBuilder<VertexPositionNormal, VertexColor1>(name),
-			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture1, false) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture1>(name),
-			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture2, false) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture2>(name),
 			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture3, false) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture3>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture2, false) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture2>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture1, false) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture1>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Texture3, false)       => new MeshBuilder<VertexPositionNormal, VertexTexture3>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Texture2, false)       => new MeshBuilder<VertexPositionNormal, VertexTexture2>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Texture1, false)       => new MeshBuilder<VertexPositionNormal, VertexTexture1>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1, false)         => new MeshBuilder<VertexPositionNormal, VertexColor1>(name),
+			(BcmdlGeometryType.PositionNormal, _, false)                                => new MeshBuilder<VertexPositionNormal, VertexEmpty>(name),
 			//   Position-Normal-Tangent vertices
-			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1, false)         => new MeshBuilder<VertexPositionNormalTangent, VertexColor1>(name),
-			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture1, false) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture1>(name),
-			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture2, false) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture2>(name),
 			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture3, false) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture3>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture2, false) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture2>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture1, false) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture1>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Texture3, false)       => new MeshBuilder<VertexPositionNormalTangent, VertexTexture3>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Texture2, false)       => new MeshBuilder<VertexPositionNormalTangent, VertexTexture2>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Texture1, false)       => new MeshBuilder<VertexPositionNormalTangent, VertexTexture1>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1, false)         => new MeshBuilder<VertexPositionNormalTangent, VertexColor1>(name),
+			(BcmdlGeometryType.PositionNormalTangent, _, false)                                => new MeshBuilder<VertexPositionNormalTangent, VertexEmpty>(name),
 
 			// Skinned
 			//   Position-only vertices
-			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1, true)         => new MeshBuilder<VertexPosition, VertexColor1, VertexJoints4>(name),
-			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture1, true) => new MeshBuilder<VertexPosition, VertexColor1Texture1, VertexJoints4>(name),
-			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture2, true) => new MeshBuilder<VertexPosition, VertexColor1Texture2, VertexJoints4>(name),
 			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture3, true) => new MeshBuilder<VertexPosition, VertexColor1Texture3, VertexJoints4>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture2, true) => new MeshBuilder<VertexPosition, VertexColor1Texture2, VertexJoints4>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1Texture1, true) => new MeshBuilder<VertexPosition, VertexColor1Texture1, VertexJoints4>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Texture3, true)       => new MeshBuilder<VertexPosition, VertexTexture3, VertexJoints4>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Texture2, true)       => new MeshBuilder<VertexPosition, VertexTexture2, VertexJoints4>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Texture1, true)       => new MeshBuilder<VertexPosition, VertexTexture1, VertexJoints4>(name),
+			(BcmdlGeometryType.Position, BcmdlMaterialType.Color1, true)         => new MeshBuilder<VertexPosition, VertexColor1, VertexJoints4>(name),
+			(BcmdlGeometryType.Position, _, true)                                => new MeshBuilder<VertexPosition, VertexEmpty, VertexJoints4>(name),
 			//   Position-Normal vertices
-			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1, true)         => new MeshBuilder<VertexPositionNormal, VertexColor1, VertexJoints4>(name),
-			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture1, true) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>(name),
-			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture2, true) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture2, VertexJoints4>(name),
 			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture3, true) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture3, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture2, true) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture2, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1Texture1, true) => new MeshBuilder<VertexPositionNormal, VertexColor1Texture1, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Texture3, true)       => new MeshBuilder<VertexPositionNormal, VertexTexture3, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Texture2, true)       => new MeshBuilder<VertexPositionNormal, VertexTexture2, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Texture1, true)       => new MeshBuilder<VertexPositionNormal, VertexTexture1, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormal, BcmdlMaterialType.Color1, true)         => new MeshBuilder<VertexPositionNormal, VertexColor1, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormal, _, true)                                => new MeshBuilder<VertexPositionNormal, VertexEmpty, VertexJoints4>(name),
 			//   Position-Normal-Tangent vertices
-			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1, true)         => new MeshBuilder<VertexPositionNormalTangent, VertexColor1, VertexJoints4>(name),
-			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture1, true) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture1, VertexJoints4>(name),
-			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture2, true) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture2, VertexJoints4>(name),
 			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture3, true) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture3, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture2, true) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture2, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1Texture1, true) => new MeshBuilder<VertexPositionNormalTangent, VertexColor1Texture1, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Texture3, true)       => new MeshBuilder<VertexPositionNormalTangent, VertexTexture3, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Texture2, true)       => new MeshBuilder<VertexPositionNormalTangent, VertexTexture2, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Texture1, true)       => new MeshBuilder<VertexPositionNormalTangent, VertexTexture1, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormalTangent, BcmdlMaterialType.Color1, true)         => new MeshBuilder<VertexPositionNormalTangent, VertexColor1, VertexJoints4>(name),
+			(BcmdlGeometryType.PositionNormalTangent, _, true)                                => new MeshBuilder<VertexPositionNormalTangent, VertexEmpty, VertexJoints4>(name),
 
 			_ => null,
 		};
@@ -351,10 +378,10 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 		// TODO: The "textureN" ones aren't always correct, and there can be duplicates (e.g. "texBaseColor1")
 		//  This probably needs to be reworked, and it will likely never be 100% correct due to the shaders all being different.
 		( valid, channel ) = textureName switch {
-			KnownSamplerNames.Texture0 or KnownSamplerNames.BaseColor  => ( true, KnownChannel.BaseColor ),
-			KnownSamplerNames.Texture1 or KnownSamplerNames.Attributes => ( true, KnownChannel.MetallicRoughness ), // This is technically correct, but must be split as it also contains occlusion
-			KnownSamplerNames.Texture2 or KnownSamplerNames.Normals    => ( true, KnownChannel.Normal ),
-			_                                                          => ( false, default ),
+			KnownSamplerNames.BaseColor  => ( true, KnownChannel.BaseColor ),
+			KnownSamplerNames.Attributes => ( true, KnownChannel.MetallicRoughness ), // This is technically correct, but must be split as it also contains occlusion
+			KnownSamplerNames.Normals    => ( true, KnownChannel.Normal ),
+			_                            => ( false, (KnownChannel) ( -1 ) ),
 		};
 
 		return valid;
@@ -386,8 +413,6 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 		}
 		else if (forChannel == KnownChannel.MetallicRoughness)
 		{
-			/*( mainImage, subImage ) = TextureConverter.SeparateMetallicRoughnessAndOcclusion(inputTexture);
-			subTextureName = ReplaceOrAddSuffix(textureName, "_at", "_ao");*/
 			mainImage = inputTexture;
 		}
 		else if (forChannel == KnownChannel.Normal)
@@ -538,11 +563,15 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 			};
 
 		IVertexMaterial CreateMaterial()
-			=> ( vertexData.UV1, vertexData.UV2, vertexData.UV3 ) switch {
-				({ } uv1, { } uv2, { } uv3) => new VertexColor1Texture3(vertexData.Color ?? Vector4.One, uv1, uv2, uv3),
-				({ } uv1, { } uv2, null)    => new VertexColor1Texture2(vertexData.Color ?? Vector4.One, uv1, uv2),
-				({ } uv1, null, null)       => new VertexColor1Texture1(vertexData.Color ?? Vector4.One, uv1),
-				_                           => new VertexColor1(vertexData.Color ?? Vector4.One),
+			=> ( vertexData.Color, vertexData.UV1, vertexData.UV2, vertexData.UV3 ) switch {
+				({ } color, { } uv1, { } uv2, { } uv3) => new VertexColor1Texture3(color, uv1, uv2, uv3),
+				({ } color, { } uv1, { } uv2, null)    => new VertexColor1Texture2(color, uv1, uv2),
+				({ } color, { } uv1, null, null)       => new VertexColor1Texture1(color, uv1),
+				({ } color, null, null, null)          => new VertexColor1(color),
+				(null, { } uv1, { } uv2, { } uv3)      => new VertexTexture3(uv1, uv2, uv3),
+				(null, { } uv1, { } uv2, null)         => new VertexTexture2(uv1, uv2),
+				(null, { } uv1, null, null)            => new VertexTexture1(uv1),
+				_                                      => new VertexEmpty(),
 			};
 
 		IVertexSkinning CreateSkinning()

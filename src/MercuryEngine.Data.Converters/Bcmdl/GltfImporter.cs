@@ -202,17 +202,23 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		var joint = new Joint {
 			Name = node.Name,
 			ParentName = parent?.Name,
-			Transform = CurrentResult!.Model.GetOrCreateTransform(translation, rotation, scale),
+			Transform = new Transform {
+				Position = translation,
+				Rotation = rotation,
+				Scale = scale,
+			},
 		};
 
-		CurrentResult.Model.JointsInfo ??= new JointsInfo();
+		// Add the joint's Transform into the model
+		CurrentResult!.Model.Transforms.Add(joint.Transform);
 
-		var thisJointIndex = (uint) CurrentResult.Model.JointsInfo.Joints.Count;
+		var jointsInfo = CurrentResult!.Model.JointsInfo ??= new JointsInfo();
+		var thisJointIndex = (uint) jointsInfo.Joints.Count;
 
 		// Map the "logical index" of the joint node to its index in the BCMDL
 		JointIndexTranslationMap[node.LogicalIndex] = thisJointIndex;
 		JointsByIndex[thisJointIndex] = joint;
-		CurrentResult.Model.JointsInfo.Joints.Add(joint);
+		jointsInfo.Joints.Add(joint);
 
 		// Recurse children
 		foreach (var child in node.VisualChildren)
@@ -249,35 +255,34 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		foreach (var material in distinctMaterials)
 			ImportMaterial(material);
 
-		foreach (var (_, node, mesh) in allMeshes)
+		foreach (var (name, node, mesh) in allMeshes)
 		{
 			// Group the mesh's primitives by material. Primitives with different materials will be in different BCMDL mesh nodes.
 			var primitivesByMaterial = mesh.Primitives.GroupBy(p => p.Material);
 
 			foreach (var primitiveGroup in primitivesByMaterial)
-				ImportMeshNode(node, mesh, primitiveGroup.Key, primitiveGroup);
+				ImportMeshNode(name, node, primitiveGroup.Key, primitiveGroup);
 		}
 	}
 
-	private void ImportMeshNode(Node node, SGMesh mesh, SGMaterial material, IEnumerable<SGMeshPrimitive> primitives)
+	private void ImportMeshNode(string name, Node node, SGMaterial? material, IEnumerable<SGMeshPrimitive> primitives)
 	{
-		var meshNodeName = node.Name ?? mesh.Name;
+		if (material is null)
+		{
+			Warn($"Skipping mesh \"{name}\" because it does not have a material applied");
+			return;
+		}
+
 		var meshNode = new MeshNode {
+			Id = CurrentResult!.Model.GetOrCreateNodeId(name),
 			Material = CurrentResult!.Model.Materials.SingleOrDefault(m => m?.Name == material.Name),
 			Mesh = new Mesh {
+				TransformMatrix = Matrix4x4.Identity with {
+					Translation = ScalePosition(node.WorldMatrix.Translation),
+				},
 				Translation = new Vector3(ScalePosition(node.LocalTransform.Translation)),
 			},
 		};
-
-		// Fix the scale of the transform matrix's translation
-		var meshMatrix = new Matrix4x4 {
-			Translation = ScalePosition(node.WorldMatrix.Translation),
-		};
-
-		meshNode.Mesh.TransformMatrix = meshMatrix;
-
-		if (meshNodeName != null)
-			meshNode.Id = CurrentResult!.Model.GetOrCreateNodeId(meshNodeName);
 
 		var indices = new List<ushort>();
 		var vertices = new List<VertexData>();
@@ -407,8 +412,6 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			SkinningType = SkinningType.PerJointTransform,
 		};
 
-		// TODO: JointMap
-
 		void PopulatePositions(IAccessorArray<SysVector3> accessorArray)
 		{
 			for (var i = 0; i < Math.Min(vertexData.Length, accessorArray.Count); i++)
@@ -521,7 +524,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 
 			switch (sampler.Name)
 			{
-				case KnownSamplerNames.Texture0 or KnownSamplerNames.BaseColor:
+				case KnownSamplerNames.BaseColor:
 					mainTexture = material.GetDiffuseTexture();
 					subTexture = material.FindChannel(nameof(KnownChannel.Emissive))?.Texture;
 
@@ -532,7 +535,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 					}
 
 					break;
-				case KnownSamplerNames.Texture1 or KnownSamplerNames.Attributes:
+				case KnownSamplerNames.Attributes:
 					mainTexture = material.FindChannel(nameof(KnownChannel.MetallicRoughness))?.Texture;
 					subTexture = material.FindChannel(nameof(KnownChannel.Occlusion))?.Texture;
 
@@ -546,7 +549,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 					}
 
 					break;
-				case KnownSamplerNames.Texture2 or KnownSamplerNames.Normals:
+				case KnownSamplerNames.Normals:
 					mainTexture = material.FindChannel(nameof(KnownChannel.Normal))?.Texture;
 
 					if (mainTexture != null)
@@ -644,13 +647,13 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		if (convertedImage is null)
 			return;
 
-		BindTextureToSampler(mainTexture, sampler, convertedImage, useSrgb: false);
+		BindTextureToSampler(mainTexture, sampler, convertedImage, useSrgb: false, isNormalMap: true);
 	}
 
-	private void BindTextureToSampler(Texture texture, Sampler sampler, MagickImage image, bool useSrgb)
+	private void BindTextureToSampler(Texture texture, Sampler sampler, MagickImage image, bool useSrgb, bool isNormalMap = false)
 	{
 		// Get/encode the texture as BCTEX
-		EncodeTextureImage(texture.GetName() ?? GetUnknownTextureName(), image, useSrgb, out var bctexPath);
+		EncodeTextureImage(texture.GetName() ?? GetUnknownTextureName(), image, useSrgb, isNormalMap, out var bctexPath);
 
 		sampler.TexturePath = bctexPath;
 
@@ -713,24 +716,39 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		return mainImage;
 	}
 
-	private void EncodeTextureImage(string name, MagickImage image, bool useSrgb, out string texturePath)
+	private void EncodeTextureImage(string name, MagickImage image, bool useSrgb, bool isNormalMap, out string texturePath)
 	{
 		texturePath = $"{CurrentRomFsSubfolder}/models/textures/{name}.bctex";
 
 		if (EncodedTextureCache.ContainsKey(image))
 			return;
 
-		var compressionFormat = image.ChannelCount switch {
-			1 => CompressionFormat.Bc4,
-			2 => CompressionFormat.Bc5,
-			_ => CompressionFormat.Bc3,
-		};
-		var channelMapping = image.ChannelCount switch {
-			1 => "R",
-			2 => "RG",
-			3 => "RGB",
-			_ => "RGBA",
-		};
+		CompressionFormat compressionFormat;
+		string channelMapping;
+		MseTextureKind textureKind;
+
+		if (isNormalMap)
+		{
+			compressionFormat = CompressionFormat.Bc5;
+			channelMapping = "RGB"; // Encoder only supports 3-channel arrays, even though it ignores the B channel
+			textureKind = MseTextureKind.TwoChannelCompressed;
+		}
+		else
+		{
+			compressionFormat = image.ChannelCount switch {
+				4 => CompressionFormat.Bc3,
+				_ => CompressionFormat.Bc1,
+			};
+			channelMapping = image.ChannelCount switch {
+				4 => "RGBA",
+				_ => "RGB",
+			};
+			textureKind = image.ChannelCount switch {
+				4 => MseTextureKind.Rgba,
+				_ => MseTextureKind.OpaqueRgb,
+			};
+		}
+
 		var newTexture = TegraTexture.FromImage(image, channelMapping, compressionFormat, TextureEncodingOptions);
 		var bctex = new Bctex {
 			TextureName = name,
@@ -739,12 +757,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			MipCount = newTexture.Info.MipCount,
 			EncodingType = MseTextureEncoding.Dds,
 			IsSrgb = useSrgb,
-			TextureKind = image.ChannelCount switch {
-				1 => MseTextureKind.OneChannel,
-				2 => MseTextureKind.TwoChannelCompressed,
-				3 => MseTextureKind.OpaqueRgb,
-				_ => MseTextureKind.Rgba,
-			},
+			TextureKind = textureKind,
 			TextureUsage = TextureUsage.Normal,
 			Textures = { newTexture },
 		};

@@ -2,7 +2,10 @@
 
 public enum BcmdlMaterialType
 {
-	Unknown,
+	None,
+	Texture1,
+	Texture2,
+	Texture3,
 	Color1,
 	Color1Texture1,
 	Color1Texture2,
