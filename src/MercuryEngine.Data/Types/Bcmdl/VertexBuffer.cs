@@ -20,7 +20,16 @@ public class VertexBuffer : DataStructure<VertexBuffer>
 	public List<VertexInfoDescription> VertexInfoSlots => VertexInfoSlotsList.Entries;
 
 	public byte[] UncompressedData { get; private set; } = [];
-	public bool   IsCompressed     { get; set; }
+
+	public bool IsCompressed
+	{
+		get;
+		set
+		{
+			field = value;
+			this.dataChanged = true;
+		}
+	}
 
 	/// <summary>
 	/// Deconstructs the raw vertex buffer data into an array of <see cref="VertexData"/> objects

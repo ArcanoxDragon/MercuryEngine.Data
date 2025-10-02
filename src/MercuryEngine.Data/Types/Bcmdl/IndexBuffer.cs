@@ -15,7 +15,16 @@ public class IndexBuffer : DataStructure<IndexBuffer>
 	public uint   IndexCount       { get; private set; }
 	public uint   CompressedSize   { get; private set; }
 	public byte[] UncompressedData { get; private set; } = [];
-	public bool   IsCompressed     { get; set; }
+
+	public bool IsCompressed
+	{
+		get;
+		set
+		{
+			field = value;
+			this.dataChanged = true;
+		}
+	}
 
 	public ushort[] GetIndices()
 	{
