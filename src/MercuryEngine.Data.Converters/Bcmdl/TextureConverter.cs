@@ -8,9 +8,9 @@ namespace MercuryEngine.Data.Converters.Bcmdl;
 
 internal static class TextureConverter
 {
-	private delegate void ImageRenderFunction(in ReadOnlyRgba source, in Rgb dest);
+	private delegate void ImageRenderFunction(in ReadOnlyRgba source, in Rgba dest);
 
-	private delegate void ImageCombineFunction(in ReadOnlyRgb main, in ReadOnlyRgb sub, in Rgba dest);
+	private delegate void ImageCombineFunction(in ReadOnlyRgba main, in ReadOnlyRgba sub, in Rgba dest);
 
 	#region Base Color and Emissive
 
@@ -51,6 +51,20 @@ internal static class TextureConverter
 		});
 	}
 
+	/// <summary>
+	/// For RGB textures with no emissivity that are to be used with a shader that supports emissive
+	/// maps, we need to set the A channel (emissive) to 0f (no emission).
+	/// </summary>
+	public static MagickImage FillInEmptyEmissive(MagickImage baseColor)
+	{
+		return ConvertTexture(baseColor, (in source, in dest) => {
+			dest.R = source.R;
+			dest.G = source.G;
+			dest.B = source.B;
+			dest.A = 0f;
+		});
+	}
+
 	#endregion
 
 	#region Metallic/Roughness and AO
@@ -88,6 +102,20 @@ internal static class TextureConverter
 			dest.G = main.G;
 			dest.B = main.B;
 			dest.A = sub.R;
+		});
+	}
+
+	/// <summary>
+	/// Converts an RGB occlusion/metallic/roughness texture from glTF into the format Dread expects,
+	/// which is an unused R channel and occlusion information stored in A.
+	/// </summary>
+	public static MagickImage ConvertMetallicRoughnessOcclusionToDread(MagickImage inputTexture)
+	{
+		return ConvertTexture(inputTexture, (in source, in dest) => {
+			dest.R = 0f;
+			dest.G = source.G;
+			dest.B = source.B;
+			dest.A = source.R;
 		});
 	}
 
@@ -181,10 +209,10 @@ internal static class TextureConverter
 		for (var mainPixelStart = 0; mainPixelStart < mainPixelsSpan.Length; mainPixelStart += mainPixelSize)
 		{
 			var mainPixelEnd = mainPixelStart + mainPixelSize;
-			var mainPixel = new ReadOnlyRgb(mainPixelsSpan[mainPixelStart..mainPixelEnd]);
+			var mainPixel = new ReadOnlyRgba(mainPixelsSpan[mainPixelStart..mainPixelEnd]);
 
 			var subPixelEnd = subPixelStart + subPixelSize;
-			var subPixel = new ReadOnlyRgb(subPixelsSpan[subPixelStart..subPixelEnd]);
+			var subPixel = new ReadOnlyRgba(subPixelsSpan[subPixelStart..subPixelEnd]);
 
 			var destPixelEnd = destPixelStart + DestPixelSize;
 			var destPixel = new Rgba(destPixelsSpan[destPixelStart..destPixelEnd]);
@@ -211,7 +239,7 @@ internal static class TextureConverter
 
 	private static MagickImage ConvertTexture(MagickImage inputTexture, ImageRenderFunction renderFunction)
 	{
-		const int DestPixelSize = 3;
+		const int DestPixelSize = 4;
 		const float PreScale = 1f / 65535f;
 		const float PostScale = 65535f;
 
@@ -231,7 +259,7 @@ internal static class TextureConverter
 			var sourcePixelEnd = sourcePixelStart + sourcePixelSize;
 			var sourcePixel = new ReadOnlyRgba(sourcePixelsSpan[sourcePixelStart..sourcePixelEnd]);
 			var destPixelEnd = destPixelStart + DestPixelSize;
-			var destPixel = new Rgb(destPixelsSpan[destPixelStart..destPixelEnd]);
+			var destPixel = new Rgba(destPixelsSpan[destPixelStart..destPixelEnd]);
 
 			renderFunction(in sourcePixel, in destPixel);
 			destPixelStart += DestPixelSize;
@@ -241,7 +269,7 @@ internal static class TextureConverter
 		ScaleValues(destPixelsSpan, PostScale);
 
 		var outputTexture = new MagickImage();
-		var readSettings = new PixelReadSettings(inputTexture.Width, inputTexture.Height, StorageType.Quantum, PixelMapping.RGB) {
+		var readSettings = new PixelReadSettings(inputTexture.Width, inputTexture.Height, StorageType.Quantum, PixelMapping.RGBA) {
 			ReadSettings = {
 				ColorSpace = ColorSpace.Undefined,
 			},
@@ -306,17 +334,6 @@ internal static class TextureConverter
 		public float Luminosity => ColorUtility.RgbToHsl(R, G, B).L;
 	}
 
-	private readonly ref struct ReadOnlyRgb(ReadOnlySpan<float> channels)
-	{
-		private readonly ReadOnlySpan<float> channels = channels;
-
-		public ref readonly float R => ref this.channels[0];
-		public ref readonly float G => ref this.channels[1];
-		public ref readonly float B => ref this.channels[2];
-
-		public float Luminosity => ColorUtility.RgbToHsl(R, G, B).L;
-	}
-
 	private readonly ref struct Rgba(Span<float> channels)
 	{
 		private readonly Span<float> channels = channels;
@@ -325,17 +342,6 @@ internal static class TextureConverter
 		public ref float G => ref this.channels[1];
 		public ref float B => ref this.channels[2];
 		public ref float A => ref this.channels[3];
-
-		public float Luminosity => ColorUtility.RgbToHsl(R, G, B).L;
-	}
-
-	private readonly ref struct Rgb(Span<float> channels)
-	{
-		private readonly Span<float> channels = channels;
-
-		public ref float R => ref this.channels[0];
-		public ref float G => ref this.channels[1];
-		public ref float B => ref this.channels[2];
 
 		public float Luminosity => ColorUtility.RgbToHsl(R, G, B).L;
 	}

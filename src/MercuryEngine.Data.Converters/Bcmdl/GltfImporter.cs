@@ -684,22 +684,32 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 
 	private void BindBaseColorTexture(SGMaterial material, Texture mainTexture, Texture? subTexture, Sampler sampler)
 	{
-		var combinedImage = GetCombinedImage(material, mainTexture, subTexture, TextureConverter.CombineBaseColorAndEmissive);
+		MagickImage? resultImage;
 
-		if (combinedImage is null)
+		if (subTexture != null)
+			resultImage = GetCombinedImage(material, mainTexture, subTexture, TextureConverter.CombineBaseColorAndEmissive);
+		else
+			resultImage = GetConvertedImage(material, mainTexture, TextureConverter.FillInEmptyEmissive);
+
+		if (resultImage is null)
 			return;
 
-		BindTextureImageToSampler(mainTexture, sampler, combinedImage, useSrgb: true);
+		BindTextureImageToSampler(mainTexture, sampler, resultImage, isColorTexture: true);
 	}
 
 	private void BindAttributesTexture(SGMaterial material, Texture mainTexture, Texture? subTexture, Sampler sampler)
 	{
-		var combinedImage = GetCombinedImage(material, mainTexture, subTexture, TextureConverter.CombineMetallicRoughnessAndOcclusion);
+		MagickImage? resultImage;
 
-		if (combinedImage is null)
+		if (ReferenceEquals(mainTexture, subTexture))
+			resultImage = GetConvertedImage(material, mainTexture, TextureConverter.ConvertMetallicRoughnessOcclusionToDread);
+		else
+			resultImage = GetCombinedImage(material, mainTexture, subTexture, TextureConverter.CombineMetallicRoughnessAndOcclusion);
+
+		if (resultImage is null)
 			return;
 
-		BindTextureImageToSampler(mainTexture, sampler, combinedImage, useSrgb: false);
+		BindTextureImageToSampler(mainTexture, sampler, resultImage, isColorTexture: false);
 	}
 
 	private void BindNormalsTexture(SGMaterial material, Texture mainTexture, Sampler sampler)
@@ -709,13 +719,13 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		if (convertedImage is null)
 			return;
 
-		BindTextureImageToSampler(mainTexture, sampler, convertedImage, useSrgb: false, isNormalMap: true);
+		BindTextureImageToSampler(mainTexture, sampler, convertedImage, isColorTexture: false, isNormalMap: true);
 	}
 
-	private void BindTextureImageToSampler(Texture texture, Sampler sampler, MagickImage image, bool useSrgb, bool isNormalMap = false)
+	private void BindTextureImageToSampler(Texture texture, Sampler sampler, MagickImage image, bool isColorTexture, bool isNormalMap = false)
 	{
 		// Get/encode the texture as BCTEX
-		EncodeTextureImage(texture.GetName() ?? GetUnknownTextureName(), image, useSrgb, isNormalMap, out var bctexPath);
+		EncodeTextureImage(texture.GetName() ?? GetUnknownTextureName(), image, isColorTexture, isNormalMap, out var bctexPath);
 
 		sampler.TexturePath = bctexPath;
 
@@ -781,7 +791,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		return mainImage;
 	}
 
-	private void EncodeTextureImage(string name, MagickImage image, bool useSrgb, bool isNormalMap, out string texturePath)
+	private void EncodeTextureImage(string name, MagickImage image, bool isColorTexture, bool isNormalMap, out string texturePath)
 	{
 		texturePath = $"{CurrentRomFsSubfolder}/models/textures/{name}.bctex";
 
@@ -814,14 +824,22 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			};
 		}
 
-		var newTexture = TegraTexture.FromImage(image, channelMapping, compressionFormat, TextureEncodingOptions);
+		var textureEncodingOptions = new TextureEncodingOptions {
+			// Copy everything, except for mip level if this is not a color texture
+			CompressionQuality = TextureEncodingOptions.CompressionQuality,
+			MaxMipLevel = isColorTexture ? TextureEncodingOptions.MaxMipLevel : 1,
+			MaxParallelTasks = TextureEncodingOptions.MaxParallelTasks,
+			Parallel = TextureEncodingOptions.Parallel,
+			Progress = TextureEncodingOptions.Progress,
+		};
+		var newTexture = TegraTexture.FromImage(image, channelMapping, compressionFormat, textureEncodingOptions);
 		var bctex = new Bctex {
 			TextureName = name,
 			Width = image.Width,
 			Height = image.Height,
 			MipCount = newTexture.Info.MipCount,
 			EncodingType = MseTextureEncoding.Dds,
-			IsSrgb = useSrgb,
+			IsSrgb = isColorTexture,
 			TextureKind = textureKind,
 			TextureUsage = TextureUsage.Normal,
 			Textures = { newTexture },
