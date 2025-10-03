@@ -34,7 +34,13 @@ public partial class Pkg
 
 			file.Read(reader, context);
 
+			// Track our position in case someone seeks this stream during enumeration
+			var currentPosition = pkgStream.Position;
+
 			yield return file;
+
+			// Restore position
+			pkgStream.Position = currentPosition;
 		}
 	}
 
@@ -58,7 +64,13 @@ public partial class Pkg
 
 			await file.ReadAsync(reader, context, cancellationToken).ConfigureAwait(false);
 
+			// Track our position in case someone seeks this stream during enumeration
+			var currentPosition = pkgStream.Position;
+
 			yield return file;
+
+			// Restore position
+			pkgStream.Position = currentPosition;
 		}
 	}
 

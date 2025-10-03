@@ -27,7 +27,11 @@ public class PackageFile : DataStructure<PackageFile>
 	/// <summary>
 	/// Gets the length of the file's data.
 	/// </summary>
-	public int Length => DataField.Data.Length;
+	public int Length => ReadFileData
+		// Use the actual data length if data was read
+		? DataField.Data.Length
+		// Use the size of the data in the PKG, if it was read
+		: (int) ( DataField.EndAddress - DataField.StartAddress );
 
 	internal bool ReadFileData { get; set; } = true;
 
