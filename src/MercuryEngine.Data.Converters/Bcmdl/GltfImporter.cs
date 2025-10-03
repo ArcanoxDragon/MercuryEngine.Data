@@ -50,6 +50,11 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 	public IGameAssetResolver AssetResolver { get; } = assetResolver;
 
 	/// <summary>
+	/// Gets or sets whether or not Vertex and Index buffers for meshes should be compressed. Defaults to <see langword="true"/>.
+	/// </summary>
+	public bool CompressBuffers { get; set; } = true;
+
+	/// <summary>
 	/// The shader to use for materials without a custom shader path specified.
 	/// </summary>
 	public string DefaultShader { get; set; } = InitialDefaultShader;
@@ -319,8 +324,8 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		}
 
 		// Construct vertex and index buffer
-		var indexBuffer = new IndexBuffer { IsCompressed = true };
-		var vertexBuffer = new VertexBuffer { IsCompressed = true };
+		var indexBuffer = new IndexBuffer { IsCompressed = CompressBuffers };
+		var vertexBuffer = new VertexBuffer { IsCompressed = CompressBuffers };
 
 		indexBuffer.ReplaceIndices(CollectionsMarshal.AsSpan(indices));
 		vertexBuffer.ReplaceVertices(CollectionsMarshal.AsSpan(vertices));
