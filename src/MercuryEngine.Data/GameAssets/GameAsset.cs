@@ -6,11 +6,19 @@ namespace MercuryEngine.Data.GameAssets;
 
 public sealed record GameAsset(AssetLocation Location, string RelativePath, StrId AssetId, string? FullPath, string[]? FullPackageFilePaths)
 {
-	public GameAsset(string relativePath)
-		: this(AssetLocation.None, relativePath, relativePath, null, null) { }
+	public GameAsset(string relativePath, string? assetIdOverride = null)
+		: this(AssetLocation.None, relativePath, relativePath, null, null)
+	{
+		if (assetIdOverride != null)
+			AssetId = assetIdOverride;
+	}
 
-	public GameAsset(string relativePath, string fullRomFsPath)
-		: this(AssetLocation.RomFs, relativePath, relativePath, fullRomFsPath, null) { }
+	public GameAsset(string relativePath, string fullRomFsPath, string? assetIdOverride = null)
+		: this(AssetLocation.RomFs, relativePath, relativePath, fullRomFsPath, null)
+	{
+		if (assetIdOverride != null)
+			AssetId = assetIdOverride;
+	}
 
 	public GameAsset(StrId assetId, IEnumerable<string> fullPackageFilePaths)
 		: this(AssetLocation.Package, assetId.IsKnown ? assetId.StringValue : string.Empty, assetId, null, fullPackageFilePaths.ToArray())
@@ -73,6 +81,7 @@ public sealed record GameAsset(AssetLocation Location, string RelativePath, StrI
 		using var stream = OpenWrite();
 
 		data.Write(stream);
+		stream.Flush();
 
 		return (uint) stream.Position;
 	}
@@ -83,6 +92,7 @@ public sealed record GameAsset(AssetLocation Location, string RelativePath, StrI
 		await using var stream = OpenWrite(async: true);
 
 		await data.WriteAsync(stream, cancellationToken).ConfigureAwait(false);
+		await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
 		return (uint) stream.Position;
 	}

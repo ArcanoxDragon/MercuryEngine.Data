@@ -46,8 +46,14 @@ public interface IGameAssetResolver
 	/// <param name="relativePath">
 	/// The path to the requested asset, relative to the root of the game's RomFS.
 	/// </param>
+	/// <param name="assetIdOverride">
+	/// If provided, the asset's <see cref="GameAsset.AssetId"/> property will be set to the value of this parameter
+	/// instead of the default value (its relative path). This can be used, for example, in cases where the ID of the
+	/// asset in the <c>files.toc</c> file must differ from its actual relative path (such as is the case with BCTEX
+	/// files).
+	/// </param>
 	/// <returns>
 	/// A <see cref="GameAsset"/> instance representing the asset with the requested <paramref name="relativePath"/>.
 	/// </returns>
-	GameAsset GetAsset(string relativePath);
+	GameAsset GetAsset(string relativePath, string? assetIdOverride = null);
 }

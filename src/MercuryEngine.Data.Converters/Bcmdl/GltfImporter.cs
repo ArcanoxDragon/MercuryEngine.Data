@@ -116,8 +116,6 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 
 			ImportMeshes(allMeshes);
 
-			// TODO: Materials and Textures
-
 			return CurrentResult;
 		}
 		finally
@@ -336,8 +334,6 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		// Add the MeshNode and Mesh to the BCMDL
 		CurrentResult!.Model.Meshes.Add(meshNode.Mesh);
 		CurrentResult!.Model.Nodes.Add(meshNode);
-
-		// TODO: Materials!
 	}
 
 	private static MeshPrimitive ParsePrimitiveData(SGMeshPrimitive primitive, List<ushort> indices, List<VertexData> vertices)
@@ -833,7 +829,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 
 		// Get an asset instance for the BCTEX that we can use for writing it out later
 		var assetPath = $"textures/{texturePath}";
-		var bctexAsset = AssetResolver.GetAsset(assetPath);
+		var bctexAsset = AssetResolver.GetAsset(assetPath, assetIdOverride: texturePath);
 
 		// Add the BCTEX to the current result and store it in the cache
 		CurrentResult!.Textures[name] = ( bctex, bctexAsset );

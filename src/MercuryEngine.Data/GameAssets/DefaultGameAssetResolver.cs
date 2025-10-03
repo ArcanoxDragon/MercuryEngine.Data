@@ -47,7 +47,7 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 		return includeOutputAssets ? assetLocation.Exists : assetLocation.ExistsInBaseGame;
 	}
 
-	public GameAsset GetAsset(string relativePath)
+	public GameAsset GetAsset(string relativePath, string? assetIdOverride = null)
 	{
 		relativePath = NormalizePath(relativePath);
 
@@ -61,7 +61,7 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 
 			if (File.Exists(romfsCandidatePath))
 				// Asset exists as a bare RomFS file - always prefer that
-				return new GameAsset(relativePath, romfsCandidatePath);
+				return new GameAsset(relativePath, romfsCandidatePath, assetIdOverride);
 
 			// Look for asset in packages
 			var assetFromPackages = FindPackageAsset(relativePath);
@@ -71,7 +71,7 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 
 			// Asset does not exist in RomFS or in any PKG files, meaning
 			// it's a non-existent or new asset.
-			return new GameAsset(relativePath);
+			return new GameAsset(relativePath, assetIdOverride);
 		}
 	}
 
