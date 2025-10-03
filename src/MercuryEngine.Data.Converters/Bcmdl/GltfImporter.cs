@@ -495,7 +495,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			return;
 		}
 
-		if (!TryGetShaderForMaterial(material, out var shaderLocation, out _)) // TODO: Use shader for reflection info
+		if (!TryGetShaderForMaterial(material, out var shaderLocation))
 			// Can't import materials without a valid shader
 			return;
 
@@ -632,11 +632,9 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		CurrentResult!.Materials[material.Name] = ( prototypeMaterial, materialAsset );
 	}
 
-	private bool TryGetShaderForMaterial(SGMaterial material, out GameAsset shaderAsset, [NotNullWhen(true)] out Bshdat? shader)
+	private bool TryGetShaderForMaterial(SGMaterial material, out GameAsset shaderAsset)
 	{
 		string shaderPath;
-
-		shader = null;
 
 		if (material.Extras.TryGetProperty(GltfProperties.ShaderPath, out string? customShader))
 			shaderPath = customShader;
@@ -662,16 +660,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			return false;
 		}
 
-		try
-		{
-			shader = shaderAsset.ReadAs<Bshdat>();
-			return true;
-		}
-		catch (Exception ex)
-		{
-			Warn($"Error loading shader \"{shaderPath}\": {ex}");
-			return false;
-		}
+		return true;
 	}
 
 	private bool TryGetPrototypeMaterialForShader(GameAsset shaderAsset, [NotNullWhen(true)] out GameAsset? prototypeMaterialAsset)
