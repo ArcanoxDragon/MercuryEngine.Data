@@ -1,4 +1,5 @@
-﻿using MercuryEngine.Data.Core.Framework.IO;
+﻿using MercuryEngine.Data.Core.Framework;
+using MercuryEngine.Data.Core.Framework.IO;
 using MercuryEngine.Data.Core.Framework.Structures;
 using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
@@ -29,6 +30,13 @@ public class ShaderProgramPair : DataStructure<ShaderProgramPair>
 
 	#endregion
 
+	#region Public Methods
+
+	public CompiledShader ReadCompiledVertexShader() => ReadCompiledShader(VertexProgramData);
+	public CompiledShader ReadCompiledFragmentShader() => ReadCompiledShader(FragmentProgramData);
+
+	#endregion
+
 	#region Hooks
 
 	protected override void BeforeWrite(WriteContext context)
@@ -47,6 +55,18 @@ public class ShaderProgramPair : DataStructure<ShaderProgramPair>
 			context.HeapManager.Allocate(VertexProgramDataField, startByteAlignment: ProgramDataAlignment, description: "Vertex Program Data");
 		if (FragmentProgramDataField != null)
 			context.HeapManager.Allocate(FragmentProgramDataField, startByteAlignment: ProgramDataAlignment, description: "Fragment Program Data");
+	}
+
+	private CompiledShader ReadCompiledShader(byte[] data)
+	{
+		var compiledShader = new CompiledShader();
+		using var stream = new MemoryStream(data, writable: false);
+		using var reader = new BinaryReader(stream);
+		var context = new ReadContext(new HeapManager(), compiledShader);
+
+		compiledShader.Read(reader, context);
+
+		return compiledShader;
 	}
 
 	private RawBytes CreateVertexProgramDataField()

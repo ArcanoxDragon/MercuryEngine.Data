@@ -4,7 +4,7 @@ using MercuryEngine.Data.Core.Framework.Structures.Fluent;
 
 namespace MercuryEngine.Data.Types.Bshdat;
 
-public class ShaderInput : DataStructure<ShaderInput>
+public class ShaderVariable : DataStructure<ShaderVariable>
 {
 	public const int StartAlignment = 0x08;
 
@@ -28,7 +28,7 @@ public class ShaderInput : DataStructure<ShaderInput>
 
 	#endregion
 
-	protected override void Describe(DataStructureBuilder<ShaderInput> builder)
+	protected override void Describe(DataStructureBuilder<ShaderVariable> builder)
 	{
 		builder.Pointer(m => m.NameField);
 		builder.Property(m => m.GlobalIndex);

@@ -41,7 +41,7 @@ public class Bshdat : BinaryFormat<Bshdat>
 	public ShaderProgramPair? OutputShader { get; set; }
 
 	[JsonPropertyOrder(4)]
-	public IList<ShaderInput?> VertexShaderUniforms
+	public IList<ShaderVariable?> VertexShaderUniforms
 	{
 		get
 		{
@@ -51,7 +51,7 @@ public class Bshdat : BinaryFormat<Bshdat>
 	}
 
 	[JsonPropertyOrder(5)]
-	public IList<ShaderInput?> FragmentShaderUniforms
+	public IList<ShaderVariable?> FragmentShaderUniforms
 	{
 		get
 		{
@@ -61,7 +61,7 @@ public class Bshdat : BinaryFormat<Bshdat>
 	}
 
 	[JsonPropertyOrder(6)]
-	public IList<ShaderInput?> VertexShaderInputs
+	public IList<ShaderVariable?> VertexShaderInputs
 	{
 		get
 		{
@@ -76,16 +76,16 @@ public class Bshdat : BinaryFormat<Bshdat>
 
 	private LinkedListField<ShaderProgramPair>? ShaderProgramPairsField     { get; set; } = LinkedListField.Create<ShaderProgramPair>();
 	private LinkedListField<RenderPass>?        RenderPassesField           { get; set; } = LinkedListField.Create<RenderPass>();
-	private LinkedListField<ShaderInput>?       VertexShaderUniformsField   { get; set; } = CreateShaderInputField();
-	private LinkedListField<ShaderInput>?       FragmentShaderUniformsField { get; set; } = CreateShaderInputField();
-	private LinkedListField<ShaderInput>?       VertexShaderInputsField     { get; set; } = CreateShaderInputField();
+	private LinkedListField<ShaderVariable>?    VertexShaderUniformsField   { get; set; } = CreateShaderInputField();
+	private LinkedListField<ShaderVariable>?    FragmentShaderUniformsField { get; set; } = CreateShaderInputField();
+	private LinkedListField<ShaderVariable>?    VertexShaderInputsField     { get; set; } = CreateShaderInputField();
 
 	#endregion
 
 	#region Hooks
 
-	private static LinkedListField<ShaderInput> CreateShaderInputField()
-		=> LinkedListField.Create<ShaderInput>(startByteAlignment: ShaderInput.StartAlignment);
+	private static LinkedListField<ShaderVariable> CreateShaderInputField()
+		=> LinkedListField.Create<ShaderVariable>(startByteAlignment: ShaderVariable.StartAlignment);
 
 	protected override void BeforeWrite(WriteContext context)
 	{

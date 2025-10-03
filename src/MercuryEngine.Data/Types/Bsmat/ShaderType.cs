@@ -3,6 +3,6 @@
 public enum ShaderType
 {
 	Vertex,
-	Pixel,
+	Fragment,
 	Geometry,
 }

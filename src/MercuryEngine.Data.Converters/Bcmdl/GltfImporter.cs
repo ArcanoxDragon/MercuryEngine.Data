@@ -592,7 +592,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 				if (name[0] is not ('f' or 'v' or 'i'))
 					continue;
 
-				foreach (var fragmentStage in prototypeMaterial.ShaderStages.Where(s => s.Type == ShaderType.Pixel))
+				foreach (var fragmentStage in prototypeMaterial.ShaderStages.Where(s => s.Type == ShaderType.Fragment))
 				{
 					var parameter = fragmentStage.Uniforms.FirstOrDefault(u => u.Name == name);
 
