@@ -1,7 +1,6 @@
 ﻿using MercuryEngine.Data.Types.Bcmdl;
 using MercuryEngine.Data.Types.Bsmat;
 using SharpGLTF.Schema2;
-using Material = MercuryEngine.Data.Types.Bcmdl.Material;
 using Mesh = MercuryEngine.Data.Types.Bcmdl.Mesh;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;

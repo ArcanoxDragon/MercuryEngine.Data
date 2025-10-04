@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
+// ReSharper disable ForCanBeConvertedToForeach (performance reasons)
+
 namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
 internal static class BC67Utils
@@ -598,7 +600,6 @@ internal static class BC67Utils
 			uint color = values[i] | alphaMask;
 
 			int bestMatchScore = int.MaxValue;
-			int bestMatchIndex = 0;
 
 			for (int j = 0; j < indexCount; j++)
 			{
@@ -607,10 +608,7 @@ internal static class BC67Utils
 					RgbaColor8.FromUInt32(palette[j]).GetColor32());
 
 				if (score < bestMatchScore)
-				{
 					bestMatchScore = score;
-					bestMatchIndex = j;
-				}
 			}
 
 			errorSum += bestMatchScore;
@@ -1171,14 +1169,14 @@ internal static class BC67Utils
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static RgbaColor32 Interpolate(RgbaColor32 color1, RgbaColor32 color2, int weightIndex, int indexBitCount)
 	{
-		Debug.Assert(indexBitCount >= 2 && indexBitCount <= 4);
+		Debug.Assert(indexBitCount is >= 2 and <= 4);
 
 		int weight = ( ( ( weightIndex << 7 ) / ( ( 1 << indexBitCount ) - 1 ) ) + 1 ) >> 1;
 
 		RgbaColor32 weightV = new(weight);
 		RgbaColor32 invWeightV = new(64 - weight);
 
-		return ( color1 * invWeightV + color2 * weightV + new RgbaColor32(32) ) >> 6;
+		return ( ( color1 * invWeightV ) + ( color2 * weightV ) + new RgbaColor32(32) ) >> 6;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1190,8 +1188,8 @@ internal static class BC67Utils
 		int colorIndexBitCount,
 		int alphaIndexBitCount)
 	{
-		Debug.Assert(colorIndexBitCount >= 2 && colorIndexBitCount <= 4);
-		Debug.Assert(alphaIndexBitCount >= 2 && alphaIndexBitCount <= 4);
+		Debug.Assert(colorIndexBitCount is >= 2 and <= 4);
+		Debug.Assert(alphaIndexBitCount is >= 2 and <= 4);
 
 		int colorWeight = BC67Tables.Weights[colorIndexBitCount - 2][colorWeightIndex];
 		int alphaWeight = BC67Tables.Weights[alphaIndexBitCount - 2][alphaWeightIndex];

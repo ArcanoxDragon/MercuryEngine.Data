@@ -5,7 +5,6 @@ using MercuryEngine.Data.Tests.Infrastructure;
 using MercuryEngine.Data.Tests.Utility;
 using MercuryEngine.Data.Types.Bshdat;
 using MercuryEngine.Data.Types.Bshdat.CompiledShaders;
-using MercuryEngine.Data.Types.Bshdat.CompiledShaders.Reflection;
 using MercuryEngine.Data.Types.Bsmat;
 
 namespace MercuryEngine.Data.Tests.Formats;

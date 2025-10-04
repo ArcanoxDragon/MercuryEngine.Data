@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace MercuryEngine.Data.TegraTextureLib.ImageProcessing;
 
@@ -97,7 +98,7 @@ internal static class BC6Decoder
 				RgbaColor32 color = BC67Utils.Interpolate(color1, color2, index, indexBitCount);
 
 				output[offs] =
-					(ulong) FinishUnquantize(color.R, signed) |
+					FinishUnquantize(color.R, signed) |
 					( (ulong) FinishUnquantize(color.G, signed) << 16 ) |
 					( (ulong) FinishUnquantize(color.B, signed) << 32 ) |
 					( (ulong) HalfOne << 48 );
@@ -730,6 +731,7 @@ internal static class BC6Decoder
 		return ( value << shift ) >> shift;
 	}
 
+	[SuppressMessage("ReSharper", "DuplicatedStatements")]
 	private static int Unquantize(int value, int bits, bool signed)
 	{
 		if (signed)
