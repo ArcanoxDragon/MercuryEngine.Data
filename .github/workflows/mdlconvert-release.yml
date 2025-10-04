@@ -29,10 +29,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-
-    # Checkout submodules as well
-    - name: Checkout submodules
-      uses: textbook/git-checkout-submodule-action@2.1.1
+        submodules: true
 
     # Use Nerdbank.GitVersioning to set version variables: https://github.com/AArnott/nbgv
     - name: Use Nerdbank.GitVersioning to set version variables
