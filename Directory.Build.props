@@ -7,4 +7,9 @@
 		<!-- IsTrimmable needs to be "False" if targeting netstandard -->
 		<IsTrimmable Condition="'$(IsTrimmable)' == '' And !$(TargetFramework.StartsWith('netstandard'))">true</IsTrimmable>
 	</PropertyGroup>
+
+	<PropertyGroup>
+		<Authors>Arcanox</Authors>
+		<Copyright>Copyright (c) 2025 Arcanox</Copyright>
+	</PropertyGroup>
 </Project>

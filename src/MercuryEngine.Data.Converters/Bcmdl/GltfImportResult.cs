@@ -4,10 +4,8 @@ using MercuryEngine.Data.TegraTextureLib.Formats;
 
 namespace MercuryEngine.Data.Converters.Bcmdl;
 
-public class GltfImportResult(ActorType actorType, string actorName, string modelName, Formats.Bcmdl model, GameAsset modelAsset)
+public class GltfImportResult(string modelName, Formats.Bcmdl model, GameAsset modelAsset)
 {
-	public ActorType     ActorType  { get; } = actorType;
-	public string        ActorName  { get; } = actorName;
 	public string        ModelName  { get; } = modelName;
 	public Formats.Bcmdl Model      { get; } = model;
 	public GameAsset     ModelAsset { get; } = modelAsset;

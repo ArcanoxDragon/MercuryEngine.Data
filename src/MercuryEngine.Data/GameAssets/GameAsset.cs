@@ -152,7 +152,7 @@ public sealed record GameAsset(AssetLocation Location, string RelativePath, StrI
 			return OpenFileFromPackages(async);
 		}
 
-		throw new NotSupportedException($"Unrecognized asset location type \"{Location}\"");
+		throw new NotSupportedException($"Cannot read asset \"{RelativePath}\" as it does not exist");
 	}
 
 	private Stream OpenFileFromPackages(bool async)

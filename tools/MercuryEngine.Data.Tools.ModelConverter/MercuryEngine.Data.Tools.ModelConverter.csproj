@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>$(MainTargetFramework)</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<AssemblyName>mdlconvert</AssemblyName>
+		<PublishSingleFile>true</PublishSingleFile>
+		<SelfContained>true</SelfContained>
+		<PublishTrimmed>true</PublishTrimmed>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Pastel" Version="7.0.0" />
+		<PackageReference Include="System.CommandLine" Version="2.0.0-rc.1.25451.107" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\MercuryEngine.Data.Converters\MercuryEngine.Data.Converters.csproj" />
+		<ProjectReference Include="..\..\src\MercuryEngine.Data\MercuryEngine.Data.csproj" />
+		<ProjectReference Include="..\MercuryEngine.Data.Tools.Core\MercuryEngine.Data.Tools.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<TrimmerRootAssembly Include="SharpGLTF.Toolkit" />
+		<TrimmerRootAssembly Include="SharpGLTF.Runtime" />
+		<TrimmerRootAssembly Include="SharpGLTF.Core" />
+	</ItemGroup>
+
+</Project>

@@ -74,11 +74,14 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 	private Dictionary<(Texture, Texture?), MagickImage> CombinedTextureCache  { get; } = [];
 	private Dictionary<MagickImage, Bctex>               EncodedTextureCache   { get; } = [];
 
-	private ActorType CurrentActorType => CurrentResult?.ActorType ?? throw new InvalidOperationException("A glTF file has not been loaded");
-	private string    CurrentActorName => CurrentResult?.ActorName ?? throw new InvalidOperationException("A glTF file has not been loaded");
-	private string    CurrentModelName => CurrentResult?.ModelName ?? throw new InvalidOperationException("A glTF file has not been loaded");
+	private string CurrentModelName => CurrentResult?.ModelName ?? throw new InvalidOperationException("A glTF file has not been loaded");
 
-	private string CurrentRomFsSubfolder => $"actors/{CurrentActorType.GetRomFsFolder()}/{CurrentActorName}";
+	[field: MaybeNull]
+	private string CurrentRomFsSubfolder
+	{
+		get => field ?? throw new InvalidOperationException("A glTF file has not been loaded");
+		set;
+	}
 
 	public GltfImportResult ImportGltf(ActorType actorType, string actorName, string sourceFilePath)
 	{
@@ -89,13 +92,29 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 
 	public GltfImportResult ImportGltf(ActorType actorType, string actorName, string modelName, string sourceFilePath)
 	{
+		var modelPath = $"actors/{actorType.GetRomFsFolder()}/{actorName}/models";
+
+		return ImportGltf(modelPath, modelName, sourceFilePath);
+	}
+
+	public GltfImportResult ImportGltf(string modelPath, string sourceFilePath)
+	{
+		var modelName = Path.GetFileNameWithoutExtension(sourceFilePath);
+
+		return ImportGltf(modelPath, modelName, sourceFilePath);
+	}
+
+	public GltfImportResult ImportGltf(string modelPath, string modelName, string sourceFilePath)
+	{
 		try
 		{
+			CurrentRomFsSubfolder = modelPath;
+
 			var targetModel = new Formats.Bcmdl();
-			var finalBcmdlPath = $"actors/{actorType.GetRomFsFolder()}/{actorName}/models/{modelName}.bcmdl";
+			var finalBcmdlPath = $"{modelPath}/{modelName}.bcmdl";
 			var bcmdlAsset = AssetResolver.GetAsset(finalBcmdlPath);
 
-			CurrentResult = new GltfImportResult(actorType, actorName, modelName, targetModel, bcmdlAsset);
+			CurrentResult = new GltfImportResult(modelName, targetModel, bcmdlAsset);
 			JointIndexTranslationMap.Clear();
 			JointsByIndex.Clear();
 			DecodedImages.Clear();
@@ -126,6 +145,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		finally
 		{
 			// Clean up
+			CurrentRomFsSubfolder = null!;
 			CurrentResult = null;
 			JointIndexTranslationMap.Clear();
 			JointsByIndex.Clear();
@@ -634,7 +654,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 					T[] values = [];
 
 					if (node is JsonArray array)
-						values = array.OfType<JsonValue>().TrySelect<JsonValue, T>((v, out f) => v.TryGetValue(out f)).ToArray();
+						values = array.OfType<JsonValue>().TrySelect<JsonValue, T>((v, [NotNullWhen(true)] out f) => v.TryGetValue(out f)).ToArray();
 					else if (node is JsonValue value)
 						values = value.TryGetValue<T>(out var v) ? [v] : [];
 
@@ -644,7 +664,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		}
 
 		// Assign a path to the material and store it in results
-		var materialAssetPath = $"{CurrentRomFsSubfolder}/models/imats/{fullMaterialName}.bsmat";
+		var materialAssetPath = $"{CurrentRomFsSubfolder}/imats/{fullMaterialName}.bsmat";
 		var materialAsset = AssetResolver.GetAsset(materialAssetPath);
 
 		bcmdlMaterial.Path = materialAssetPath;
@@ -821,7 +841,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 
 	private void EncodeTextureImage(string name, MagickImage image, bool isColorTexture, bool isNormalMap, out string texturePath)
 	{
-		texturePath = $"{CurrentRomFsSubfolder}/models/textures/{name}.bctex";
+		texturePath = $"{CurrentRomFsSubfolder}/textures/{name}.bctex";
 
 		if (EncodedTextureCache.ContainsKey(image))
 			return;
