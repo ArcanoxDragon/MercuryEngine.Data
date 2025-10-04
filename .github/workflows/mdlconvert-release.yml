@@ -1,0 +1,72 @@
+name: Release mdlconvert
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v0.*", "v1.*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+        rid: [win-x64, linux-x64]
+
+    runs-on: windows-latest  # For a list of available runner types, refer to
+                             # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+
+    env:
+      Solution_Name: MercuryEngine.Data.sln
+      Project_Path: tools\MercuryEngine.Data.Tools.ModelConverter\MercuryEngine.Data.Tools.ModelConverter.csproj
+      Publish_Path: tools\MercuryEngine.Data.Tools.ModelConverter\bin\publish
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # Use Nerdbank.GitVersioning to set version variables: https://github.com/AArnott/nbgv
+    - name: Use Nerdbank.GitVersioning to set version variables
+      uses: aarnott/nbgv@v0.3
+      with:
+        setAllVars: true
+
+    # Install the .NET Core workload
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v2
+
+    # Restore the application to populate the obj folder with RuntimeIdentifiers
+    - name: Restore the application
+      run: dotnet restore -c=$env:Configuration $env:Solution_Name
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # Execute all unit tests in the solution
+    - name: Execute Core unit tests
+      run: dotnet test --filter "FullyQualifiedName~MercuryEngine.Data.Core.Tests"
+
+    # Publish the binary
+    - name: Publish binary
+      run: dotnet publish -r $env:RID -o "${{ env:Publish_Path }}\${{ env.RID }}" -p:DebugSymbols=False $env:Project_Path
+      env:
+        RID: ${{ matrix.rid }}
+
+    # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mdlconvert (${{ env.RID }})
+        path: ${{ env.Publish_Path }}\${{ env.RID }}
+      env:
+        RID: ${{ matrix.rid }}
