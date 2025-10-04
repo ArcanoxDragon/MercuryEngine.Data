@@ -58,7 +58,7 @@ jobs:
 
     # Publish the binary
     - name: Publish binary
-      run: dotnet publish -r $env:RID -o "${{ env:Publish_Path }}\${{ env.RID }}" -p:DebugSymbols=False $env:Project_Path
+      run: dotnet publish -r $env:RID -o "${{ env.Publish_Path }}\${{ env.RID }}" -p:DebugSymbols=False $env:Project_Path
       env:
         RID: ${{ matrix.rid }}
 
