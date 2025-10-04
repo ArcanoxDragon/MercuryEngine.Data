@@ -48,13 +48,15 @@ jobs:
 
     # Restore the application to populate the obj folder with RuntimeIdentifiers
     - name: Restore the application
-      run: dotnet restore -c $env:Configuration $env:Solution_Name
+      run: dotnet restore -r $env:RID $env:Solution_Name
       env:
-        Configuration: ${{ matrix.configuration }}
+        RID: ${{ matrix.rid }}
 
     # Execute all unit tests in the solution
     - name: Execute Core unit tests
-      run: dotnet test --filter "FullyQualifiedName~MercuryEngine.Data.Core.Tests"
+      run: dotnet test -c $env:Configuration --filter "FullyQualifiedName~MercuryEngine.Data.Core.Tests"
+      env:
+        Configuration: ${{ matrix.configuration }}
 
     # Publish the binary
     - name: Publish binary
