@@ -523,8 +523,28 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		{
 			Texture? mainTexture;
 			Texture? subTexture;
+			KnownChannel? explicitChannel = null;
 
-			if (material.Extras.TryGetProperty(GltfProperties.SamplerTexturePath(sampler.Name), out string? bctexPath))
+			if (material.Extras.TryGetProperty(GltfProperties.SamplerChannelName(sampler.Name), out string? explicitChannelName))
+			{
+				if (Enum.TryParse<KnownChannel>(explicitChannelName, ignoreCase: true, out var parsedExplicitChannel))
+					explicitChannel = parsedExplicitChannel;
+				else
+					Warn($"Material \"{material.Name}\" specified an unknown channel called \"{explicitChannelName}\" for sampler \"{sampler.Name}\"");
+			}
+
+			if (explicitChannel.HasValue)
+			{
+				// Material specifies which glTF channel to use for this sampler
+				mainTexture = material.FindChannel(explicitChannelName)?.Texture;
+
+				var channelImage = GetRawImage(material, mainTexture);
+				var isColorTexture = explicitChannel.Value.IsColorChannel();
+
+				if (mainTexture != null && channelImage != null)
+					BindTextureImageToSampler(mainTexture, sampler, channelImage, isColorTexture);
+			}
+			else if (material.Extras.TryGetProperty(GltfProperties.SamplerTexturePath(sampler.Name), out string? bctexPath))
 			{
 				// Material points to an existing BCTEX for this sampler
 
@@ -782,6 +802,20 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		mainImage = convertSingleTexture(mainImage);
 		Disposables.Add(mainImage);
 		ConvertedTextureCache[mainTexture] = mainImage;
+		return mainImage;
+	}
+
+	private MagickImage? GetRawImage(SGMaterial material, Texture? mainTexture)
+	{
+		if (mainTexture is null)
+			return null;
+
+		if (!DecodedImages.TryGetValue(mainTexture.PrimaryImage.Name, out var mainImage))
+		{
+			Warn($"Skipping texture \"{mainTexture.GetName()}\" for material \"{material.Name}\" because the texture image could not be found or decoded");
+			return null;
+		}
+
 		return mainImage;
 	}
 
