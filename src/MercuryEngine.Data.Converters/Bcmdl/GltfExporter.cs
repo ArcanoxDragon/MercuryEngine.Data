@@ -315,7 +315,7 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 			if (!ArmatureNodeCache.TryGetValue(armatureJoint.Name, out var armatureJointNode))
 				throw new ApplicationException($"Armature node not found for joint \"{armatureJoint.Name}\"!");
 
-			var jointMatrix = primitive.SkinningType == SkinningType.WholeMeshTransform ? Matrix4x4.Identity : armatureJointNode.WorldMatrix;
+			var jointMatrix = primitive.SkinningType == SkinningType.Rigid ? Matrix4x4.Identity : armatureJointNode.WorldMatrix;
 			var inverseBindMatrix = SkinnedTransform.CalculateInverseBinding(meshMatrix, jointMatrix);
 
 			bindJoints[index++] = ( armatureJointNode, inverseBindMatrix );

@@ -301,10 +301,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			Id = CurrentResult!.Model.GetOrCreateNodeId(name),
 			Material = CurrentResult!.Model.Materials.SingleOrDefault(m => m?.Name == material.Name),
 			Mesh = new Mesh {
-				TransformMatrix = Matrix4x4.Identity with {
-					Translation = ScalePosition(node.WorldMatrix.Translation),
-				},
-				Translation = new Vector3(ScalePosition(node.LocalTransform.Translation)),
+				Translation = new Vector3(ScalePosition(node.WorldMatrix.Translation)),
 			},
 		};
 
@@ -320,16 +317,20 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			var bcmdlPrimitive = ParsePrimitiveData(primitive, indices, vertices);
 
 			if (node.Skin is { } skin)
+			{
+				// Skinned by multiple joints
 				LinkPrimitiveJoints(bcmdlPrimitive, skin);
+			}
 
 			meshNode.Mesh.Primitives.Add(bcmdlPrimitive);
 		}
 
-		// Calculate bounding box size
+		// Calculate axis-aligned bounding box size of mesh to use for the culling box size
 		if (vertices.Count > 0)
 		{
 			var minPosition = SysVector3.PositiveInfinity;
 			var maxPosition = SysVector3.NegativeInfinity;
+			var anyHadPosition = false;
 
 			foreach (var vertex in vertices)
 			{
@@ -338,9 +339,18 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 
 				minPosition = SysVector3.Min(minPosition, vertex.Position.Value);
 				maxPosition = SysVector3.Max(maxPosition, vertex.Position.Value);
+				anyHadPosition = true;
 			}
 
-			meshNode.Mesh.BoundingBoxSize = new Vector3(SysVector3.Abs(maxPosition - minPosition));
+			meshNode.Mesh.CullingBoxSize.SetFrom(anyHadPosition ? SysVector3.Abs(maxPosition - minPosition) : SysVector3.Zero);
+
+			// Calculate the center point of the mesh for correct frustum culling and apply it to the culling box's matrix
+			// (the culling box is essentially a cube with the size we calculated above, centered around the origin of the
+			// model by default, and then transformed by this matrix)
+			var delta = maxPosition - minPosition;
+			var midPoint = minPosition + ( 0.5f * delta );
+
+			meshNode.Mesh.CullingBoxTransform = Matrix4x4.CreateTranslation(midPoint);
 		}
 
 		// Construct vertex and index buffer
@@ -378,6 +388,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 
 		// Import the primitive's vertex buffer data
 		VertexData[]? vertexData = null;
+		var isRigid = true; // This will be set to false if PopulateJointIndices or PopulateJointWeights finds evidence of soft rigging
 
 		foreach (var (attributeKey, accessor) in primitive.VertexAccessors)
 		{
@@ -413,10 +424,10 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 					PopulateColors(accessor.AsVector4Array());
 					break;
 				case GltfAttributeKeys.JointIndex:
-					PopulateJointIndices(accessor.AsVector4Array());
+					PopulateJointIndices(accessor.AsVector4Array(), ref isRigid);
 					break;
 				case GltfAttributeKeys.JointWeight:
-					PopulateJointWeights(accessor.AsVector4Array());
+					PopulateJointWeights(accessor.AsVector4Array(), ref isRigid);
 					break;
 				default:
 					// TODO: Provide warnings to consumer
@@ -430,8 +441,9 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 		return new MeshPrimitive {
 			IndexOffset = (uint) indexStart,
 			IndexCount = (uint) primitiveIndices.Count,
-			// TODO: Not sure if this is universal for glTFs or not...might need to analyze joint bind matrices?
-			SkinningType = SkinningType.PerJointTransform,
+			// TODO: Figure out how to properly identify/handle rigid skinning coming from glTF
+			// SkinningType = isRigid ? SkinningType.Rigid : SkinningType.Soft,
+			SkinningType = SkinningType.Soft,
 		};
 
 		void PopulatePositions(IAccessorArray<SysVector3> accessorArray)
@@ -476,16 +488,24 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 				vertexData[i].Color = accessorArray[i];
 		}
 
-		void PopulateJointIndices(IAccessorArray<SysVector4> accessorArray)
+		void PopulateJointIndices(IAccessorArray<SysVector4> accessorArray, ref bool isRigid)
 		{
 			for (var i = 0; i < Math.Min(vertexData.Length, accessorArray.Count); i++)
-				vertexData[i].JointIndex = accessorArray[i];
+			{
+				var value = accessorArray[i];
+				vertexData[i].JointIndex = value;
+				isRigid &= value.IsSingleComponentSet(); // Likely rigid if there is only a single joint index
+			}
 		}
 
-		void PopulateJointWeights(IAccessorArray<SysVector4> accessorArray)
+		void PopulateJointWeights(IAccessorArray<SysVector4> accessorArray, ref bool isRigid)
 		{
 			for (var i = 0; i < Math.Min(vertexData.Length, accessorArray.Count); i++)
-				vertexData[i].JointWeight = accessorArray[i];
+			{
+				var value = accessorArray[i];
+				vertexData[i].JointWeight = value;
+				isRigid &= Math.Abs(value.LengthSquared() - 1f) < 1e-5; // Likely rigid if there is a single vertex weight of 1.0
+			}
 		}
 	}
 
