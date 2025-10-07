@@ -62,7 +62,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: matrix.configuration == 'Release'
       with:
-        name: mdlconvert (${{ matrix.os.rid }})
+        name: mdlconvert_${{ matrix.os.rid }}
         if-no-files-found: error
         path: ${{ env.Publish_Path }}/${{ matrix.os.rid }}
 
