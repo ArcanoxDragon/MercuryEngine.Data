@@ -28,6 +28,8 @@ namespace MercuryEngine.Data.Converters.Bcmdl;
 
 public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDisposable
 {
+	private const KnownChannel UnknownChannel = (KnownChannel) ( -1 );
+
 	/// <summary>
 	/// Raised when a non-fatal warning is encountered during BCMDL import or glTF export.
 	/// </summary>
@@ -39,6 +41,7 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 	private Dictionary<StrId, NodeBuilder>             ArmatureNodeCacheByCrc { get; } = [];
 	private Dictionary<ArmatureJoint, Matrix4x4>       JointMatrixCache       { get; } = [];
 	private Dictionary<TextureCacheKey, CachedTexture> TextureCache           { get; } = [];
+	private Dictionary<string, MemoryImage>            AdditionalImages       { get; } = [];
 	private List<IDisposable>                          Disposables            { get; } = [];
 
 	private SceneBuilder? CurrentScene        { get; set; }
@@ -100,15 +103,25 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 	{
 		AssertScene();
 
+		var modelRoot = CurrentScene.ToGltf2();
+
+		foreach (var (bctexPath, memoryImage) in AdditionalImages)
+		{
+			var imageName = Path.GetFileNameWithoutExtension(bctexPath);
+			var logicalImage = modelRoot.CreateImage(imageName);
+
+			logicalImage.Content = memoryImage;
+		}
+
 		if (binary)
 		{
-			CurrentScene.ToGltf2().SaveGLB(targetFilePath, new WriteSettings {
+			modelRoot.SaveGLB(targetFilePath, new WriteSettings {
 				ImageWriting = ResourceWriteMode.BufferView,
 			});
 		}
 		else
 		{
-			CurrentScene.ToGltf2().SaveGLTF(targetFilePath);
+			modelRoot.SaveGLTF(targetFilePath);
 		}
 	}
 
@@ -315,7 +328,7 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 			if (!ArmatureNodeCache.TryGetValue(armatureJoint.Name, out var armatureJointNode))
 				throw new ApplicationException($"Armature node not found for joint \"{armatureJoint.Name}\"!");
 
-			var jointMatrix = primitive.SkinningType == SkinningType.WholeMeshTransform ? Matrix4x4.Identity : armatureJointNode.WorldMatrix;
+			var jointMatrix = primitive.SkinningType == SkinningType.Rigid ? Matrix4x4.Identity : armatureJointNode.WorldMatrix;
 			var inverseBindMatrix = SkinnedTransform.CalculateInverseBinding(meshMatrix, jointMatrix);
 
 			bindJoints[index++] = ( armatureJointNode, inverseBindMatrix );
@@ -360,41 +373,58 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 				// game materials when importing.
 				materialExtras[GltfProperties.SamplerTexturePath(sampler.Name)] = sampler.TexturePath;
 
-				if (!TryGetKnownChannel(sampler.Name, out var channel))
-				{
-					Warn($"Not sure how to map sampler \"{sampler.Name}\" to a glTF texture channel. This sampler will be unmapped in the glTF output.");
-					continue;
-				}
+				var isKnownChannel = TryGetKnownChannel(sampler.Name, out var channel);
 
 				if (LoadAndPrepareTexture(channel, sampler.TexturePath) is not { } cachedTexture)
 					continue;
 
+				if (!isKnownChannel)
+				{
+					// Store the image in the scene, but don't actually use it (since we don't know how).
+					if (!AdditionalImages.ContainsKey(sampler.TexturePath))
+						AdditionalImages.Add(sampler.TexturePath, cachedTexture.MainImageBuilder.Content);
+
+					Warn($"Not sure how to map sampler \"{sampler.Name}\" to a glTF texture channel. This sampler will be unmapped in the glTF output.");
+					continue;
+				}
+
 				var (mainImageBuilder, subImageBuilder) = cachedTexture;
-				var channelBuilder = materialBuilder.UseChannel(channel);
-				var textureBuilder = channelBuilder
-					.UseTexture()
-					.WithPrimaryImage(mainImageBuilder)
-					.WithSampler(
-						sampler.TilingModeU.ToTextureWrapMode(),
-						sampler.TilingModeV.ToTextureWrapMode(),
-						sampler.MagnificationFilter.ToTextureMipMapFilter(),
-						sampler.MinificationFilter.ToTextureInterpolationFilter()
-					);
 
-				// Store the BCTEX path on an extra field on the texture, which can allow us
-				// to reuse an existing BCTEX if re-importing the model later.
-				textureBuilder.Extras = new JsonObject {
-					[GltfProperties.TexturePath] = sampler.TexturePath,
-				};
-
-				if (channel == KnownChannel.BaseColor && subImageBuilder != null)
-					materialBuilder.WithEmissive(subImageBuilder, Vector3.One);
-				else if (channel == KnownChannel.Normal)
-					materialBuilder.WithChannelParam(KnownChannel.Normal, KnownProperty.NormalScale, 1f);
-				else if (channel == KnownChannel.MetallicRoughness)
-					materialBuilder.WithOcclusion(mainImageBuilder); // Same texture for both - Red = AO, Green/Blue = M/R
+				ConfigureMaterialBuilderChannel(materialBuilder, channel, sampler, mainImageBuilder, subImageBuilder);
 			}
 		}
+	}
+
+	private static void ConfigureMaterialBuilderChannel(
+		MaterialBuilder materialBuilder,
+		KnownChannel channel,
+		Sampler sampler,
+		ImageBuilder mainImageBuilder,
+		ImageBuilder? subImageBuilder)
+	{
+		var channelBuilder = materialBuilder.UseChannel(channel);
+		var textureBuilder = channelBuilder
+			.UseTexture()
+			.WithPrimaryImage(mainImageBuilder)
+			.WithSampler(
+				sampler.TilingModeU.ToTextureWrapMode(),
+				sampler.TilingModeV.ToTextureWrapMode(),
+				sampler.MagnificationFilter.ToTextureMipMapFilter(),
+				sampler.MinificationFilter.ToTextureInterpolationFilter()
+			);
+
+		// Store the BCTEX path on an extra field on the texture, which can allow us
+		// to reuse an existing BCTEX if re-importing the model later.
+		textureBuilder.Extras = new JsonObject {
+			[GltfProperties.TexturePath] = sampler.TexturePath,
+		};
+
+		if (channel == KnownChannel.BaseColor && subImageBuilder != null)
+			materialBuilder.WithEmissive(subImageBuilder, Vector3.One);
+		else if (channel == KnownChannel.Normal)
+			materialBuilder.WithChannelParam(KnownChannel.Normal, KnownProperty.NormalScale, 1f);
+		else if (channel == KnownChannel.MetallicRoughness)
+			materialBuilder.WithOcclusion(mainImageBuilder); // Same texture for both - Red = AO, Green/Blue = M/R
 	}
 
 	private static JsonArray ConvertUniformValuesToJson(UniformParameter uniform)
@@ -415,7 +445,7 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 			KnownSamplerNames.BaseColor  => ( true, KnownChannel.BaseColor ),
 			KnownSamplerNames.Attributes => ( true, KnownChannel.MetallicRoughness ), // This is technically correct, but must be split as it also contains occlusion
 			KnownSamplerNames.Normals    => ( true, KnownChannel.Normal ),
-			_                            => ( false, (KnownChannel) ( -1 ) ),
+			_                            => ( false, UnknownChannel ),
 		};
 
 		return valid;
@@ -771,6 +801,7 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 		ArmatureNodeCacheByCrc.Clear();
 		JointMatrixCache.Clear();
 		TextureCache.Clear();
+		AdditionalImages.Clear();
 
 		foreach (var disposable in Disposables)
 			disposable.Dispose();

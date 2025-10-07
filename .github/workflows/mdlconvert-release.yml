@@ -3,26 +3,28 @@ name: Release mdlconvert
 on:
   push:
     branches: [ "main" ]
-    tags: [ "v0.*", "v1.*" ]
+    tags: [ "v*.*.*" ]
   pull_request:
-    branches: [ "main" ]
 
 jobs:
 
   build:
-
     strategy:
+      fail-fast: false
       matrix:
         configuration: [Debug, Release]
-        rid: [win-x64, linux-x64]
+        os:
+          - { name: "Windows", image: "windows-latest", rid: "win-x64" }
+          - { name: "Linux", image: "ubuntu-latest", rid: "linux-x64" }
 
-    runs-on: windows-latest  # For a list of available runner types, refer to
-                             # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+    runs-on: ${{ matrix.os.image }}
+
+    name: ${{ matrix.os.name }} Executable (${{ matrix.configuration }})
 
     env:
       Solution_Name: MercuryEngine.Data.sln
-      Project_Path: tools\MercuryEngine.Data.Tools.ModelConverter\MercuryEngine.Data.Tools.ModelConverter.csproj
-      Publish_Path: tools\MercuryEngine.Data.Tools.ModelConverter\bin\publish
+      Project_Path: tools/MercuryEngine.Data.Tools.ModelConverter/MercuryEngine.Data.Tools.ModelConverter.csproj
+      Publish_Path: tools/MercuryEngine.Data.Tools.ModelConverter/bin/publish
 
     steps:
     - name: Checkout
@@ -43,34 +45,49 @@ jobs:
       with:
         dotnet-version: 9.0.x
 
-    # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
-    - name: Setup MSBuild.exe
-      uses: microsoft/setup-msbuild@v2
-
     # Restore the application to populate the obj folder with RuntimeIdentifiers
     - name: Restore the application
-      run: dotnet restore -r $env:RID $env:Solution_Name
-      env:
-        RID: ${{ matrix.rid }}
+      run: dotnet restore -r ${{ matrix.os.rid }} ${{ env.Solution_Name }}
 
     # Execute all unit tests in the solution
     - name: Execute Core unit tests
-      run: dotnet test -c $env:Configuration --filter "FullyQualifiedName~MercuryEngine.Data.Core.Tests"
-      env:
-        Configuration: ${{ matrix.configuration }}
+      run: dotnet test -c ${{ matrix.configuration }} --filter "FullyQualifiedName~MercuryEngine.Data.Core.Tests"
 
     # Publish the binary
     - name: Publish binary
-      run: dotnet publish -r $env:RID -o "${{ env.Publish_Path }}\${{ env.RID }}" -p:DebugSymbols=False $env:Project_Path
-      env:
-        RID: ${{ matrix.rid }}
+      run: dotnet publish -c ${{ matrix.configuration }} -r ${{ matrix.os.rid }} -o "${{ env.Publish_Path }}/${{ matrix.os.rid }}" -p:DebugSymbols=False ${{ env.Project_Path }}
 
-    # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
+    # Upload the artifact
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
+      if: matrix.configuration == 'Release'
       with:
-        name: mdlconvert (${{ env.Configuration }}, ${{ env.RID }})
-        path: ${{ env.Publish_Path }}\${{ env.RID }}
-      env:
-        Configuration: ${{ matrix.configuration }}
-        RID: ${{ matrix.rid }}
+        name: mdlconvert_${{ matrix.os.rid }}
+        if-no-files-found: error
+        path: ${{ env.Publish_Path }}/${{ matrix.os.rid }}
+
+  release:
+    runs-on: "ubuntu-latest"
+    name: Release
+    needs:
+      - build
+    if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
+
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v5.0.0
+        with:
+          pattern: '* *'
+          path: publish/
+
+      - name: Upload binaries to GitHub Release
+        uses: svenstaro/upload-release-action@2.11.2
+        if: ${{ startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/main') }}
+        with:
+          file: publish/mdlconvert*/**
+          file_glob: true
+          tag: ${{ github.ref }}
+          overwrite: true
+          prerelease: true
+          draft: ${{ startsWith(github.ref, 'refs/heads/main') }}
+          body: "Release executable"

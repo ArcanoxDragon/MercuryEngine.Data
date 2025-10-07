@@ -52,16 +52,20 @@ internal static class TextureConverter
 	}
 
 	/// <summary>
-	/// For RGB textures with no emissivity that are to be used with a shader that supports emissive
-	/// maps, we need to set the A channel (emissive) to 0f (no emission).
+	/// For RGB textures with associated emissivity map, the shader will expect the alpha to be
+	/// fully opaque (or to be used as actual alpha).
 	/// </summary>
 	public static MagickImage FillInEmptyEmissive(MagickImage baseColor)
 	{
+		if (baseColor.ChannelCount == 4)
+			// Already has an alpha channel, use as-is
+			return baseColor;
+
 		return ConvertTexture(baseColor, (in source, in dest) => {
 			dest.R = source.R;
 			dest.G = source.G;
 			dest.B = source.B;
-			dest.A = 0f;
+			dest.A = 1f;
 		});
 	}
 

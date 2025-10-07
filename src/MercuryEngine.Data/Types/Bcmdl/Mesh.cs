@@ -9,16 +9,16 @@ namespace MercuryEngine.Data.Types.Bcmdl;
 
 public class Mesh : DataStructure<Mesh>
 {
-	public Matrix4x4 TransformMatrix
+	public Matrix4x4 CullingBoxTransform
 	{
 		get => TransformMatrixField.Value;
 		set => TransformMatrixField.Value = value;
 	}
 
-	public Vector3       BoundingBoxSize { get; set; } = new();
-	public IndexBuffer?  IndexBuffer     { get; set; }
-	public VertexBuffer? VertexBuffer    { get; set; }
-	public Vector3       Translation     { get; set; } = new();
+	public Vector3       CullingBoxSize { get; set; } = new();
+	public IndexBuffer?  IndexBuffer    { get; set; }
+	public VertexBuffer? VertexBuffer   { get; set; }
+	public Vector3       Translation    { get; set; } = new();
 
 	public IList<MeshPrimitive?> Primitives
 	{
@@ -54,7 +54,7 @@ public class Mesh : DataStructure<Mesh>
 	protected override void Describe(DataStructureBuilder<Mesh> builder)
 	{
 		builder.RawProperty(m => m.TransformMatrixField);
-		builder.RawProperty(m => m.BoundingBoxSize);
+		builder.RawProperty(m => m.CullingBoxSize);
 		builder.Padding(4, 0xFF);
 		builder.Pointer(m => m.IndexBuffer);
 		builder.Pointer(m => m.VertexBuffer);
