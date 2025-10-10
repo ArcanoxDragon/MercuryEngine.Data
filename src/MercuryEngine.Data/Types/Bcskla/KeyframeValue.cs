@@ -42,4 +42,10 @@ public struct KeyframeValue : IBinaryField
 		await writer.WriteAsync(Value, cancellationToken).ConfigureAwait(false);
 		await writer.WriteAsync(Rate, cancellationToken).ConfigureAwait(false);
 	}
+
+	public void Deconstruct(out float value, out float rate)
+	{
+		value = Value;
+		rate = Rate;
+	}
 }

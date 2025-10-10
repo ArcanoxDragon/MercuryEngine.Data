@@ -4,6 +4,8 @@ using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using ImageMagick;
 using JetBrains.Annotations;
+using MercuryEngine.Data.Converters.Utility;
+using MercuryEngine.Data.Core.Extensions;
 using MercuryEngine.Data.Core.Utility;
 using MercuryEngine.Data.Formats;
 using MercuryEngine.Data.GameAssets;
@@ -28,7 +30,8 @@ namespace MercuryEngine.Data.Converters.Bcmdl;
 
 public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDisposable
 {
-	private const KnownChannel UnknownChannel = (KnownChannel) ( -1 );
+	private const KnownChannel UnknownChannel     = (KnownChannel) ( -1 );
+	private const float        AnimationFrameRate = 30; // Seems to be constant? No obvious designation in BCSKLA.
 
 	/// <summary>
 	/// Raised when a non-fatal warning is encountered during BCMDL import or glTF export.
@@ -460,7 +463,9 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 
 		if (!TryLoadTexture(bctexPath, out var bctex) || bctex is not { Textures.Count: 1 })
 		{
-			Warn($"Texture \"{bctexPath}\" not found or did not contain exactly one texture image");
+			if (!string.IsNullOrEmpty(bctexPath))
+				Warn($"Texture \"{bctexPath}\" not found or did not contain exactly one texture image");
+
 			return null;
 		}
 
@@ -661,117 +666,88 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 		// BCSKLA stores each vector component as its own track, so we need to use some funky logic to
 		// blend the three component tracks into a single Vector3 curve.
 
-		// All the CurveBuilder classes are internal, so we have to use this convoluted method to create an empty CurveBuilder<Vector3>...
-		var xCurve = CreateVectorCurveBuilder();
-		var yCurve = CreateVectorCurveBuilder();
-		var zCurve = CreateVectorCurveBuilder();
+		var xSpline = CreateSplineFromTrack(frameCount, trackVector.X, valueScale);
+		var ySpline = CreateSplineFromTrack(frameCount, trackVector.Y, valueScale);
+		var zSpline = CreateSplineFromTrack(frameCount, trackVector.Z, valueScale);
 
-		FillAnimationTrack(xCurve, frameCount, trackVector.X, out var xRates, valueScale);
-		FillAnimationTrack(yCurve, frameCount, trackVector.Y, out var yRates, valueScale);
-		FillAnimationTrack(zCurve, frameCount, trackVector.Z, out var zRates, valueScale);
+		var allFrameNumbers = xSpline.PointTimes.Concat([..ySpline.PointTimes, ..zSpline.PointTimes]).Distinct().Order().ToList();
 
-		var allFrameKeys = xCurve.Keys.Concat([..yCurve.Keys, ..zCurve.Keys]).Distinct().Order().ToList();
-
-		foreach (var frameKey in allFrameKeys)
+		foreach (var frameNumber in allFrameNumbers)
 		{
-			var xValue = xCurve.GetPoint(frameKey).X;
-			var yValue = yCurve.GetPoint(frameKey).X;
-			var zValue = zCurve.GetPoint(frameKey).X;
+			var xValue = xSpline.GetValueAt(frameNumber);
+			var yValue = ySpline.GetValueAt(frameNumber);
+			var zValue = zSpline.GetValueAt(frameNumber);
 			var valueVector = new Vector3(xValue, yValue, zValue);
-			var xRate = xRates.GetValueOrDefault(frameKey);
-			var yRate = yRates.GetValueOrDefault(frameKey);
-			var zRate = zRates.GetValueOrDefault(frameKey);
+			var xRate = xSpline.GetDerivativeAt(frameNumber);
+			var yRate = ySpline.GetDerivativeAt(frameNumber);
+			var zRate = zSpline.GetDerivativeAt(frameNumber);
 			var rateVector = new Vector3(xRate, yRate, zRate);
+			var frameTime = frameNumber / AnimationFrameRate;
 
-			curveBuilder.SetPoint(frameKey, valueVector, isLinear: false);
-			curveBuilder.SetIncomingTangent(frameKey, -rateVector);
-			curveBuilder.SetOutgoingTangent(frameKey, rateVector);
+			curveBuilder.SetPoint(frameTime, valueVector, isLinear: false);
+			curveBuilder.SetIncomingTangent(frameTime, rateVector);
+			curveBuilder.SetOutgoingTangent(frameTime, rateVector);
 		}
 	}
 
 	private static void FillAnimationTrack(CurveBuilder<Quaternion> curveBuilder, float frameCount, AnimatableVector trackVector)
 	{
-		var vectorCurveBuilder = CreateVectorCurveBuilder();
+		// BCSKLA stores each vector component as its own track, so we need to use some funky logic to
+		// blend the three component tracks into a single Vector3 curve.
 
-		FillAnimationTrack(vectorCurveBuilder, frameCount, trackVector);
+		var xSpline = CreateSplineFromTrack(frameCount, trackVector.X);
+		var ySpline = CreateSplineFromTrack(frameCount, trackVector.Y);
+		var zSpline = CreateSplineFromTrack(frameCount, trackVector.Z);
 
-		// Merge all rates manually since we can't sample those
-		var allFrameRates = new Dictionary<float, Vector3>();
+		var allFrameNumbers = xSpline.PointTimes.Concat([..ySpline.PointTimes, ..zSpline.PointTimes]).Distinct().Order().ToList();
 
-		foreach (var (frame, keyframeValues) in trackVector.X.GetValues())
+		foreach (var frameNumber in allFrameNumbers)
 		{
-			var frameKey = GetFrameKey(frameCount, frame);
-			var frameVector = allFrameRates.GetValueOrDefault(frameKey);
+			var xValue = xSpline.GetValueAt(frameNumber);
+			var yValue = ySpline.GetValueAt(frameNumber);
+			var zValue = zSpline.GetValueAt(frameNumber);
+			var valueMatrix = MathHelper.CreateXYZRotationMatrix(xValue, yValue, zValue);
+			var valueQuat = Quaternion.CreateFromRotationMatrix(valueMatrix);
+			var xRate = xSpline.GetDerivativeAt(frameNumber);
+			var yRate = ySpline.GetDerivativeAt(frameNumber);
+			var zRate = zSpline.GetDerivativeAt(frameNumber);
+			var rateMatrix = MathHelper.CreateXYZRotationMatrix(xRate, yRate, zRate);
+			var rateQuat = Quaternion.CreateFromRotationMatrix(rateMatrix);
+			var frameTime = frameNumber / AnimationFrameRate;
 
-			frameVector.X = keyframeValues.Rate;
-			allFrameRates[frameKey] = frameVector;
-		}
-
-		foreach (var (frame, keyframeValues) in trackVector.Y.GetValues())
-		{
-			var frameKey = GetFrameKey(frameCount, frame);
-			var frameVector = allFrameRates.GetValueOrDefault(frameKey);
-
-			frameVector.Y = keyframeValues.Rate;
-			allFrameRates[frameKey] = frameVector;
-		}
-
-		foreach (var (frame, keyframeValues) in trackVector.Z.GetValues())
-		{
-			var frameKey = GetFrameKey(frameCount, frame);
-			var frameVector = allFrameRates.GetValueOrDefault(frameKey);
-
-			frameVector.Z = keyframeValues.Rate;
-			allFrameRates[frameKey] = frameVector;
-		}
-
-		// Convert the vector samples to Quaternion samples using Pitch/Roll/Yaw rotation
-		foreach (var frameKey in vectorCurveBuilder.Keys)
-		{
-			var frameAngles = vectorCurveBuilder.GetPoint(frameKey);
-			var frameMatrix = MathHelper.CreateXYZRotationMatrix(frameAngles.X, frameAngles.Y, frameAngles.Z);
-			var frameQuat = Quaternion.CreateFromRotationMatrix(frameMatrix);
-			var frameRates = allFrameRates.GetValueOrDefault(frameKey);
-			var incomingTangentMatrix = MathHelper.CreateXYZRotationMatrix(-frameRates.X, -frameRates.Y, -frameRates.Z);
-			var outgoingTangentMatrix = MathHelper.CreateXYZRotationMatrix(frameRates.X, frameRates.Y, frameRates.Z);
-			var incomingTangentQuat = Quaternion.CreateFromRotationMatrix(incomingTangentMatrix);
-			var outgoingTangentQuat = Quaternion.CreateFromRotationMatrix(outgoingTangentMatrix);
-
-			curveBuilder.SetPoint(frameKey, frameQuat, isLinear: false);
-			curveBuilder.SetIncomingTangent(frameKey, incomingTangentQuat);
-			curveBuilder.SetOutgoingTangent(frameKey, outgoingTangentQuat);
+			curveBuilder.SetPoint(frameTime, valueQuat, isLinear: false);
+			curveBuilder.SetIncomingTangent(frameTime, rateQuat);
+			curveBuilder.SetOutgoingTangent(frameTime, rateQuat);
 		}
 	}
 
-	private static void FillAnimationTrack(CurveBuilder<Vector3> curveBuilder, float frameCount, AnimatableValue trackValue, out Dictionary<float, float> rates, float valueScale = 1f)
+	private static CubicHermiteSpline CreateSplineFromTrack(float frameCount, AnimatableValue track, float valueScale = 1f)
 	{
-		rates = new Dictionary<float, float>();
+		SplinePoint[] points;
 
-		if (trackValue.IsConstant)
+		if (track.IsConstant)
 		{
-			curveBuilder.SetPoint(0f, new Vector3(trackValue.ConstantValue * valueScale, 0f, 0f), isLinear: false);
-			curveBuilder.SetPoint(1f, new Vector3(trackValue.ConstantValue * valueScale, 0f, 0f), isLinear: false);
+			// Two points with zero derivative
+			points = new SplinePoint[2];
+
+			points[0] = new SplinePoint(0f, track.ConstantValue * valueScale, 0f);
+			points[1] = new SplinePoint(frameCount, track.ConstantValue * valueScale, 0f);
 		}
 		else
 		{
-			foreach (var (frame, keyframeValues) in trackValue.GetValues())
-			{
-				var frameKey = GetFrameKey(frameCount, frame);
+			points = new SplinePoint[track.ValueCount];
 
-				curveBuilder.SetPoint(frameKey, new Vector3(keyframeValues.Value * valueScale, 0f, 0f), isLinear: false);
-				curveBuilder.SetIncomingTangent(frameKey, new Vector3(-keyframeValues.Rate * valueScale, 0f, 0f));
-				curveBuilder.SetOutgoingTangent(frameKey, new Vector3(keyframeValues.Rate * valueScale, 0f, 0f));
-				rates[frameKey] = keyframeValues.Rate * valueScale;
+			foreach (var (i, (time, (value, rate))) in track.GetValues().Pairs())
+			{
+				var scaledValue = value * valueScale;
+				var scaledRate = rate * valueScale;
+
+				points[i] = new SplinePoint(time, scaledValue, scaledRate);
 			}
 		}
+
+		return new CubicHermiteSpline(points);
 	}
-
-	private static CurveBuilder<Vector3> CreateVectorCurveBuilder()
-		// All the CurveBuilder classes are internal, so we have to use this convoluted method to create an empty CurveBuilder<Vector3>...
-		=> new NodeBuilder().UseTranslation().UseTrackBuilder("dummy");
-
-	private static float GetFrameKey(float frameCount, ushort frameIndex)
-		=> frameIndex / frameCount;
 
 	#endregion
 
