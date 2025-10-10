@@ -108,12 +108,40 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 
 		var modelRoot = CurrentScene.ToGltf2();
 
+		// Ensure any "additional" (unmapped) images get explicitly included
 		foreach (var (bctexPath, memoryImage) in AdditionalImages)
 		{
 			var imageName = Path.GetFileNameWithoutExtension(bctexPath);
 			var logicalImage = modelRoot.CreateImage(imageName);
 
 			logicalImage.Content = memoryImage;
+		}
+
+		// Create dummy skins for every root joint containing that joint and all of its children.
+		// These skins do not actually "skin" anything, but rather trick tools like Blender into treating
+		// the non-skinning "reference" bones (e.g. DC_RootMotion) as actual bones in an armature instead
+		// of treating them like empty objects.
+		if (CurrentArmature is { } armature)
+		{
+			var nodesByName = modelRoot.LogicalNodes.Where(n => n.Name != null).DistinctBy(n => n.Name).ToDictionary(n => n.Name);
+
+			foreach (var root in armature.RootJoints)
+			{
+				var skin = modelRoot.CreateSkin(root.Name);
+
+				if (nodesByName.TryGetValue(root.Name, out var rootNode))
+					skin.Skeleton = rootNode;
+
+				var skinJoints = new List<Node>();
+
+				foreach (var joint in root.EnumerateSelfAndChildren())
+				{
+					if (nodesByName.TryGetValue(joint.Name, out var jointNode))
+						skinJoints.Add(jointNode);
+				}
+
+				skin.BindJoints(skinJoints.ToArray());
+			}
 		}
 
 		if (binary)
@@ -220,15 +248,12 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 			{
 				// Rigid mesh
 				var meshInstanceMatrix = GetMeshTransformMatrix(bcmdlNode);
-				NodeBuilder meshParent;
 
 				// Unskinned meshes sometimes have a joint named the same as the mesh, which should be the mesh parent
 				if (bcmdlNode.Id?.Name is { } meshName && ArmatureNodeCache.TryGetValue(meshName, out var parentJointNode))
-					meshParent = parentJointNode;
+					scene.AddRigidMesh(meshBuilder, parentJointNode, meshInstanceMatrix).WithName(bcmdlNode.Id?.Name);
 				else
-					meshParent = new NodeBuilder(bcmdlNode.Id?.Name);
-
-				scene.AddRigidMesh(meshBuilder, meshParent, meshInstanceMatrix).WithName(bcmdlNode.Id?.Name);
+					scene.AddRigidMesh(meshBuilder, meshInstanceMatrix).WithName(bcmdlNode.Id?.Name);
 			}
 
 			index++;
