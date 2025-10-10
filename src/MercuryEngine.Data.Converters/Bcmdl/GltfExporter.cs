@@ -94,7 +94,7 @@ public sealed class GltfExporter(IGameAssetResolver? assetResolver = null) : IDi
 
 			if (!ArmatureNodeCacheByCrc.TryGetValue(boneTrack.BoneName, out var boneNode))
 			{
-				Warn($"Animation track {thisIndex} referenced unknown bone \"{boneTrack.BoneName}\"");
+				Warn($"Animation track {thisIndex} of \"{animationName}\" referenced unknown bone \"{boneTrack.BoneName}\"");
 				continue;
 			}
 

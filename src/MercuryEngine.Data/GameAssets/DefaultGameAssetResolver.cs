@@ -20,7 +20,7 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 
 	private readonly Dictionary<StrId, GameAsset> packageAssetsCache = [];
 
-	private bool packageCacheBuilt;
+	private volatile bool packageCacheBuilt;
 
 	/// <summary>
 	/// Gets the path of the RomFS root directory from which game assets are resolved.
@@ -75,12 +75,36 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 		}
 	}
 
+	public IEnumerable<GameAsset> EnumerateAssets(string directory, Func<string, string>? assetIdTransformer = null)
+	{
+		directory = NormalizePath(directory).TrimEnd('/') + "/";
+
+		// First enumerate bare RomFS files
+		var romfsSubdirectory = Path.Join(RomFsPath, directory);
+
+		if (Directory.Exists(romfsSubdirectory))
+		{
+			foreach (var file in Directory.EnumerateFiles(romfsSubdirectory, "*", SearchOption.AllDirectories))
+			{
+				var relativePath = NormalizePath(Path.GetRelativePath(RomFsPath, file));
+				var assetIdOverride = assetIdTransformer?.Invoke(relativePath);
+
+				yield return new GameAsset(relativePath, file, assetIdOverride);
+			}
+		}
+
+		// Then enumerate PKG files
+		foreach (var asset in EnumeratePackageAssets(directory))
+			yield return asset;
+	}
+
 	private GameAsset? FindPackageAsset(string relativePath)
 	{
 		var assetId = (StrId) NormalizePath(relativePath);
 
 		if (UsePackageCache)
 		{
+			// ReSharper disable once InconsistentlySynchronizedField
 			if (!this.packageCacheBuilt)
 			{
 				lock (this.packageAssetsCache)
@@ -104,6 +128,39 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 
 	private GameAsset? GetAssetFromPackageCache(StrId assetId)
 		=> this.packageAssetsCache.GetValueOrDefault(assetId);
+
+	private IEnumerable<GameAsset> EnumeratePackageAssets(string directory)
+	{
+		if (!UsePackageCache)
+			throw new InvalidOperationException($"{nameof(EnumerateAssets)} can only be called if {nameof(UsePackageCache)} is true");
+
+		// ReSharper disable once InconsistentlySynchronizedField
+		if (!this.packageCacheBuilt)
+		{
+			lock (this.packageAssetsCache)
+			{
+				if (this.packageCacheBuilt)
+					// In case somebody else built it while we were waiting for the lock
+					return EnumeratePackageAssetsCache(directory);
+
+				BuildPackageCache();
+				this.packageCacheBuilt = true;
+			}
+		}
+
+		return EnumeratePackageAssetsCache(directory);
+	}
+
+	private IEnumerable<GameAsset> EnumeratePackageAssetsCache(string directory)
+	{
+		var seenAssets = new HashSet<StrId>();
+
+		foreach (var (assetId, asset) in this.packageAssetsCache)
+		{
+			if (assetId.IsKnown && assetId.StringValue.StartsWith(directory) && seenAssets.Add(assetId))
+				yield return asset;
+		}
+	}
 
 	private void BuildPackageCache()
 	{
@@ -133,6 +190,7 @@ public class DefaultGameAssetResolver(string romFsPath) : IGameAssetResolver
 
 	private IEnumerable<string> FindPackagesWithFileUncached(StrId assetId)
 	{
+		// ReSharper disable once InconsistentlySynchronizedField
 		foreach (var curPackageFilePath in Directory.EnumerateFiles(RomFsPath, "*.pkg", PkgEnumerationOptions))
 		{
 			using var fileStream = File.Open(curPackageFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);

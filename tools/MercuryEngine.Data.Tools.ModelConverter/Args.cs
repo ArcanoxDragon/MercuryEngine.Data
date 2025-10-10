@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using System.CommandLine.Parsing;
 using BCnEncoder.Encoder;
 using MercuryEngine.Data.Converters.Bcmdl;
 using MercuryEngine.Data.TegraTextureLib.Formats;
@@ -37,6 +38,10 @@ internal static class Args
 			Command.Add(InputModelPath);
 			Command.Add(OutputModelPath);
 			Command.Add(OutputFormat);
+			Command.Add(AnimationDirectories);
+			Command.Add(AnimationNames);
+			Command.Add(AnimationIncludeFilters);
+			Command.Add(AnimationExcludeFilters);
 			Command.SetAction(ExportCommand.Run);
 		}
 
@@ -78,6 +83,69 @@ internal static class Args
 				"file, as opposed to the \".gltf\" format which requires images and buffer views to be saved " +
 				"as separate files. Defaults to Binary, unless the output file extension is \".gltf\".",
 		};
+
+		#region Animations
+
+		public static readonly Option<List<string>> AnimationDirectories = new Option<List<string>>("--animations-dir") {
+			Arity = ArgumentArity.ZeroOrMore,
+			Description =
+				"A relative path to a directory containing BCSKLA files that will be exported as individual animations. Paths are relative to the " +
+				"game's RomFS filesystem, and BCSKLA files will be discovered from both bare RomFS files as well as those in PKG files. This option " +
+				"can be specified multiple times to include animations from multiple directories.",
+		}.AcceptLegalFilePathsOnly();
+
+		public static readonly Option<List<string>> AnimationNames = new("--animation-name") {
+			Arity = ArgumentArity.ZeroOrMore,
+			AllowMultipleArgumentsPerToken = true,
+			Description =
+				"One or more names of animations to include from the provided animations directory. This argument is optional, and mutually " +
+				"exclusive with the \"include\" and \"exclude\" filter options. If any animation names are specified, only BCSKA files whose " +
+				"filename (excluding the extension) matches one of the provided names will be exported. Multiple animation names can be specified " +
+				"by either separating each animation name with a space, or by specifying this argument multiple times.",
+			Validators = {
+				result => {
+					var animationsDirectoryResult = result.GetResult(AnimationDirectories);
+					var animationNamesValue = result.GetValueOrDefault<List<string>>();
+
+					if (animationNamesValue is { Count: > 0 } && animationsDirectoryResult is null or { Implicit: true })
+						result.AddError($"The \"{AnimationDirectories.Name}\" option must be provided in order to export animations");
+				},
+			},
+		};
+
+		public static readonly Option<List<string>> AnimationIncludeFilters = new("--animations-include") {
+			Arity = ArgumentArity.ZeroOrMore,
+			Description =
+				"A regular expression that can be used to choose which animations are exported. This option can be specified multiple times to " +
+				"use multiple filter patterns. Animations will be included if the name of the BCSKLA file (without the extension) matches ANY of " +
+				"the specified \"include\" filters. If this option is not provided, all animations in the provided directory will be included.",
+			Validators = { ValidateFilterOption },
+		};
+
+		public static readonly Option<List<string>> AnimationExcludeFilters = new("--animations-exclude") {
+			Arity = ArgumentArity.ZeroOrMore,
+			Description =
+				"A regular expression that can be used to choose which animations are exported. This option can be specified multiple times to " +
+				"use multiple filter patterns. Animations will be excluded if the name of the BCSKLA file (without the extension) matches ANY of " +
+				"the specified \"exclude\" filters. Any specified \"exclude\" filters will be applied after any \"include\" filters are applied, " +
+				"further refining the set of included animations.",
+			Validators = { ValidateFilterOption },
+		};
+
+		private static void ValidateFilterOption(OptionResult result)
+		{
+			var animationsDirectoryResult = result.GetResult(AnimationDirectories);
+			var animationNamesResult = result.GetResult(AnimationNames);
+			var filtersValue = result.GetValueOrDefault<List<string>>();
+
+			if (filtersValue is { Count: > 0 } && animationsDirectoryResult is null or { Implicit: true })
+				result.AddError($"The \"{AnimationDirectories.Name}\" option must be provided in order to export animations");
+
+			if (filtersValue is { Count: > 0 } && animationNamesResult is { Implicit: false })
+				result.AddError($"Animation filters cannot be used with the \"{AnimationNames.Name}\" option.");
+		}
+
+		#endregion
 	}
 
 	public static class Import
@@ -141,6 +209,8 @@ internal static class Args
 				"\"system/shd/mp_opaque_constant_selfilum.bshdat\".",
 		};
 
+		#region Textures
+
 		public static readonly Option<CompressionQuality> TextureCompressionQuality = new("--bctex-quality") {
 			Description =
 				"The compression quality to use when compressing BCTEX textures.",
@@ -168,6 +238,8 @@ internal static class Args
 				},
 			},
 		};
+
+		#endregion
 
 		#region Arbitrary Path Output
 
