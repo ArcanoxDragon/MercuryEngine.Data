@@ -79,12 +79,12 @@ jobs:
 
     # ZIP artifacts for upload (Linux)
     - name: Bundle artifacts
-      if: matrix.os.image == 'ubuntu-latest'
+      if: ${{ matrix.configuration == 'Release' && matrix.os.image == 'ubuntu-latest' }}
       run: zip mdlconvert_${{ matrix.os.rid }}.zip ${{ env.Publish_Path }}/${{ matrix.os.rid }}/* -r
 
     # ZIP artifacts for upload (Windows)
     - name: Bundle artifacts
-      if: matrix.os.image == 'windows-latest'
+      if: ${{ matrix.configuration == 'Release' && matrix.os.image == 'windows-latest' }}
       run: Compress-Archive -Path ${{ env.Publish_Path }}\${{ matrix.os.rid }}\* -DestinationPath mdlconvert_${{ matrix.os.rid }}.zip
 
     # Upload the artifact
@@ -99,7 +99,7 @@ jobs:
   release:
     runs-on: "ubuntu-latest"
     name: Release
-    if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
+    if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' && startsWith(github.ref, 'refs/tags/v') }}
 
     permissions:
       contents: write
@@ -114,12 +114,8 @@ jobs:
           pattern: '*'
           path: publish/
 
-      - name: List artifacts
-        run: ls -R
-
       - name: Upload binaries to GitHub Release
         uses: ncipollo/release-action@v1
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
