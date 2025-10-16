@@ -80,7 +80,7 @@ jobs:
     # ZIP artifacts for upload (Linux)
     - name: Bundle artifacts
       if: ${{ matrix.configuration == 'Release' && matrix.os.image == 'ubuntu-latest' }}
-      run: zip mdlconvert_${{ matrix.os.rid }}.zip ${{ env.Publish_Path }}/${{ matrix.os.rid }}/* -r
+      run: zip mdlconvert_${{ matrix.os.rid }}.zip ${{ env.Publish_Path }}/${{ matrix.os.rid }}/* -jr
 
     # ZIP artifacts for upload (Windows)
     - name: Bundle artifacts
