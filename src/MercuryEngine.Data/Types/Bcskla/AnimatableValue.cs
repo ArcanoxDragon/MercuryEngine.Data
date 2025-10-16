@@ -27,6 +27,8 @@ public class AnimatableValue : IBinaryField
 		}
 	}
 
+	public int ValueCount => IsConstant ? 1 : this.keyframeValues.Count;
+
 	internal ulong PointerBase { get; set; }
 
 	private ValueTrack ValueTrack { get; } = new();

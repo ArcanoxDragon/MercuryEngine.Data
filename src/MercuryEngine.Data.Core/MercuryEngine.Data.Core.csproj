@@ -12,6 +12,7 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="MercuryEngine.Data" />
+		<InternalsVisibleTo Include="MercuryEngine.Data.Converters" />
 		<InternalsVisibleTo Include="MercuryEngine.Data.Definitions" />
 		<InternalsVisibleTo Include="MercuryEngine.Data.Tests" />
 	</ItemGroup>

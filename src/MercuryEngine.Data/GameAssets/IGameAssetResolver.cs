@@ -56,4 +56,7 @@ public interface IGameAssetResolver
 	/// A <see cref="GameAsset"/> instance representing the asset with the requested <paramref name="relativePath"/>.
 	/// </returns>
 	GameAsset GetAsset(string relativePath, string? assetIdOverride = null);
+
+	// TODO: Docs
+	IEnumerable<GameAsset> EnumerateAssets(string directory, Func<string, string>? assetIdTransformer = null);
 }

@@ -29,4 +29,13 @@ public class ArmatureJoint(string name)
 		child.Parent = null;
 		return true;
 	}
+
+	public IEnumerable<ArmatureJoint> EnumerateSelfAndChildren()
+	{
+		yield return this;
+
+		foreach (var child in Children)
+		foreach (var descendent in child.EnumerateSelfAndChildren())
+			yield return descendent;
+	}
 }
