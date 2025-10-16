@@ -14,8 +14,14 @@ jobs:
       matrix:
         configuration: [Debug, Release]
         os:
-          - { name: "Windows", image: "windows-latest", rid: "win-x64" }
-          - { name: "Linux", image: "ubuntu-latest", rid: "linux-x64" }
+          - name: Windows
+            image: windows-latest
+            rid: win-x64
+            rust_target: x86_64-pc-windows-msvc
+          - name: Linux
+            image: ubuntu-latest
+            rid: linux-x64
+            rust_target: x86_64-unknown-linux-gnu
 
     runs-on: ${{ matrix.os.image }}
 
@@ -26,6 +32,7 @@ jobs:
 
     env:
       Solution_Name: MercuryEngine.Data.sln
+      Tegra_Swizzle_Path: src/MercuryEngine.Data.TegraTextureLib
       Project_Path: tools/MercuryEngine.Data.Tools.ModelConverter/MercuryEngine.Data.Tools.ModelConverter.csproj
       Publish_Path: tools/MercuryEngine.Data.Tools.ModelConverter/bin/publish
 
@@ -42,6 +49,15 @@ jobs:
       id: nbgv
       with:
         setAllVars: true
+
+    # Install Rust toolchain
+    - name: Install Rust toolchain
+      run: rustup update && rustup target add ${{ matrix.os.rust_target }}
+
+    # Build tegra-swizzle library
+    - name: Build tegra-swizzle library
+      working-directory: ${{ env.Tegra_Swizzle_Path }}
+      run: cargo build -r --target ${{ matrix.os.rust_target }}
 
     # Install the .NET Core workload
     - name: Install .NET Core
