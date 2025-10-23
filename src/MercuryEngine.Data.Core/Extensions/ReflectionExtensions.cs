@@ -72,4 +72,21 @@ public static class ReflectionExtensions
 			return false;
 		}
 	}
+
+	/// <summary>
+	/// Returns whether or not this <see cref="Type"/> represents the same type as <paramref name="other"/>
+	/// <i>or</i> the nullable version of <paramref name="other"/>, if <paramref name="other"/> is a value type.
+	/// </summary>
+	public static bool IsTypeOrNullable(this Type type, Type other)
+	{
+		if (type == other)
+			return true;
+
+		if (!type.IsConstructedGenericType || type.GetGenericTypeDefinition() != typeof(Nullable<>))
+			return false;
+
+		var nullableInnerType = Nullable.GetUnderlyingType(type);
+
+		return nullableInnerType == other;
+	}
 }
