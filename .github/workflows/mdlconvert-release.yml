@@ -14,15 +14,25 @@ jobs:
       matrix:
         configuration: [Debug, Release]
         os:
-          - { name: "Windows", image: "windows-latest", rid: "win-x64" }
-          - { name: "Linux", image: "ubuntu-latest", rid: "linux-x64" }
+          - name: Windows
+            image: windows-latest
+            rid: win-x64
+            rust_target: x86_64-pc-windows-msvc
+          - name: Linux
+            image: ubuntu-latest
+            rid: linux-x64
+            rust_target: x86_64-unknown-linux-gnu
 
     runs-on: ${{ matrix.os.image }}
 
     name: ${{ matrix.os.name }} Executable (${{ matrix.configuration }})
 
+    outputs:
+      releaseVersion: ${{ steps.nbgv.outputs.CloudBuildNumber }}
+
     env:
       Solution_Name: MercuryEngine.Data.sln
+      Tegra_Swizzle_Path: src/MercuryEngine.Data.TegraTextureLib
       Project_Path: tools/MercuryEngine.Data.Tools.ModelConverter/MercuryEngine.Data.Tools.ModelConverter.csproj
       Publish_Path: tools/MercuryEngine.Data.Tools.ModelConverter/bin/publish
 
@@ -36,8 +46,18 @@ jobs:
     # Use Nerdbank.GitVersioning to set version variables: https://github.com/AArnott/nbgv
     - name: Use Nerdbank.GitVersioning to set version variables
       uses: dotnet/nbgv@v0.4.2
+      id: nbgv
       with:
         setAllVars: true
+
+    # Install Rust toolchain
+    - name: Install Rust toolchain
+      run: rustup update && rustup target add ${{ matrix.os.rust_target }}
+
+    # Build tegra-swizzle library
+    - name: Build tegra-swizzle library
+      working-directory: ${{ env.Tegra_Swizzle_Path }}
+      run: cargo build -r --target ${{ matrix.os.rust_target }}
 
     # Install the .NET Core workload
     - name: Install .NET Core
@@ -57,6 +77,16 @@ jobs:
     - name: Publish binary
       run: dotnet publish -c ${{ matrix.configuration }} -r ${{ matrix.os.rid }} -o "${{ env.Publish_Path }}/${{ matrix.os.rid }}" -p:DebugSymbols=False ${{ env.Project_Path }}
 
+    # ZIP artifacts for upload (Linux)
+    - name: Bundle artifacts
+      if: ${{ matrix.configuration == 'Release' && matrix.os.image == 'ubuntu-latest' }}
+      run: zip mdlconvert_${{ matrix.os.rid }}.zip ${{ env.Publish_Path }}/${{ matrix.os.rid }}/* -jr
+
+    # ZIP artifacts for upload (Windows)
+    - name: Bundle artifacts
+      if: ${{ matrix.configuration == 'Release' && matrix.os.image == 'windows-latest' }}
+      run: Compress-Archive -Path ${{ env.Publish_Path }}\${{ matrix.os.rid }}\* -DestinationPath mdlconvert_${{ matrix.os.rid }}.zip
+
     # Upload the artifact
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -64,30 +94,34 @@ jobs:
       with:
         name: mdlconvert_${{ matrix.os.rid }}
         if-no-files-found: error
-        path: ${{ env.Publish_Path }}/${{ matrix.os.rid }}
+        path: mdlconvert_${{ matrix.os.rid }}.zip
 
   release:
     runs-on: "ubuntu-latest"
     name: Release
+    if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' && startsWith(github.ref, 'refs/tags/v') }}
+
+    permissions:
+      contents: write
+
     needs:
       - build
-    if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
 
     steps:
       - name: Download binaries
         uses: actions/download-artifact@v5.0.0
         with:
-          pattern: '* *'
+          pattern: '*'
           path: publish/
 
       - name: Upload binaries to GitHub Release
-        uses: svenstaro/upload-release-action@2.11.2
-        if: ${{ startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/main') }}
+        uses: ncipollo/release-action@v1
         with:
-          file: publish/mdlconvert*/**
-          file_glob: true
-          tag: ${{ github.ref }}
-          overwrite: true
-          prerelease: true
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: publish/mdlconvert*/**/*.zip
           draft: ${{ startsWith(github.ref, 'refs/heads/main') }}
-          body: "Release executable"
+          generateReleaseNotes: true
+          name: mdlconvert ${{ needs.build.outputs.releaseVersion }}
+          prerelease: true
+          updateOnlyUnreleased: true

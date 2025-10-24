@@ -488,6 +488,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 				vertexData[i].Color = accessorArray[i];
 		}
 
+		[SuppressMessage("ReSharper", "VariableHidesOuterVariable")]
 		void PopulateJointIndices(IAccessorArray<SysVector4> accessorArray, ref bool isRigid)
 		{
 			for (var i = 0; i < Math.Min(vertexData.Length, accessorArray.Count); i++)
@@ -498,6 +499,7 @@ public partial class GltfImporter(IGameAssetResolver assetResolver)
 			}
 		}
 
+		[SuppressMessage("ReSharper", "VariableHidesOuterVariable")]
 		void PopulateJointWeights(IAccessorArray<SysVector4> accessorArray, ref bool isRigid)
 		{
 			for (var i = 0; i < Math.Min(vertexData.Length, accessorArray.Count); i++)
