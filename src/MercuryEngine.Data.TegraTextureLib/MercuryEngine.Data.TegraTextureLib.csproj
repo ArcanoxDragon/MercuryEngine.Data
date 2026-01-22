@@ -33,10 +33,10 @@
 
 	<ItemGroup>
 		<PackageReference Include="BCnEncoder.Net" Version="2.2.1" />
-		<PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
-		<PackageReference Include="Magick.NET-Q16-HDRI-AnyCPU" Version="14.8.2" />
+		<PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
+		<PackageReference Include="Magick.NET-Q16-HDRI-AnyCPU" Version="14.10.2" />
 		<PackageReference Include="Overby.Extensions.AsyncBinaryReaderWriter" Version="1.0.39" />
-		<PackageReference Include="SharpCompress" Version="0.40.0" />
+		<PackageReference Include="SharpCompress" Version="0.44.1" />
 	</ItemGroup>
 
 	<ItemGroup>

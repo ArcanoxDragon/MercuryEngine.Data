@@ -106,7 +106,10 @@ internal struct RgbaColor32 : IEquatable<RgbaColor32>
 	{
 		if (Sse2.IsSupported)
 		{
+#pragma warning disable CA1857 // It is constant, from [ConstantExpected] on the outer parameter...
+			// ReSharper disable once ConstantExpected
 			return new RgbaColor32(Sse2.ShiftLeftLogical(x._color, shift));
+#pragma warning restore CA1857
 		}
 		else
 		{
@@ -119,7 +122,10 @@ internal struct RgbaColor32 : IEquatable<RgbaColor32>
 	{
 		if (Sse2.IsSupported)
 		{
+#pragma warning disable CA1857 // It is constant, from [ConstantExpected] on the outer parameter...
+			// ReSharper disable once ConstantExpected
 			return new RgbaColor32(Sse2.ShiftRightLogical(x._color, shift));
+#pragma warning restore CA1857
 		}
 		else
 		{
