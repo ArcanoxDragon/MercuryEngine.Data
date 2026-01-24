@@ -1,6 +1,6 @@
 <Project>
 	<PropertyGroup>
-		<MainTargetFramework>net9.0</MainTargetFramework>
+		<MainTargetFramework>net10.0</MainTargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>

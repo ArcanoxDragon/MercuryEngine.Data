@@ -184,7 +184,7 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 				floatSpan[i + 7] = (float) halfPixels[i + 7];
 
 				var thisSpan = floatSpan[i..( i + 8 )];
-				var values = Vector256.Create((ReadOnlySpan<float>) thisSpan);
+				var values = Vector256.Create(thisSpan);
 
 				values *= 65535f;
 				values.CopyTo(thisSpan);
@@ -200,7 +200,7 @@ public sealed record TegraTexture(XtxTextureInfo Info, byte[] Data)
 				floatSpan[i + 3] = (float) halfPixels[i + 3];
 
 				var thisSpan = floatSpan[i..( i + 4 )];
-				var values = Vector128.Create((ReadOnlySpan<float>) thisSpan);
+				var values = Vector128.Create(thisSpan);
 
 				values *= 65535f;
 				values.CopyTo(thisSpan);

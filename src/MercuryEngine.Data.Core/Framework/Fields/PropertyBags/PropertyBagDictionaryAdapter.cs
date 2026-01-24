@@ -21,12 +21,12 @@ where TValue : IBinaryField
 	{
 		get
 		{
-			var field = propertyBag.Get(propertyName);
+			var @field = propertyBag.Get(propertyName);
 
-			if (field is null)
+			if (@field is null)
 				return null;
 
-			if (field is not DictionaryField<TKey, TValue> dictionaryField)
+			if (@field is not DictionaryField<TKey, TValue> dictionaryField)
 				throw new InvalidOperationException($"Property \"{propertyName}\" is not a Dictionary<{nameof(TKey)}, {nameof(TValue)}> field");
 
 			return dictionaryField;

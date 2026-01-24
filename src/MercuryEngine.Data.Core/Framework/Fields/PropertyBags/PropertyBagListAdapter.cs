@@ -18,12 +18,12 @@ where T : IBinaryField
 	{
 		get
 		{
-			var field = propertyBag.Get(propertyName);
+			var @field = propertyBag.Get(propertyName);
 
-			if (field is null)
+			if (@field is null)
 				return null;
 
-			if (field is not ArrayField<T> arrayField)
+			if (@field is not ArrayField<T> arrayField)
 				throw new InvalidOperationException($"Property \"{propertyName}\" is not an Array<{nameof(T)}> field");
 
 			return arrayField;
