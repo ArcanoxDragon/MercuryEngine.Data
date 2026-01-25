@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using MercuryEngine.Data.Core.Framework.Fields;
 using MercuryEngine.Data.Core.Framework.Fields.PropertyBags;
 
@@ -56,7 +57,10 @@ public static class PropertyBagFieldExtensions
 	#region Arrays
 
 	// TODO: Rename ArrayField to ListField or something
-	public static IListProperty<T> Array<T>(this IPropertyBagField propertyBag, string propertyName)
+	public static IListProperty<T> Array<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		T
+	>(this IPropertyBagField propertyBag, string propertyName)
 	where T : IBinaryField
 		=> new PropertyBagListAdapter<T>(propertyBag, propertyName);
 
@@ -64,7 +68,12 @@ public static class PropertyBagFieldExtensions
 
 	#region Dictionaries
 
-	public static IDictionaryProperty<TKey, TValue> Dictionary<TKey, TValue>(this IPropertyBagField propertyBag, string propertyName)
+	public static IDictionaryProperty<TKey, TValue> Dictionary<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TKey,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+		TValue
+	>(this IPropertyBagField propertyBag, string propertyName)
 	where TKey : IBinaryField
 	where TValue : IBinaryField
 		=> new PropertyBagDictionaryAdapter<TKey, TValue>(propertyBag, propertyName);

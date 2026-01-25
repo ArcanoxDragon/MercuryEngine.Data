@@ -5,7 +5,12 @@ using MercuryEngine.Data.Core.Utility;
 
 namespace MercuryEngine.Data.Core.Framework.Fields.PropertyBags;
 
-internal class PropertyBagDictionaryAdapter<TKey, TValue>(
+internal class PropertyBagDictionaryAdapter<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+	TKey,
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+	TValue
+>(
 	IPropertyBagField propertyBag,
 	string propertyName
 ) : IDictionaryProperty<TKey, TValue>

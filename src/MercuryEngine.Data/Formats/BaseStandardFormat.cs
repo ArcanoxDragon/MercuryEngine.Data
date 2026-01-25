@@ -11,7 +11,7 @@ using MercuryEngine.Data.Types.Fields;
 namespace MercuryEngine.Data.Formats;
 
 public abstract class BaseStandardFormat<
-	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)]
 	TSelf,
 	TRoot
 > : BinaryFormat<TSelf>

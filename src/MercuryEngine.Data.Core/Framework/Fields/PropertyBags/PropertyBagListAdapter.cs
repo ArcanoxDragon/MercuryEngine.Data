@@ -1,9 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MercuryEngine.Data.Core.Framework.Fields.PropertyBags;
 
-internal class PropertyBagListAdapter<T>(
+internal class PropertyBagListAdapter<
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+	T
+>(
 	IPropertyBagField propertyBag,
 	string propertyName
 ) : IListProperty<T>
